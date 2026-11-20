@@ -4,16 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>مبل ناریا A603</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
-<script type="importmap">
-{ "imports": {
-  "three": "./lib/three/three.module.js",
-  "three/addons/": "./lib/three/addons/"
-} }
-</script>
 <script type="module" src="lib/model-viewer.min.js"></script>
 <style>
+  /* فونت داخل خود سایت (بدون وابستگی به گوگل که در ایران ممکن است باز نشود و اجرای صفحه را معطل کند) */
+  @font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn-Regular.woff2) format('woff2');font-weight:400;font-display:swap}
+  @font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn-SemiBold.woff2) format('woff2');font-weight:600;font-display:swap}
+  @font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn-ExtraBold.woff2) format('woff2');font-weight:800;font-display:swap}
   :root{ --bg:#f1eee9; --panel:#fffdf9; --ink:#24201d; --muted:#766b62; --line:#e4ddd3; --accent:#1f1b18; }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
@@ -148,15 +144,27 @@
 </aside>
 
 <script>
+/* اگر روی گوشی چیزی خراب شد، متن خطا روی صفحه نشان داده شود (برای عکس‌گرفتن و عیب‌یابی) */
+(function(){ var b=document.getElementById('busy');
+  function show(t){ b.style.cssText+=';white-space:pre-wrap;text-align:start;font-size:11px;direction:ltr;max-height:70%;overflow:auto;color:#7a1f12';
+    b.textContent=(b.dataset.err?b.textContent+'\n':'')+t; b.dataset.err=1; b.classList.add('on'); }
+  window.__showErr=show;
+  addEventListener('error',function(e){ show('Error: '+(e.message||(e.target&&(e.target.src||e.target.href))||e)+(e.filename?'\n'+e.filename.split('/').pop()+':'+e.lineno:'')); },true);
+  addEventListener('unhandledrejection',function(e){ show('Promise: '+(e.reason&&(e.reason.stack||e.reason.message)||e.reason)); });
+  var gl=document.createElement('canvas'); var ok=!!(gl.getContext('webgl2')||gl.getContext('webgl'));
+  if(!ok) show('WebGL روی این مرورگر فعال نیست. صفحه را با Chrome باز کنید.');
+  setTimeout(function(){ if(!window.__started) show('کد سه‌بعدی روی این مرورگر اجرا نشد. لطفاً صفحه را با Google Chrome (نسخه به‌روز) باز کنید.\n'+navigator.userAgent); },25000);
+})();
 if (location.protocol === 'file:') { const b = document.getElementById('busy');
   b.textContent = 'این صفحه با file:// اجرا نمی‌شود. فایل run.sh را اجرا کنید و آدرسی را که نشان می‌دهد باز کنید.'; b.classList.add('on'); }
 </script>
 <script type="module">
-import * as THREE from 'three';
-import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
-import { toCreasedNormals, mergeVertices, mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+window.__started=true;
+import * as THREE from './lib/three/three.module.js';
+import { GLTFExporter } from './lib/three/addons/exporters/GLTFExporter.js';
+import { toCreasedNormals, mergeVertices, mergeGeometries } from './lib/three/addons/utils/BufferGeometryUtils.js';
+import { OrbitControls } from './lib/three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from './lib/three/addons/environments/RoomEnvironment.js';
 
 /* ============ گزینه‌ها ============ */
 // گوشی/تبلت: بافت‌ها ۱K، سایه ۱K، رزولوشن رندر کمتر (کیفیت روی صفحه کوچک فرقی نمی‌کند)
