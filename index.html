@@ -50,6 +50,7 @@
   .no-ar{z-index:2;position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--muted);background:rgba(255,253,249,.9);padding:6px 12px;border-radius:999px;white-space:nowrap}
   .busy{z-index:4;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;color:var(--muted);background:rgba(255,253,249,.92);padding:8px 14px;border-radius:12px;display:none;max-width:90%;text-align:center}
   .busy.on{display:block}
+  .busy.soft{top:110px;transform:translateX(-50%);font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
   aside{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:18px 18px 40px}
   h2{font-size:13px;color:var(--muted);font-weight:600;margin:18px 0 8px}
   h2:first-child{margin-top:0}
@@ -459,7 +460,14 @@ function medallion(rx,ry){
 
 /* ============ مواد ============ */
 const loader=new THREE.ImageLoader(); const imgCache={};
-const loadImg=url=>imgCache[url]??=new Promise((res,rej)=>loader.load(url,res,undefined,()=>rej(new Error('بارگذاری نشد: '+url))));
+/* بارگذاری مطمئن روی اینترنت ناپایدار: اگر فایلی گیر کرد، بعد از مهلت دوباره درخواست می‌شود (تا ۴ بار) */
+function loadOnce(url,ms){ return new Promise((res,rej)=>{ const im=new Image(); let done=false;
+  const end=(f,v)=>{ if(done) return; done=true; clearTimeout(t); f(v); };
+  const t=setTimeout(()=>{ im.src=''; end(rej,new Error('timeout')); },ms);
+  im.onload=()=>end(res,im); im.onerror=()=>end(rej,new Error('error')); im.src=url; }); }
+const loadImg=url=>imgCache[url]??=(async()=>{
+  for(let i=0;i<4;i++){ try{ return await loadOnce(i?url+'?r='+Date.now():url,(MOBILE?25000:15000)+i*10000); }catch(_){ } }
+  delete imgCache[url]; throw new Error('بارگذاری نشد (اینترنت): '+url); })();
 function shrink(src,max=1024){ if(!MOBILE||src.width<=max) return src; const k=max/src.width, c=document.createElement('canvas');
   c.width=max; c.height=Math.round(src.height*k); c.getContext('2d').drawImage(src,0,0,c.width,c.height); return c; }
 function tex(src,srgb,tileU=0.3,tileV=tileU){
@@ -541,9 +549,14 @@ function rayFlecks(w,h){ if(RF&&RF.w===w) return RF.f;
   const D=x.getImageData(0,0,w,h).data, f=new Float32Array(w*h); for(let i=0;i<f.length;i++) f[i]=D[i*4]/255;
   RF={w,f}; return f; }
 const M={}, cache={};
+const JQ_RES=MOBILE?'1k':'2k';   // گوشی فقط ۱K لازم دارد (۱.۸ مگ به‌جای ۸ مگ)
+/* مواد موقت (رنگ ساده) تا مبل همان لحظه دیده شود؛ پارچه‌ها که رسیدند جایگزین می‌شوند */
+function quickMaterials(){ const [sb]=S.seat.split('|'), std=(name,color,r)=>new THREE.MeshStandardMaterial({name,color,roughness:r});
+  M.seat=std('jacquard',sb,0.9); M.welt=std('welt',sb,0.8); M.back=std('chenille',S.back,0.95); M.pillow=std('satin',S.back,0.7);
+  M.frame=std('lacquer',S.frame,0.35); M.cane=std('cane',new THREE.Color(S.frame).getHSL({}).l<0.2?'#4a4440':'#b88d5a',0.5); }
 async function prepareMaterials(){
   const T=TEX('terlenka'), Wd=TEX('cherry_veneer');   // نزدیک‌ترین اسکن واقعی به راش: رگه ریز و صاف، منافذ ریز
-  const [jd,jn,jr,td,tn,tr,wd,wn,wr]=await Promise.all(['tex/floral_jacquard_diff_2k.jpg','tex/floral_jacquard_nor_gl_2k.jpg','tex/floral_jacquard_rough_2k.jpg',T('diff'),T('nor_gl'),T('rough'),Wd('diff'),Wd('nor_gl'),Wd('rough')].map(loadImg));
+  const [jd,jn,jr,td,tn,tr,wd,wn,wr]=await Promise.all([JQ_RES,JQ_RES,JQ_RES].map((r,i)=>`tex/floral_jacquard_${['diff','nor_gl','rough'][i]}_${r}.jpg`).concat([T('diff'),T('nor_gl'),T('rough'),Wd('diff'),Wd('nor_gl'),Wd('rough')]).map(loadImg));
   // اندازه واقعی کاشی ژاکارد ۶۲×۹۴ سانت (نسبت تصویر)، ترلنکا ۲۸ سانت، چوب ۴۵ سانت
   const jU=0.62, jV=0.94;
   cache.jn??=tex(jn,false,jU,jV); cache.jr??=tex(jr,false,jU,jV);
@@ -823,10 +836,17 @@ let expJob=0, arUrl=null, arState='stale';
 function setAr(st){ arState=st; arBtn.disabled=st==='busy';
   arBtn.textContent=st==='ready'?'✓ آماده است — بزنید تا در خانه ببینید':st==='busy'?'در حال آماده‌سازی نسخه AR…':'📱 نمایش در خانه شما (اندازه واقعی)'; }
 function scheduleExport(){ expJob++; setAr('stale'); }
+if(QS.has('genar')&&location.hostname==='localhost') window.__genAR=async()=>{ const out=[];
+  for(const pill of ['4']){ S.pillows=pill;
+    for(const p in PRESETS){ S.layout=PRESETS[p].map(a=>item(...a)); sel=null; selP=null; changed(true);
+      await new Promise(r=>setTimeout(r,300)); const root=piecesRoot.clone(), drop=[]; root.traverse(o=>{ if(o.userData.noExport) drop.push(o); }); drop.forEach(o=>o.removeFromParent());
+      const sc=new THREE.Scene(); sc.add(root); const glb=await exporter.parseAsync(sc,{binary:true,maxTextureSize:1024});
+      const r=await fetch(`ar/${p}-p${pill}.glb`,{method:'PUT',body:glb}); out.push(p+'-p'+pill+': '+(glb.byteLength/1048576).toFixed(1)+'MB '+r.status); } }
+  return out; };
 async function doExport(){ const my=++expJob; setAr('busy');
   try{ const root=piecesRoot.clone(), drop=[]; root.traverse(o=>{ if(o.isMesh&&o.material===selMat) o.material=M.pillow; if(o.userData.noExport) drop.push(o); }); drop.forEach(o=>o.removeFromParent());
     const sc=new THREE.Scene(); sc.add(root);
-    const glb=await exporter.parseAsync(sc,{binary:true,maxTextureSize:1024}); if(my!==expJob) return;
+    const glb=await exporter.parseAsync(sc,{binary:true,maxTextureSize:ANDROID?512:1024}); if(my!==expJob) return;
     const next=URL.createObjectURL(new Blob([glb],{type:'model/gltf-binary'}));
     mv.addEventListener('load',()=>{ if(my===expJob) setAr('ready'); },{once:true});
     mv.src=next; if(arUrl){ const o=arUrl; setTimeout(()=>URL.revokeObjectURL(o),5000); } arUrl=next;
@@ -835,8 +855,21 @@ async function doExport(){ const my=++expJob; setAr('busy');
 const IOS=document.createElement('a').relList?.supports?.('ar')||/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const ANDROID=/android/i.test(navigator.userAgent);
 const arMsg=t=>{ setAr('stale'); alert(t); };
+/* اندروید: AR خود گوگل (Scene Viewer) دقیق و سریع است ولی فایل را از یک آدرس واقعی می‌خواهد.
+   برای چیدمان‌های آماده با رنگ پیش‌فرض، فایل آماده در ar/ هست → اندازه دقیق (resizable=false) */
+const r2=v=>Math.round(v*100)/100;
+const sigOf=(layout,pill)=>JSON.stringify([S.frame,S.seat,S.back,pill,layout.map(i=>[i.t,r2(i.x),r2(i.z),r2(i.r),i.pl.map(p=>[p.s,r2(p.x),r2(p.fwd)])])]);
+const DEF=[FRAMES[0][0],SEATS[0][0],BACKS[0][0]];
+function staticAR(){ if(S.frame!==DEF[0]||S.seat!==DEF[1]||S.back!==DEF[2]||S.pillows!=='4') return null; const cur=sigOf(S.layout,S.pillows);
+  for(const p in PRESETS){ const L=PRESETS[p].map(([t,x,z,r])=>({t,x,z,r,pl:defPillows(t,S.pillows)})); if(sigOf(L,S.pillows)===cur) return `ar/${p}-p${S.pillows}.glb`; }
+  return null; }
+function sceneViewer(file){ const u=new URL(file,location.href).href, back=location.href.split('#')[0];
+  location.href='intent://arvr.google.com/scene-viewer/1.0?file='+encodeURIComponent(u)+'&mode=ar_only&resizable=false&title='+encodeURIComponent('مبل ناریا A603')+
+    '#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url='+encodeURIComponent(back)+';end;'; }
 arBtn.addEventListener('click',()=>{
   // اندروید فقط روی https اجازه AR وب می‌دهد (قانون امنیتی مرورگر)
+  if(ANDROID&&window.isSecureContext){ const f=staticAR(); if(f) return sceneViewer(f);
+    if(arState==='stale'&&!confirm('برای چیدمان یا رنگ دلخواه، AR اندروید در این نسخه نمایشی با حالت مرورگر باز می‌شود که دقت اندازه‌اش کمتر است.\nچیدمان‌های آماده با رنگ اصلی، در AR گوگل با اندازه دقیق باز می‌شوند.\n\nادامه می‌دهید؟')) return; }
   if(ANDROID&&!window.isSecureContext) return arMsg('در اندروید، نمایش در خانه فقط وقتی کار می‌کند که صفحه با https باز شده باشد.\nروی سایت اصلی (https) خودکار درست است. برای تست محلی، آدرس https را که run.sh نشان می‌دهد باز کنید.');
   if(arState==='ready'){ if(mv.canActivateAR) mv.activateAR(); else arMsg(ANDROID?'این گوشی AR را پشتیبانی نمی‌کند یا «Google Play Services for AR» نصب نیست.':'این دستگاه AR را پشتیبانی نمی‌کند.'); }
   else if(arState==='stale') doExport(); });
@@ -975,9 +1008,13 @@ bindSw('frame',FRAMES,'frameName',v=>`background:${v}`);
 bindSw('seat',SEATS,'seatName',v=>{ const [a,b]=v.split('|'); return `background:radial-gradient(circle at 35% 35%,${b} 0 22%,transparent 23%),radial-gradient(circle at 70% 70%,${b} 0 16%,${a} 17%)`; },['زمینه','نقش']);
 bindSw('back',BACKS,'backName',v=>`background:${v}`);
 
-(async()=>{ busy.classList.add('on');
-  try{ await prepareMaterials(); for(const t of ['3','2','1']) body(t); syncScene(); drawPlan(true); frameCamera(); dims(); busy.classList.remove('on'); setAr('stale'); }
-  catch(e){ console.error(e); busy.textContent='خطا در ساخت مدل: '+e.message; } })();
+(async()=>{
+  // اول مبل با رنگ ساده همان لحظه، بعد پارچه و چوب واقعی
+  quickMaterials(); for(const t of ['3','2','1']) body(t); syncScene(); drawPlan(true); frameCamera(); dims(); setAr('stale');
+  busy.textContent='در حال بارگذاری پارچه و چوب…'; busy.classList.add('on','soft');
+  try{ await prepareMaterials(); for(const k in BODY) delete BODY[k]; for(const o of OBJ.values()) piecesRoot.remove(o); OBJ.clear(); PG.clear();
+    for(const t of ['3','2','1']) body(t); syncScene(); dims(); busy.classList.remove('on','soft'); }
+  catch(e){ console.error(e); busy.classList.remove('soft'); busy.textContent='پارچه‌ها بار نشدند (اینترنت ضعیف). صفحه را یک بار تازه کنید.'; } })();
 customElements.whenDefined('model-viewer').then(()=>{
   mv.addEventListener('ar-status',e=>{ if(e.detail.status==='failed') alert('AR روی این دستگاه اجرا نشد. در اندروید باید Google Play Services for AR (ARCore) نصب باشد.'); });
   // دکمه از روی نوع گوشی نشان داده می‌شود (نه canActivateAR که تا مدل بار نشده false است)

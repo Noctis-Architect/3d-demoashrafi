@@ -35,6 +35,15 @@ if not os.path.exists(cert) or old_ip != ip:
 class H(http.server.SimpleHTTPRequestHandler):
     extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map, ".js": "text/javascript", ".glb": "model/gltf-binary"}
     def log_message(self, *a): pass
+    # فقط برای ساخت فایل‌های آماده AR از همین کامپیوتر (?genar): ذخیره در پوشه ar/
+    def do_PUT(self):
+        name = os.path.basename(self.path.split("?")[0])
+        if self.client_address[0] != "127.0.0.1" or not self.path.startswith("/ar/") or not name.endswith(".glb"):
+            self.send_error(403); return
+        os.makedirs("ar", exist_ok=True)
+        data = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+        with open(os.path.join("ar", name), "wb") as f: f.write(data)
+        self.send_response(201); self.end_headers()
 
 hp, sp = free_port(8001), free_port(8443)
 httpd = http.server.ThreadingHTTPServer(("", hp), H)
