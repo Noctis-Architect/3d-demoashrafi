@@ -169,6 +169,12 @@ import { RoomEnvironment } from './lib/three/addons/environments/RoomEnvironment
 /* ============ گزینه‌ها ============ */
 // گوشی/تبلت: بافت‌ها ۱K، سایه ۱K، رزولوشن رندر کمتر (کیفیت روی صفحه کوچک فرقی نمی‌کند)
 const MOBILE=matchMedia('(pointer:coarse)').matches||Math.min(screen.width,screen.height)<820;
+/* حالت سبک برای گوشی‌های ضعیف (مثل ردمی نوت ۹ با Mali-G52): مواد ساده‌تر، سایه ثابت، رزولوشن ۱.
+   از روی کارت گرافیک و حافظه تشخیص داده می‌شود؛ ?lite=1 یا ?full=1 در آدرس برای تست دستی */
+const GPU=(()=>{ try{ const g=document.createElement('canvas').getContext('webgl'), e=g&&g.getExtension('WEBGL_debug_renderer_info'); return e?String(g.getParameter(e.UNMASKED_RENDERER_WEBGL)):''; }catch(_){ return ''; } })();
+const QS=new URLSearchParams(location.search);
+const WEAK_GPU=/Mali-(G5[0-9]|G3|T)|Adreno \(TM\) ([1-5][0-9]{2}|6[01][0-9])\b|PowerVR|Mali-4/i.test(GPU);
+const LITE=QS.has('lite')||(!QS.has('full')&&MOBILE&&(WEAK_GPU||(navigator.deviceMemory||4)<=2||(navigator.hardwareConcurrency||8)<=4));
 const TEX = id => k => `tex/${id}_${k}_1k.jpg`;
 const FRAMES = [
   ['#0c0c0d','مشکی براق (رنگ عکس محصول)'], ['#d6ae84','راش طبیعی'], ['#9a6038','راش فندقی'], ['#3a2417','گردویی'], ['#6a1c22','زرشکی براق'], ['#eee8dd','سفید'],
@@ -566,6 +572,9 @@ async function prepareMaterials(){
     clearcoat:1,clearcoatRoughness:dark?0.05:0.08,clearcoatNormalMap:cache.wn,clearcoatNormalScale:new THREE.Vector2(0.18,0.18),specularIntensity:0.6});
   const C=caneTex(), caneCol=dark?'#4a4440':L>0.7?'#e9dcc0':'#b88d5a';
   M.cane=new THREE.MeshPhysicalMaterial({name:'cane',color:caneCol,map:C.map,normalMap:C.normal,roughness:0.45,clearcoat:0.6,clearcoatRoughness:0.15});
+  // حالت سبک: همان عکس‌های بافت با ماده استاندارد (بدون لایه لاک و درخشش پارچه که برای GPU ضعیف سنگین است)
+  if(LITE) for(const k in M){ const a=M[k]; const b=new THREE.MeshStandardMaterial({name:a.name,color:a.color,map:a.map,normalMap:a.normalMap,normalScale:a.normalScale,
+      roughnessMap:a.roughnessMap,metalnessMap:a.metalnessMap,metalness:0,roughness:k==='frame'?(dark?0.3:0.4):k==='cane'?0.4:a.roughness}); M[k]=b; }
 }
 
 /* ============ کاناپه ناریا ============ */
@@ -662,15 +671,19 @@ THREE.ShaderChunk.tonemapping_pars_fragment=THREE.ShaderChunk.tonemapping_pars_f
   color*=np/pk; float g=1.-1./(ds*(pk-np)+1.); return mix(color,vec3(np),g); }`);
 const stage=document.querySelector('.stage'), cv=document.getElementById('cv'), busy=document.getElementById('busy');
 const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,MOBILE?1.5:2)); renderer.toneMapping=THREE.CustomToneMapping; renderer.toneMappingExposure=1.0;
-renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(LITE?1:Math.min(devicePixelRatio,MOBILE?1.5:2)); renderer.toneMapping=THREE.CustomToneMapping; renderer.toneMappingExposure=1.0;
+renderer.shadowMap.enabled=!LITE; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate=false;   // سایه فقط وقتی چیدمان عوض می‌شود دوباره حساب می‌شود، نه موقع چرخاندن دوربین
 const scene=new THREE.Scene(), pmrem=new THREE.PMREMGenerator(renderer);
-scene.environment=pmrem.fromScene(new RoomEnvironment(renderer),0.04).texture;
+// نور محیطی (بازتاب اتاق) به بافت HalfFloat نیاز دارد؛ بعضی GPUهای قدیمی ندارند → بدون آن پارچه‌ها بی‌رنگ و تاریک می‌شوند
+const HALF=!QS.has('nohalf')&&(renderer.capabilities.isWebGL2?(renderer.extensions.has('EXT_color_buffer_float')||renderer.extensions.has('EXT_color_buffer_half_float')):renderer.extensions.has('OES_texture_half_float'));
+if(HALF) scene.environment=pmrem.fromScene(new RoomEnvironment(renderer),0.04).texture;
+if(!HALF||LITE){ scene.add(new THREE.HemisphereLight(0xfffaf2,0x9a9086,HALF?0.35:2.6)); if(!HALF) scene.add(new THREE.AmbientLight(0xffffff,0.9)); }
+console.log('GPU:',GPU||'?','| lite:',LITE,'| halfFloat:',HALF);
 const camera=new THREE.PerspectiveCamera(32,1,0.05,60);
 const controls=new OrbitControls(camera,cv); controls.enableDamping=true; controls.dampingFactor=0.09;
 controls.maxPolarAngle=1.48; controls.minDistance=0.8; controls.maxDistance=14; controls.screenSpacePanning=false;
-const sun=new THREE.DirectionalLight(0xffffff,1.1); sun.castShadow=true; sun.shadow.mapSize.set(MOBILE?1024:2048,MOBILE?1024:2048); sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.015; sun.shadow.radius=4;
+const sun=new THREE.DirectionalLight(0xffffff,1.1); sun.castShadow=!LITE; sun.shadow.mapSize.set(MOBILE?1024:2048,MOBILE?1024:2048); sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.015; sun.shadow.radius=4;
 scene.add(sun,sun.target);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.ShadowMaterial({opacity:0.22})); ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
 const piecesRoot=new THREE.Group(); scene.add(piecesRoot);
@@ -702,10 +715,17 @@ function mergeByMaterial(g){ g.updateMatrixWorld(true); const by=new Map();
   for(const [m,list] of by){ const merged=mergeGeometries(list,false); if(!merged){ console.warn('merge failed',m.name); continue; }
     merged.computeBoundingSphere(); out.add(new THREE.Mesh(merged,m)); list.forEach(q=>q.dispose()); }
   return out; }
+/* سایه ثابت نرم زیر هر مبل (حالت سبک، به‌جای سایه زنده) */
+let BLOB=null;
+function blobShadow(t){ if(!BLOB){ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'), g=x.createRadialGradient(64,64,8,64,64,64);
+    g.addColorStop(0,'rgba(0,0,0,0.42)'); g.addColorStop(0.55,'rgba(0,0,0,0.22)'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle=g; x.fillRect(0,0,128,128);
+    BLOB=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false,toneMapped:false}); }
+  const f=FP[t], m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),BLOB); m.rotation.x=-Math.PI/2;
+  m.scale.set((f.x1-f.x0)*1.25,(f.z1-f.z0)*1.35,1); m.position.set((f.x0+f.x1)/2,0.002,(f.z0+f.z1)/2); m.userData.noExport=1; m.renderOrder=-1; return m; }
 function body(t){
   if(!BODY[t]){ BODY[t]=mergeByMaterial(t==='1'?buildChair():buildSofa(+t)); BODY[t].traverse(o=>{ if(o.isMesh) o.castShadow=o.receiveShadow=true; });
     const b=new THREE.Box3().setFromObject(BODY[t]); FP[t]={x0:b.min.x,x1:b.max.x,z0:b.min.z,z1:b.max.z}; FPok[t]=1; }
-  return BODY[t].clone();
+  const g=BODY[t].clone(); if(LITE) g.add(blobShadow(t)); return g;
 }
 function rebuildPillows(it){ const pg=PG.get(it.id); pg.clear();
   for(const p of it.pl){ const P=pillow(PSZ[p.s].w,PSZ[p.s].h,PSZ[p.s].t); P.userData.pillow=p.id;
@@ -731,7 +751,7 @@ function syncScene(){
   sun.target.position.set(cx,0,cz); sun.position.set(cx+0.8,5,cz+1.6); sc.left=sc.bottom=-R; sc.right=sc.top=R; sc.near=1; sc.far=10; sc.updateProjectionMatrix();
   reqShadow();
 }
-function dims(){ piecesRoot.updateMatrixWorld(true); const sz=new THREE.Box3().setFromObject(piecesRoot).getSize(V3()), cm=v=>Math.round(v*100).toLocaleString('fa-IR');
+function dims(){ piecesRoot.updateMatrixWorld(true); const bb=new THREE.Box3(); piecesRoot.traverse(o=>{ if(o.isMesh&&!o.userData.noExport) bb.expandByObject(o); }); const sz=bb.getSize(V3()), cm=v=>Math.round(v*100).toLocaleString('fa-IR');
   document.getElementById('dims').innerHTML=`عرض <b>${cm(sz.x)}</b> × عمق <b>${cm(sz.z)}</b> × ارتفاع <b>${cm(sz.y)}</b> سانت`; }
 function frameCamera(){ let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;
   { const w=stage.clientWidth,h=stage.clientHeight; if(w&&h){ renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); } }
@@ -804,7 +824,7 @@ function setAr(st){ arState=st; arBtn.disabled=st==='busy';
   arBtn.textContent=st==='ready'?'✓ آماده است — بزنید تا در خانه ببینید':st==='busy'?'در حال آماده‌سازی نسخه AR…':'📱 نمایش در خانه شما (اندازه واقعی)'; }
 function scheduleExport(){ expJob++; setAr('stale'); }
 async function doExport(){ const my=++expJob; setAr('busy');
-  try{ const root=piecesRoot.clone(); root.traverse(o=>{ if(o.isMesh&&o.material===selMat) o.material=M.pillow; });
+  try{ const root=piecesRoot.clone(), drop=[]; root.traverse(o=>{ if(o.isMesh&&o.material===selMat) o.material=M.pillow; if(o.userData.noExport) drop.push(o); }); drop.forEach(o=>o.removeFromParent());
     const sc=new THREE.Scene(); sc.add(root);
     const glb=await exporter.parseAsync(sc,{binary:true,maxTextureSize:1024}); if(my!==expJob) return;
     const next=URL.createObjectURL(new Blob([glb],{type:'model/gltf-binary'}));
