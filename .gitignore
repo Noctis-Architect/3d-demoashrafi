@@ -1,0 +1,9 @@
+# کلید خصوصی گواهی https محلی — هرگز منتشر نشود
+.cert/
+.claude/
+# نسخه قدیمی و بافت‌هایی که صفحه استفاده نمی‌کند
+a671.html
+tex/*
+!tex/cherry_veneer_*
+!tex/floral_jacquard_*
+!tex/terlenka_*
