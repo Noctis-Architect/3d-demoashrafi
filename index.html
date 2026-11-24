@@ -50,6 +50,15 @@
   .no-ar{z-index:2;position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--muted);background:rgba(255,253,249,.9);padding:6px 12px;border-radius:999px;white-space:nowrap}
   .busy{z-index:4;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;color:var(--muted);background:rgba(255,253,249,.92);padding:8px 14px;border-radius:12px;display:none;max-width:90%;text-align:center}
   .busy.on{display:block}
+  /* انتخاب کیفیت AR (فقط اندروید) */
+  .q-dlg{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(31,27,24,.45);padding:16px}
+  .q-dlg[hidden]{display:none}
+  .q-box{background:var(--panel,#fffdf9);color:var(--ink);border-radius:16px;padding:18px;width:100%;max-width:360px;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+  .q-box h3{margin:0 0 4px;font-size:15px} .q-box p{margin:0 0 12px;font-size:12px;color:var(--muted);line-height:1.8}
+  .q-box button{display:block;width:100%;text-align:start;border:1px solid var(--line);background:#fff;color:var(--ink);font:400 12px Vazirmatn,sans-serif;
+    padding:10px 12px;border-radius:12px;margin-top:8px;cursor:pointer;line-height:1.7}
+  .q-box button b{display:block;font-size:14px} .q-box button.hq{border-color:var(--accent);background:#efe9e1}
+  .q-box .q-x{text-align:center;border:0;background:none;color:var(--muted);margin-top:4px}
   .busy.soft{top:110px;transform:translateX(-50%);font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
   aside{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:18px 18px 40px}
   h2{font-size:13px;color:var(--muted);font-weight:600;margin:18px 0 8px}
@@ -101,6 +110,12 @@
   <div class="hint" id="hint">مبل یا کوسن را بگیرید و بکشید · جای خالی را بکشید تا دور بزنید</div>
   <button class="ar-btn" id="arBtn" disabled>در حال آماده‌سازی…</button>
   <div class="no-ar" id="noAr" hidden>برای دیدن در خانه، این صفحه را روی گوشی باز کنید</div>
+  <div class="q-dlg" id="qDlg" hidden role="dialog" aria-modal="true" aria-labelledby="qT"><div class="q-box">
+    <h3 id="qT">کیفیت نمایش در خانه</h3><p>کیفیت بالا جزئیات پارچه و چوب را واضح‌تر نشان می‌دهد ولی حجم بیشتری دارد.</p>
+    <button class="hq" data-q="high"><b>کیفیت بالا</b>بافت‌ها با وضوح کامل · برای گوشی‌های قوی و اینترنت خوب</button>
+    <button data-q="medium"><b>کیفیت متوسط</b>سریع‌تر باز می‌شود · مناسب گوشی‌های ضعیف‌تر</button>
+    <button class="q-x" data-q="">انصراف</button>
+  </div></div>
   <div class="top">
     <div class="brand">مبل مدل ناریا<small>کد sofa-A603 · مبل اشرافی</small></div>
     <div class="dims" id="dims"></div>
@@ -169,7 +184,8 @@ import { RoomEnvironment } from './lib/three/addons/environments/RoomEnvironment
 
 /* ============ گزینه‌ها ============ */
 // گوشی/تبلت: بافت‌ها ۱K، سایه ۱K، رزولوشن رندر کمتر (کیفیت روی صفحه کوچک فرقی نمی‌کند)
-const MOBILE=matchMedia('(pointer:coarse)').matches||Math.min(screen.width,screen.height)<820;
+// ?genar (ساخت فایل‌های آماده AR روی کامپیوتر) همیشه با کیفیت کامل دسکتاپ
+const MOBILE=!new URLSearchParams(location.search).has('genar')&&(matchMedia('(pointer:coarse)').matches||Math.min(screen.width,screen.height)<820);
 /* حالت سبک برای گوشی‌های ضعیف (مثل ردمی نوت ۹ با Mali-G52): مواد ساده‌تر، سایه ثابت، رزولوشن ۱.
    از روی کارت گرافیک و حافظه تشخیص داده می‌شود؛ ?lite=1 یا ?full=1 در آدرس برای تست دستی */
 const GPU=(()=>{ try{ const g=document.createElement('canvas').getContext('webgl'), e=g&&g.getExtension('WEBGL_debug_renderer_info'); return e?String(g.getParameter(e.UNMASKED_RENDERER_WEBGL)):''; }catch(_){ return ''; } })();
@@ -836,17 +852,21 @@ let expJob=0, arUrl=null, arState='stale';
 function setAr(st){ arState=st; arBtn.disabled=st==='busy';
   arBtn.textContent=st==='ready'?'✓ آماده است — بزنید تا در خانه ببینید':st==='busy'?'در حال آماده‌سازی نسخه AR…':'📱 نمایش در خانه شما (اندازه واقعی)'; }
 function scheduleExport(){ expJob++; setAr('stale'); }
+/* ?genar=hq → فایل‌های کیفیت بالای اندروید (‎-hq.glb، بافت تا ۲K)؛ ?genar → کیفیت متوسط */
+const GEN_HQ=QS.get('genar')==='hq';
 if(QS.has('genar')&&location.hostname==='localhost') window.__genAR=async()=>{ const out=[];
   for(const pill of ['4']){ S.pillows=pill;
     for(const p in PRESETS){ S.layout=PRESETS[p].map(a=>item(...a)); sel=null; selP=null; changed(true);
       await new Promise(r=>setTimeout(r,300)); const root=piecesRoot.clone(), drop=[]; root.traverse(o=>{ if(o.userData.noExport) drop.push(o); }); drop.forEach(o=>o.removeFromParent());
-      const sc=new THREE.Scene(); sc.add(root); const glb=await exporter.parseAsync(sc,{binary:true,maxTextureSize:1024});
-      const r=await fetch(`ar/${p}-p${pill}.glb`,{method:'PUT',body:glb}); out.push(p+'-p'+pill+': '+(glb.byteLength/1048576).toFixed(1)+'MB '+r.status); } }
+      const sc=new THREE.Scene(); sc.add(root); const glb=await exporter.parseAsync(sc,{binary:true,maxTextureSize:GEN_HQ?2048:1024});
+      const r=await fetch(`ar/${p}-p${pill}${GEN_HQ?'-hq':''}.glb`,{method:'PUT',body:glb}); out.push(p+'-p'+pill+': '+(glb.byteLength/1048576).toFixed(1)+'MB '+r.status); } }
   return out; };
+/* کیفیت AR فقط در اندروید پرسیده می‌شود: 'high' | 'medium' — آیفون همیشه ۱K */
+let arQ=null;
 async function doExport(){ const my=++expJob; setAr('busy');
   try{ const root=piecesRoot.clone(), drop=[]; root.traverse(o=>{ if(o.isMesh&&o.material===selMat) o.material=M.pillow; if(o.userData.noExport) drop.push(o); }); drop.forEach(o=>o.removeFromParent());
     const sc=new THREE.Scene(); sc.add(root);
-    const glb=await exporter.parseAsync(sc,{binary:true,maxTextureSize:ANDROID?512:1024}); if(my!==expJob) return;
+    const glb=await exporter.parseAsync(sc,{binary:true,maxTextureSize:ANDROID?(arQ==='high'?2048:512):1024}); if(my!==expJob) return;
     const next=URL.createObjectURL(new Blob([glb],{type:'model/gltf-binary'}));
     mv.addEventListener('load',()=>{ if(my===expJob) setAr('ready'); },{once:true});
     mv.src=next; if(arUrl){ const o=arUrl; setTimeout(()=>URL.revokeObjectURL(o),5000); } arUrl=next;
@@ -860,15 +880,22 @@ const arMsg=t=>{ setAr('stale'); alert(t); };
 const r2=v=>Math.round(v*100)/100;
 const sigOf=(layout,pill)=>JSON.stringify([S.frame,S.seat,S.back,pill,layout.map(i=>[i.t,r2(i.x),r2(i.z),r2(i.r),i.pl.map(p=>[p.s,r2(p.x),r2(p.fwd)])])]);
 const DEF=[FRAMES[0][0],SEATS[0][0],BACKS[0][0]];
-function staticAR(){ if(S.frame!==DEF[0]||S.seat!==DEF[1]||S.back!==DEF[2]||S.pillows!=='4') return null; const cur=sigOf(S.layout,S.pillows);
-  for(const p in PRESETS){ const L=PRESETS[p].map(([t,x,z,r])=>({t,x,z,r,pl:defPillows(t,S.pillows)})); if(sigOf(L,S.pillows)===cur) return `ar/${p}-p${S.pillows}.glb`; }
+function staticAR(hq){ if(S.frame!==DEF[0]||S.seat!==DEF[1]||S.back!==DEF[2]||S.pillows!=='4') return null; const cur=sigOf(S.layout,S.pillows);
+  for(const p in PRESETS){ const L=PRESETS[p].map(([t,x,z,r])=>({t,x,z,r,pl:defPillows(t,S.pillows)})); if(sigOf(L,S.pillows)===cur) return `ar/${p}-p${S.pillows}${hq?'-hq':''}.glb`; }
   return null; }
 function sceneViewer(file){ const u=new URL(file,location.href).href, back=location.href.split('#')[0];
   location.href='intent://arvr.google.com/scene-viewer/1.0?file='+encodeURIComponent(u)+'&mode=ar_only&resizable=false&title='+encodeURIComponent('مبل ناریا A603')+
     '#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url='+encodeURIComponent(back)+';end;'; }
-arBtn.addEventListener('click',()=>{
+const qDlg=document.getElementById('qDlg');
+function askQuality(){ return new Promise(res=>{ qDlg.hidden=false; qDlg.querySelector('.hq').focus();
+  const done=v=>{ qDlg.hidden=true; qDlg.removeEventListener('click',on); removeEventListener('keydown',esc); res(v); };
+  const on=e=>{ const b=e.target.closest('button'); if(b) done(b.dataset.q||null); else if(e.target===qDlg) done(null); };
+  const esc=e=>{ if(e.key==='Escape') done(null); };
+  qDlg.addEventListener('click',on); addEventListener('keydown',esc); }); }
+arBtn.addEventListener('click',async()=>{
   // اندروید فقط روی https اجازه AR وب می‌دهد (قانون امنیتی مرورگر)
-  if(ANDROID&&window.isSecureContext){ const f=staticAR(); if(f) return sceneViewer(f);
+  if(ANDROID&&window.isSecureContext&&arState!=='ready'){ const q=await askQuality(); if(!q) return; arQ=q;
+    const f=staticAR(q==='high'); if(f) return sceneViewer(f);
     if(arState==='stale'&&!confirm('برای چیدمان یا رنگ دلخواه، AR اندروید در این نسخه نمایشی با حالت مرورگر باز می‌شود که دقت اندازه‌اش کمتر است.\nچیدمان‌های آماده با رنگ اصلی، در AR گوگل با اندازه دقیق باز می‌شوند.\n\nادامه می‌دهید؟')) return; }
   if(ANDROID&&!window.isSecureContext) return arMsg('در اندروید، نمایش در خانه فقط وقتی کار می‌کند که صفحه با https باز شده باشد.\nروی سایت اصلی (https) خودکار درست است. برای تست محلی، آدرس https را که run.sh نشان می‌دهد باز کنید.');
   if(arState==='ready'){ if(mv.canActivateAR) mv.activateAR(); else arMsg(ANDROID?'این گوشی AR را پشتیبانی نمی‌کند یا «Google Play Services for AR» نصب نیست.':'این دستگاه AR را پشتیبانی نمی‌کند.'); }
