@@ -64,7 +64,7 @@ export function knobGeo(){ if(GEO.knob) return GEO.knob; const k=lathe([[0,0],[0
 export function medallion(g,x,y,z){
   if(!GEO.med){ const pts=[]; for(let i=0;i<40;i++){ const a=2*Math.PI*i/40; pts.push(V3(0.058*Math.cos(a),0.034*Math.sin(a),0)); }
     const ov=new THREE.Shape(); ov.absellipse(0,0,0.052,0.028,0,2*Math.PI,false,0);
-    const ros=lathe([[0,0.012],[0.01,0.01],[0.016,0.004],[0.018,0]],{radial:40,flute:(r,y,a)=>r*(0.86+0.14*Math.abs(Math.cos(4*a)))}); ros.rotateX(Math.PI/2);
+    const ros=lathe([[0,0],[0.018,0],[0.016,0.004],[0.01,0.01],[0.004,0.0125],[0,0.013]],{radial:48,flute:(r,y,a)=>r*(0.84+0.16*Math.abs(Math.cos(4*a)))}); ros.rotateX(Math.PI/2);   // گل برجسته (پروفایل از پایین به بالا تا رویه رو به بیرون باشد)
     GEO.med={ ring:sweep(pts,[0.0055],{closed:true,seg:120,radial:10,bead:0.3,period:0.012,flat:0.8}), oval:slabZ(ov,0.012,0.004,3,24), ros }; }
   g.add(mesh(GEO.med.ring,slot.trim,x,y,z+0.006)); g.add(mesh(GEO.med.oval,slot.wood,x,y,z+0.002)); g.add(mesh(GEO.med.ros,slot.trim,x,y,z+0.008)); }
 /* نوار مهره‌ای افقی به طول L */
@@ -95,7 +95,7 @@ export function drawer(g,w,h,x,y,fz,dd,handle){
   box(d,bw,0.012,y0,y0+bh,0,-dd+0.002);                                  // پشت
   d.position.set(x,y,fz+0.002); d.userData.open={type:'drawer',dist:dd*0.8}; g.add(d);
   // ریل ساچمه‌ای سه‌تکه: بیرونی روی بدنه ثابت، میانی نصف مسیر، داخلی همراه کشو
-  const rh=Math.min(0.032,bh*0.55), ry=y0+bh*0.45, L=dd-0.02, zc=-dd/2-0.004, rail=(w_,h_,t_)=>{ const b=boxUV(new THREE.BoxGeometry(t_,h_,w_)); return b; };
+  const rh=Math.min(0.032,bh*0.55), ry=y0+bh*0.45, L=dd-0.05, zc=-dd/2-0.02, rail=(w_,h_,t_)=>{ const b=boxUV(new THREE.BoxGeometry(t_,h_,w_)); return b; };
   if(!GEO['rl'+L+rh]) GEO['rl'+L+rh]={ o:rail(L,rh,0.004), m:rail(L*0.97,rh*0.78,0.003), i:rail(L*0.94,rh*0.56,0.003), lip:rail(L,0.004,0.011) };
   const R=GEO['rl'+L+rh], followers=[];
   for(const s of [-1,1]){ const xo=s*(bw/2+0.0115), xm=s*(bw/2+0.0078), xi=s*(bw/2+0.0042);

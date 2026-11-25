@@ -74,9 +74,12 @@ productPage({
     for(const s of [-1,1]) box(g,0.065,cd,apY0,molY0+0.002,s*(cw/2-0.0325));
     box(g,med,cd-0.01,apY0,molY0+0.002,0,-0.005);
     // نوار جلوی بالا و پایین کشوها (لای کشو و رویه باز نماند)
-    box(g,cw,t,dy+dh/2+0.003,molY0+0.002,0,fz-t/2); box(g,cw,t,apY0,dy-dh/2-0.003,0,fz-t/2);
+    box(g,cw,t,dy+dh/2-0.01,molY0+0.002,0,fz-t/2-0.008); box(g,cw,t,apY0,dy-dh/2+0.01,0,fz-t/2-0.008);   // پشت لبه جلوی کشو، بی‌شکاف
     for(const s of [-1,1]) drawer(g,dw,dh,s*(med/2+dw/2),dy,fz,cd-0.05,S.handle);
-    medallion(g,0,dy,fz);
+    // پنل ثابت وسط، هم‌سطح جلوی کشوها؛ مدالیون روی آن
+    panel(g,med-0.004,dh,0,dy,fz-0.002,{handle:'none'}); medallion(g,0,dy,fz+0.016);
+    // تیرک پشت لای کشوها (کنار ستون وسط و بغل‌ها) تا از لای در، داخل و ریل دیده نشود
+    for(const x of [med/2+0.006,cw/2-0.065-0.006]) for(const s of [-1,1]) box(g,0.012,0.08,apY0,molY0+0.002,s*x,fz-0.04);
     bead(g,cw-0.06,0,apY0+0.008,fz+0.002);
     skirt(g,cw-0.14,0,apY0+0.001,fz-0.006);
     const lx=cw/2-0.03, lz=cd/2-0.03; addLegs(g,apY0,[-lx,lx],[-lz,lz]);
