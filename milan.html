@@ -4,107 +4,197 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>مبل راحتی میلان M120 — طراحی سه‌بعدی | مبل اشرافی</title>
-<meta name="description" content="مبل راحتی مدرن میلان را سه‌بعدی ببینید؛ جنس و رنگ پارچه، پایه و تعداد نفرات را انتخاب کنید و در خانه با AR ببینید.">
-<meta name="theme-color" content="#f7f4ef">
 <link rel="stylesheet" href="assets/site.css">
 <link rel="stylesheet" href="assets/product.css">
 <script type="module" src="lib/model-viewer.min.js"></script>
+<style>
+  /* فونت داخل خود سایت (بدون وابستگی به گوگل که در ایران ممکن است باز نشود و اجرای صفحه را معطل کند) */
+  @font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn-Regular.woff2) format('woff2');font-weight:400;font-display:swap}
+  @font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn-SemiBold.woff2) format('woff2');font-weight:600;font-display:swap}
+  @font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn-ExtraBold.woff2) format('woff2');font-weight:800;font-display:swap}
+  :root{ --panel:#fff; }
+  *{box-sizing:border-box}
+  .stage{background:radial-gradient(ellipse at 50% 35%,#fbfaf8 0%,#e3ddd4 75%);overflow:hidden}
+  #cv{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;touch-action:none;outline:none}
+  #cv.grab{cursor:grab} #cv.grabbing{cursor:grabbing}
+  /* model-viewer فقط برای AR است؛ تا وقتی AR باز نشده دیده نمی‌شود */
+  #mv{position:absolute;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none;z-index:0}
+  #mv[ar-status="session-started"],#mv[ar-status="object-placed"]{position:fixed;inset:0;width:100%;height:100%;opacity:1;pointer-events:auto;z-index:100}
+  .addbar{position:absolute;z-index:2;left:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px}
+  .tb button,.addbar button{border:1px solid var(--line);background:rgba(255,253,249,.94);backdrop-filter:blur(6px);color:var(--ink);font:600 12px Vazirmatn,sans-serif;
+    padding:7px 11px;border-radius:999px;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .tb button:disabled{opacity:.4;cursor:default}
+  .tb{position:absolute;z-index:3;left:50%;bottom:74px;transform:translateX(-50%);display:none;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;
+    background:rgba(255,253,249,.92);backdrop-filter:blur(6px);padding:6px 8px;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.12);max-width:calc(100% - 24px);font-size:12px}
+  .tb.on{display:flex} .tb b{padding:0 4px} .tb .warn{width:100%;text-align:center}
+  .tb button{box-shadow:none;padding:6px 10px}
+  .hint{position:absolute;z-index:2;top:64px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--ink);background:rgba(255,253,249,.92);padding:6px 12px;border-radius:999px;
+    white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:opacity .4s}
+  .hint.off{opacity:0;pointer-events:none}
+  @media (max-width:820px){
+    .hint{top:auto;bottom:112px;white-space:normal;text-align:center;width:max-content;max-width:calc(100% - 24px)}
+    .addbar{top:auto;bottom:68px;left:12px;right:12px;transform:none;flex-direction:row;justify-content:center}
+    .tb{bottom:64px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;width:max-content;scrollbar-width:none} .tb::-webkit-scrollbar{display:none}
+    .tb b,.tb span{white-space:nowrap} .tb .warn{width:auto}
+    .stage:has(.tb.on) .addbar{display:none} .ar-btn{bottom:14px;font-size:14px;padding:10px 18px} .no-ar{bottom:20px} }
+  .top{z-index:2;position:absolute;inset:12px 12px auto 12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none}
+  .brand,.dims{background:rgba(255,253,249,.9);backdrop-filter:blur(6px);padding:8px 14px;border-radius:12px}
+  .brand{font-weight:800;font-size:15px;pointer-events:auto}
+  .brand .back{display:block;font-weight:600;font-size:11px;color:var(--muted);text-decoration:none;margin-bottom:2px} .brand .back:hover{color:var(--ink)}
+  .brand small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+  .dims{font-size:12px;color:var(--muted)} .dims:empty{display:none} .dims b{color:var(--ink)}
+  .ar-btn{position:absolute;z-index:2;bottom:18px;left:50%;transform:translateX(-50%);border:0;background:var(--accent);color:#fff;
+    font:600 15px Vazirmatn,sans-serif;padding:12px 22px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer;white-space:nowrap}
+  .ar-btn:disabled{opacity:.6;cursor:default}
+  .no-ar{z-index:2;position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--muted);background:rgba(255,253,249,.9);padding:6px 12px;border-radius:999px;white-space:nowrap}
+  .busy{z-index:4;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;color:var(--muted);background:rgba(255,253,249,.92);padding:8px 14px;border-radius:12px;display:none;max-width:90%;text-align:center}
+  .busy.on{display:block}
+  /* انتخاب کیفیت AR (فقط اندروید) */
+  .q-dlg{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(31,27,24,.45);padding:16px}
+  .q-dlg[hidden]{display:none}
+  .q-box{background:var(--panel,#fffdf9);color:var(--ink);border-radius:16px;padding:18px;width:100%;max-width:360px;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+  .q-box h3{margin:0 0 4px;font-size:15px} .q-box p{margin:0 0 12px;font-size:12px;color:var(--muted);line-height:1.8}
+  .q-box button{display:block;width:100%;text-align:start;border:1px solid var(--line);background:#fff;color:var(--ink);font:400 12px Vazirmatn,sans-serif;
+    padding:10px 12px;border-radius:12px;margin-top:8px;cursor:pointer;line-height:1.7}
+  .q-box button b{display:block;font-size:14px} .q-box button.hq{border-color:var(--accent);background:#efe9e1}
+  .q-box .q-x{text-align:center;border:0;background:none;color:var(--muted);margin-top:4px}
+  .busy.soft{top:110px;transform:translateX(-50%);font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  /* هم‌شکل بقیه صفحه‌های محصول: صحنه چپ، پنل گزینه‌ها راست */
+  .pd{grid-template-columns:1fr 400px}
+  .top .brand{display:none}
+  .panel h2{font-size:13px;color:var(--ink);font-weight:600;margin:0 0 10px}
+  .panel .grp{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+  .panel .note{border-top:1px solid var(--line)}
+  .panel .sec-t{font-size:12px;font-weight:800;color:var(--gold);margin:26px 0 -6px;display:flex;align-items:center;gap:10px}
+  .panel .sec-t::after{content:"";flex:1;height:1px;background:var(--line)}
+  @media (max-width:980px){ .pd{grid-template-columns:1fr} }
+  h2{font-size:13px;color:var(--muted);font-weight:600;margin:18px 0 8px}
+  h2:first-child{margin-top:0}
+  .seg{display:flex;flex-wrap:wrap;gap:6px}
+  .seg button{flex:1 1 auto;border:1px solid var(--line);background:#fff;color:var(--ink);font:400 13px Vazirmatn,sans-serif;
+    padding:8px 10px;border-radius:10px;cursor:pointer;min-height:38px}
+  .seg button[aria-pressed="true"]{border-color:var(--accent);background:#efe9e1;font-weight:600}
+  .sw{display:flex;flex-wrap:wrap;gap:8px}
+  .sw button{width:38px;height:38px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0;background-size:cover}
+  .sw button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent)}
+  .sw-name{font-size:12px;color:var(--muted);margin-top:6px;min-height:1em}
+  .custom{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:8px;font-size:12px;color:var(--muted)}
+  .custom label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px 4px 4px;border:1px solid var(--line);border-radius:20px;background:#fff}
+  .custom label.on{border-color:var(--accent);color:inherit}
+  .custom input[type=color]{width:28px;height:28px;border:0;padding:0;border-radius:50%;background:none;cursor:pointer}
+  .custom input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+  .custom input[type=color]::-webkit-color-swatch{border:1px solid var(--line);border-radius:50%}
+  .custom input[type=color]::-moz-color-swatch{border:1px solid var(--line);border-radius:50%}
+  .plan{position:relative;direction:ltr;border:1px solid var(--line);border-radius:12px;background:#faf7f2;overflow:hidden}
+  .plan svg{display:block;width:100%;height:270px;touch-action:none;user-select:none;-webkit-user-select:none}
+  .plan .pc{cursor:grab} .plan .pc.drag{cursor:grabbing}
+  .plan-hint{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.8}
+  .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .row button{flex:1 1 auto;border:1px solid var(--line);background:#fff;color:var(--ink);font:400 13px Vazirmatn,sans-serif;padding:7px 10px;border-radius:10px;cursor:pointer;min-height:36px}
+  .row button:disabled{opacity:.4;cursor:default}
+  .row.add button{border-style:dashed}
+  .selbar{margin-top:8px;padding:8px;border-radius:10px;background:#efe9e1;font-size:12px}
+  .selbar .row{margin-top:6px}
+  .warn{color:#a3321f}
+  .note{font-size:11px;color:var(--muted);line-height:1.9;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}
+  @media (max-width:820px){
+  }
+</style>
 </head>
-<body data-page="products">
+<body data-page="products" data-model="milan">
 <script src="assets/layout.js"></script>
-
 <main class="wrap">
-  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">مبل راحتی میلان</span></div>
-  <div class="pd" id="pd"></div>
+<div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">مبل راحتی میلان</span></div>
+<div class="pd">
+<div class="stage">
+  <canvas id="cv" tabindex="0" aria-label="نمای سه‌بعدی چیدمان؛ مبل و کوسن را بکشید"></canvas>
+  <model-viewer id="mv" loading="eager" environment-image="neutral" exposure="1" tone-mapping="neutral" shadow-intensity="1"
+    ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor" alt="مبل راحتی میلان در خانه شما">
+    <span slot="ar-button" hidden></span>
+  </model-viewer>
+  <div class="addbar">
+    <button data-add="3">+ سه‌نفره</button><button data-add="2">+ دونفره</button><button data-add="1">+ مبل تک</button>
+  </div>
+  <div class="tb" id="tb"></div>
+  <div class="hint" id="hint">مبل یا کوسن را بگیرید و بکشید · جای خالی را بکشید تا دور بزنید</div>
+  <button class="ar-btn" id="arBtn" disabled>در حال آماده‌سازی…</button>
+  <div class="no-ar" id="noAr" hidden>برای دیدن در خانه، این صفحه را روی گوشی باز کنید</div>
+  <div class="q-dlg" id="qDlg" hidden role="dialog" aria-modal="true" aria-labelledby="qT"><div class="q-box">
+    <h3 id="qT">کیفیت نمایش در خانه</h3><p>کیفیت بالا جزئیات پارچه و چوب را واضح‌تر نشان می‌دهد ولی حجم بیشتری دارد.</p>
+    <button class="hq" data-q="high"><b>کیفیت بالا</b>بافت‌ها با وضوح کامل · برای گوشی‌های قوی و اینترنت خوب</button>
+    <button data-q="medium"><b>کیفیت متوسط</b>سریع‌تر باز می‌شود · مناسب گوشی‌های ضعیف‌تر</button>
+    <button class="q-x" data-q="">انصراف</button>
+  </div></div>
+  <div class="top">
+    <div class="brand"><a class="back" href="./#products">→ همه محصولات</a>مبل مدل ناریا<small>کد sofa-A603 · مبل اشرافی</small></div>
+    <div class="dims" id="dims"></div>
+  </div>
+  <div class="busy" id="busy">در حال آماده‌سازی پارچه و چوب…</div>
+</div>
 
-  <section class="info">
-    <div><h3>ساخت و جنس</h3><p>اسکلت چوب روسی خشک‌شده، فنر مارپیچ زیر نشیمن، اسفنج سرد ۳۵ کیلویی با لایه الیاف. روکش کوسن‌ها زیپ‌دار و قابل شستشو.</p></div>
-    <div><h3>ابعاد</h3>
-      <table class="specs">
-        <tr><td>عرض</td><td data-spec="w"></td></tr>
-        <tr><td>عمق</td><td data-spec="d"></td></tr>
-        <tr><td>ارتفاع</td><td data-spec="h"></td></tr>
-        <tr><td>ارتفاع نشیمن</td><td>۴۴ سانت</td></tr>
-      </table></div>
-    <div><h3>پارچه‌ها</h3><p>مخمل (براق و نرم)، بوکله (بافت حلقه‌ای پشمی) و کتان (مات و طبیعی). بافت هر سه از اسکن پارچه واقعی است؛ هر رنگی را می‌توانید سفارش دهید.</p></div>
-  </section>
+<aside class="panel">
+  <div class="code">sofa-M120</div><h1>مبل راحتی میلان</h1>
+  <p class="sub">مبل راحتی مدرن با کوسن‌های قیطان‌دار. چیدمان را خودتان بچینید، کوسن‌ها را جابجا کنید و پارچه، دسته، پشتی و پایه را انتخاب کنید.</p>
+  <div class="grp"><h2>چیدمان آماده</h2>
+  <div class="seg" id="presets">
+    <button data-p="3">سه‌نفره</button><button data-p="2">دونفره</button><button data-p="1">مبل تک</button>
+    <button data-p="311">۳+۱+۱</button><button data-p="32">۳+۲</button><button data-p="3211">۳+۲+۱+۱</button>
+  </div>
+  </div>
+  <div class="grp"><h2>نقشه چیدمان (از بالا) — مبل‌ها را بکشید و جابجا کنید</h2>
+  <div class="plan"><svg id="plan" aria-label="نقشه چیدمان از بالا"></svg></div>
+  <div class="row add">
+    <button data-add="3">+ سه‌نفره</button><button data-add="2">+ دونفره</button><button data-add="1">+ مبل تک</button>
+  </div>
+  <div class="selbar" id="selbar"></div>
+  <div class="plan-hint">هر خانه شبکه ۵۰ سانت است. لبه پررنگ = پشتی مبل. با دستگیره گرد بچرخانید. در حالت «در خانه شما» کل چیدمان با همین فاصله‌ها و اندازه واقعی روی زمین می‌نشیند.</div>
+  </div>
+  <div id="opts"></div>
+  <div class="actions" style="margin-top:18px"><a class="btn btn-dark" id="sendBtn" href="contact.html?p=%D9%85%D8%A8%D9%84%20%D9%86%D8%A7%D8%B1%DB%8C%D8%A7">ارسال این طرح برای استعلام قیمت</a></div>
+  <div class="note">
+    همه قطعه‌ها (تک، دونفره، سه‌نفره) با اندازه واقعی ساخته می‌شوند و با هر تغییر فرم، ابعاد و چیدمان به‌روز می‌شود.
+    پارچه‌ها اسکن واقعی‌اند (Poly Haven، CC0)؛ بافت بوکله با کد ساخته شده.
+  </div>
+</aside>
+</div>
 
-  <section class="other">
-    <a href="naria.html">
-      <img src="assets/naria.webp" alt="مبل ناریا" loading="lazy">
-      <div><small>کلاسیک بخواهید</small><h3>مبل کلاسیک ناریا</h3><small>چیدمان آزاد · ۶ رنگ چوب · ۵ پارچه ژاکارد</small></div>
-      <span class="btn btn-light btn-sm">طراحی مبل</span>
-    </a>
-  </section>
+<section class="info">
+  <div><h3>ساخت و جنس</h3><p>اسکلت چوب روسی خشک‌شده، فنر مارپیچ زیر نشیمن، اسفنج سرد ۳۵ کیلویی با لایه الیاف. روکش همه کوسن‌ها زیپ‌دار و قابل شستشو.</p></div>
+  <div><h3>ابعاد سه‌نفره (دسته گرد)</h3>
+    <table class="specs">
+      <tr><td>عرض</td><td>۲۲۴ سانت</td></tr>
+      <tr><td>عمق</td><td>۹۰ یا ۱۰۰ سانت</td></tr>
+      <tr><td>ارتفاع پشتی</td><td>۸۲ سانت</td></tr>
+      <tr><td>ارتفاع نشیمن</td><td>۴۶ سانت</td></tr>
+    </table></div>
+  <div><h3>پارچه‌ها</h3><p>مخمل، بوکله، کتان، پشمی جناغی و شنیل؛ با ده رنگ آماده یا هر رنگ دلخواه. کوسن‌ها و قیطان را می‌توانید رنگ دیگری بگیرید. <a href="ar.html">راهنمای AR</a></p></div>
+</section>
+
+<section class="other">
+  <a href="naria.html">
+    <img src="assets/naria.webp" alt="مبل ناریا" loading="lazy">
+    <div><small>کلاسیک بخواهید</small><h3>مبل کلاسیک ناریا</h3><small>چیدمان آزاد · ۶ رنگ چوب · ژاکارد و طلاکاری</small></div>
+    <span class="btn btn-light btn-sm">طراحی مبل</span>
+  </a>
+</section>
 </main>
 <script>siteFooter()</script>
 
-<script type="module">
-import { productPage, THREE, slot, kit } from './assets/product.js';
-import { SE, lathe, slabY, rrect, mesh } from './assets/geo.js';
-
-const FABRICS=[{v:'velvet',label:'مخمل',tex:'velour_velvet',tile:0.18,sheen:1,rough:0.85},{v:'boucle',label:'بوکله',tex:'wool_boucle',tile:0.22,sheen:0.4,rough:1},{v:'linen',label:'کتان',tex:'rough_linen',tile:0.2,sheen:0.2,rough:1}];
-const COLORS=[
-  {v:'#5f6b52',label:'سبز زیتونی'},{v:'#c9b9a3',label:'کرم'},{v:'#2f3b4c',label:'سرمه‌ای'},{v:'#8a4b3a',label:'آجری'},
-  {v:'#8e8d89',label:'طوسی'},{v:'#d9cfc4',label:'شیری'},{v:'#6b3b4a',label:'بادمجانی'},{v:'#3d3a37',label:'ذغالی'},
-];
-const LEGS=[{v:'walnut',label:'چوب گردو'},{v:'black',label:'فلز مشکی'},{v:'gold',label:'فلز طلایی'}];
-const H=0.80, D=0.94, LEG=0.13, SEAT=0.44, ARM=0.2;
-const seatW=S=>S.seats==='3'?0.66:0.7;
-const width=S=>(+S.seats)*seatW(S)+2*ARM;
-/* رنگ کوسن تزئینی: همان پارچه، روشن‌تر */
-const accent=hex=>'#'+new THREE.Color(hex).lerp(new THREE.Color('#efe6d8'),0.55).getHexString();
-const fab=S=>FABRICS.find(f=>f.v===S.fabric);
-
-productPage({
-  id:'milan', name:'مبل راحتی میلان', code:'sofa-M120', arTitle:'مبل راحتی میلان',
-  sub:'مبل راحتی مدرن با کوسن‌های پُر، دسته‌های گرد و پایه‌های باریک. جنس و رنگ پارچه را خودتان انتخاب کنید.',
-  options:[
-    {key:'color',q:'c',label:'رنگ پارچه',type:'swatch',items:COLORS},
-    {key:'fabric',q:'m',label:'جنس پارچه',type:'seg',items:FABRICS},
-    {key:'seats',q:'n',label:'تعداد نفرات',type:'seg',reframe:1,items:[{v:'2',label:'دونفره'},{v:'3',label:'سه‌نفره'}]},
-    {key:'legs',q:'l',label:'پایه',type:'seg',items:LEGS},
-    {key:'pillows',q:'p',label:'کوسن تزئینی',type:'seg',items:[{v:'2',label:'۲ عدد'},{v:'0',label:'بدون'}]},
-  ],
-  defaults:{color:'#5f6b52',fabric:'velvet',seats:'3',legs:'walnut',pillows:'2'},
-  dims:S=>[width(S),D,H],
-  geoKey:S=>S.seats+S.pillows,
-  matKey:S=>S.color+S.fabric+S.legs,
-  quick:S=>{ const f=fab(S), legs={walnut:kit.plain('#3a2417',0.5),black:kit.plain('#1b1b1c',0.4,{metalness:1}),gold:kit.plain('#c9a25a',0.3,{metalness:1})}[S.legs];
-    return { fabric:kit.plain(S.color,f.rough), pillow:kit.plain(accent(S.color),f.rough), legs }; },
-  async materials(S){ const f=fab(S), o={tile:f.tile,sheen:f.sheen,rough:f.rough};
-    const [fabric,pillow,legs]=await Promise.all([kit.fabric(f.tex,S.color,o),kit.fabric(f.tex,accent(S.color),o),
-      S.legs==='walnut'?kit.wood('#3a2417'):Promise.resolve(kit.metal(S.legs==='black'?'#1b1b1c':'#c9a25a',S.legs==='black'?0.45:0.28))]);
-    return {fabric,pillow,legs}; },
-  prewarm:k=>{ for(const f of FABRICS) Promise.all(['diff','nor_gl'].map(x=>new Promise(r=>{ const i=new Image(); i.onload=i.onerror=r; i.src=`tex/${f.tex}_${x}_1k.jpg`; }))); },
-  summary:(S,L)=>`مبل راحتی میلان ${L('seats')}، پارچه ${L('fabric')} ${L('color')}، پایه ${L('legs')}، ${S.pillows==='2'?'با ۲ کوسن تزئینی':'بدون کوسن تزئینی'}`,
-  arDefault:S=>S.color==='#5f6b52'&&S.fabric==='velvet'&&S.legs==='walnut'&&S.pillows==='2',
-  arFile:S=>`ar/milan-${S.seats}.glb`,
-  arVariants:[{seats:'2'},{seats:'3'}],
-  build(S){
-    const n=+S.seats, sw=seatW(S), W=width(S), inner=n*sw, g=new THREE.Group();
-    const backD=0.2, z0=-D/2, seatD=D-backD-0.02;
-    // پایه زیر (سکو) و پشتی ثابت
-    g.add(mesh(slabY(rrect(new THREE.Shape(),W-0.02,D-0.02,0.06),LEG,0.31,0.03),slot.fabric));
-    g.add(mesh(slabY(rrect(new THREE.Shape(),inner+0.02,backD,0.05),0.3,0.62,0.04),slot.fabric,0,0,z0+backD/2+0.01));
-    // دسته‌های گرد
-    for(const s of [-1,1]) g.add(mesh(SE(ARM/2,0.26,D/2-0.01,0.35,0.35,{nu:40,nv:24}),slot.fabric,s*(W/2-ARM/2),LEG+0.25,0));
-    // کوسن‌های نشیمن (پُر و کمی گرد)
-    const sz=z0+backD+seatD/2+0.01;
-    for(let i=0;i<n;i++){ const x=-inner/2+sw*(i+0.5);
-      const c=mesh(SE(sw/2-0.006,0.075,seatD/2,0.3,0.22,{nu:40,nv:20,mod:(x,y,z)=>[x,y+(y>0?0.012*Math.cos(x/sw*Math.PI)*Math.cos(z/seatD*Math.PI):0),z]}),slot.fabric,x,SEAT-0.07,sz); g.add(c);
-      // کوسن پشتی، کمی به عقب خوابیده
-      const b=mesh(SE(sw/2-0.008,0.22,0.1,0.3,0.25,{nu:40,nv:24,mod:(x,y,z)=>[x,y,z*(1+0.35*Math.cos(y/0.22*Math.PI/2)*Math.cos(x/sw*Math.PI))]}),slot.fabric,x,0.64,z0+backD+0.07);
-      b.rotation.x=-0.2; g.add(b); }
-    // کوسن‌های تزئینی
-    if(S.pillows==='2') for(const s of [-1,1]){ const p=mesh(SE(0.21,0.21,0.07,0.45,0.6,{nu:32,nv:24,mod:(x,y,z)=>[x,y,z*(1-0.5*Math.pow(Math.max(Math.abs(x),Math.abs(y))/0.21,4))]}),slot.pillow,s*(inner/2-0.24),SEAT+0.2,z0+backD+0.2);
-      p.rotation.set(-0.3,s*0.18,s*0.06); g.add(p); }
-    // پایه‌های باریک مخروطی
-    const leg=lathe([[0,0],[0.012,0],[0.014,0.005],[0.02,LEG-0.01],[0.024,LEG],[0,LEG]],{radial:28});
-    const lx=W/2-0.09, lz=D/2-0.09; for(const x of [-lx,lx]) for(const z of [-lz,lz]) g.add(mesh(leg,slot.legs,x,0,z));
-    if(n===3) for(const z of [-lz,lz]) g.add(mesh(leg,slot.legs,0,0,z));
-    return g; },
-});
+<script>
+/* اگر روی گوشی چیزی خراب شد، متن خطا روی صفحه نشان داده شود (برای عکس‌گرفتن و عیب‌یابی) */
+(function(){ var b=document.getElementById('busy');
+  function show(t){ b.style.cssText+=';white-space:pre-wrap;text-align:start;font-size:11px;direction:ltr;max-height:70%;overflow:auto;color:#7a1f12';
+    b.textContent=(b.dataset.err?b.textContent+'\n':'')+t; b.dataset.err=1; b.classList.add('on'); }
+  window.__showErr=show;
+  addEventListener('error',function(e){ show('Error: '+(e.message||(e.target&&(e.target.src||e.target.href))||e)+(e.filename?'\n'+e.filename.split('/').pop()+':'+e.lineno:'')); },true);
+  addEventListener('unhandledrejection',function(e){ show('Promise: '+(e.reason&&(e.reason.stack||e.reason.message)||e.reason)); });
+  var gl=document.createElement('canvas'); var ok=!!(gl.getContext('webgl2')||gl.getContext('webgl'));
+  if(!ok) show('WebGL روی این مرورگر فعال نیست. صفحه را با Chrome باز کنید.');
+  setTimeout(function(){ if(!window.__started) show('کد سه‌بعدی روی این مرورگر اجرا نشد. لطفاً صفحه را با Google Chrome (نسخه به‌روز) باز کنید.\n'+navigator.userAgent); },25000);
+})();
+if (location.protocol === 'file:') { const b = document.getElementById('busy');
+  b.textContent = 'این صفحه با file:// اجرا نمی‌شود. فایل run.sh را اجرا کنید و آدرسی را که نشان می‌دهد باز کنید.'; b.classList.add('on'); }
 </script>
+<script type="module" src="assets/sofa.js"></script>
 </body>
 </html>
