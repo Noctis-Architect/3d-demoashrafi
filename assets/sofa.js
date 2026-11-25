@@ -725,7 +725,7 @@ const piecesRoot=new THREE.Group(); scene.add(piecesRoot);
 let dirty=true, planDirty=false; const req=()=>{ dirty=true; }, reqShadow=()=>{ renderer.shadowMap.needsUpdate=true; dirty=true; };
 controls.addEventListener('change',req);
 new ResizeObserver(()=>{ const w=stage.clientWidth,h=stage.clientHeight; renderer.setSize(w,h,false); camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix(); if(knob.visible) syncScene(); req(); }).observe(stage);
-renderer.setAnimationLoop(()=>{ if(planDirty){ planDirty=false; drawPlan(); } if(controls.update()) dirty=true; if(dirty){ dirty=false; renderer.render(scene,camera); } });
+renderer.setAnimationLoop((time,xrFrame)=>{ if(planDirty){ planDirty=false; drawPlan(); } if(xrFrame&&xr){ xrTick(xrFrame); renderer.render(scene,camera); return; } if(controls.update()) dirty=true; if(dirty){ dirty=false; renderer.render(scene,camera); } });
 const reqPlan=()=>{ planDirty=true; };
 
 // نشانگر انتخاب: حلقه روی زمین + دستگیره چرخش
@@ -903,7 +903,84 @@ function askQuality(){ return new Promise(res=>{ qDlg.hidden=false; qDlg.querySe
   const on=e=>{ const b=e.target.closest('button'); if(b) done(b.dataset.q||null); else if(e.target===qDlg) done(null); };
   const esc=e=>{ if(e.key==='Escape') done(null); };
   qDlg.addEventListener('click',on); addEventListener('keydown',esc); }); }
+/* ---- AR داخل مرورگر (اندروید، WebXR): کل چیدمان با اندازه واقعی روی کف؛
+        روی هر مبل بزنید تا انتخاب شود و با دکمه‌های پایین جابجا و چرخانده شود ---- */
+let xrOK=false; if(ANDROID&&navigator.xr) navigator.xr.isSessionSupported('immersive-ar').then(v=>{ xrOK=v; }).catch(()=>{});
+const xo=document.createElement('div'); xo.className='xr-ui'; xo.hidden=true;
+xo.innerHTML=`<div class="xr-msg" id="xrMsg"></div>
+  <div class="xr-pad" id="xrPad" hidden>
+    <div class="xr-name" id="xrName"></div>
+    <div class="xr-grid">
+      <button data-m="rl" aria-label="چرخش به چپ">⟲</button><button data-m="f" aria-label="عقب‌تر">▲</button><button data-m="rr" aria-label="چرخش به راست">⟳</button>
+      <button data-m="l" aria-label="چپ">◀</button><button data-m="b" aria-label="جلوتر">▼</button><button data-m="r" aria-label="راست">▶</button>
+    </div>
+  </div>
+  <div class="xr-bar"><button data-x="done" id="xrDone" hidden>✓ تمام</button><button data-x="exit">✕ خروج</button></div>`;
+document.body.appendChild(xo);
+xo.addEventListener('beforexrselect',e=>{ if(e.target.closest('button')) e.preventDefault(); });   // لمس دکمه‌ها به صحنه نرسد
+const xrMsg=t=>{ document.getElementById('xrMsg').textContent=t; };
+const reticle=new THREE.Mesh(new THREE.RingGeometry(0.09,0.115,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.85,depthTest:false}));
+reticle.matrixAutoUpdate=false; reticle.visible=false; reticle.renderOrder=20; scene.add(reticle);
+const arRoot=new THREE.Group(); scene.add(arRoot);
+let xr=null;
+function syncAR(){ syncScene(); knob.visible=false; xrUI(); }
+function xrUI(){ const it=S.layout.find(i=>i.id===sel), pad=document.getElementById('xrPad');
+  pad.hidden=!it; document.getElementById('xrDone').hidden=!it;
+  if(!xr||!xr.placed) return;
+  if(it){ document.getElementById('xrName').textContent=NAMES[it.t]+(clashes().has(it.id)?' · با مبل دیگر تداخل دارد':'');
+    xrMsg('با دکمه‌ها جابجا کنید یا جای خالی کف را بزنید تا مبل همان‌جا برود'); }
+  else xrMsg(S.layout.length>1?'روی هر مبل بزنید تا انتخاب و جابجا شود':'روی مبل بزنید تا جابجا و چرخانده شود'); }
+async function startXR(){
+  xo.hidden=false; xrMsg('گوشی را آرام روی کف اتاق بچرخانید تا دایره سفید بیاید');
+  const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:xo}});
+  renderer.xr.enabled=true; renderer.xr.setReferenceSpaceType('local'); await renderer.xr.setSession(session);
+  const viewer=await session.requestReferenceSpace('viewer'), hit=await session.requestHitTestSource({space:viewer});
+  xr={session,hit,placed:false}; sel=null; selP=null;
+  arRoot.add(piecesRoot,ring,ground,sun,sun.target); arRoot.visible=false; controls.enabled=false; syncAR();
+  session.addEventListener('select',onXRSelect); session.addEventListener('end',endXR); }
+function xrTick(frame){ const ref=renderer.xr.getReferenceSpace(), r=frame.getHitTestResults(xr.hit);
+  if(r.length){ reticle.matrix.fromArray(r[0].getPose(ref).transform.matrix); reticle.visible=true;
+    if(!xr.placed) xrMsg('روی دایره بزنید تا چیدمان با اندازه واقعی آن‌جا قرار بگیرد'); }
+  else reticle.visible=false; }
+const reticlePos=()=>new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+function placeAll(){ const p=reticlePos(), c=new THREE.Vector3().setFromMatrixPosition(renderer.xr.getCamera().matrixWorld);
+  // مرکز چیدمان روی دایره، رو به گوشی
+  let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9; for(const q of S.layout) for(const [x,z] of corners(q)){ x0=Math.min(x0,x); x1=Math.max(x1,x); z0=Math.min(z0,z); z1=Math.max(z1,z); }
+  const yaw=Math.atan2(c.x-p.x,c.z-p.z); arRoot.rotation.y=yaw;
+  const off=new THREE.Vector3((x0+x1)/2,0,(z0+z1)/2).applyAxisAngle(new THREE.Vector3(0,1,0),yaw);
+  arRoot.position.copy(p).sub(off); arRoot.visible=true; xr.placed=true; reqShadow(); syncAR(); }
+function onXRSelect(e){ const ref=renderer.xr.getReferenceSpace(), pose=e.frame.getPose(e.inputSource.targetRaySpace,ref);
+  if(xr.placed&&pose){ const m=new THREE.Matrix4().fromArray(pose.transform.matrix);
+    ray.ray.origin.setFromMatrixPosition(m); ray.ray.direction.set(0,0,-1).transformDirection(m);
+    const h=pick(piecesRoot.children);
+    if(h){ sel=sel===h.id?null:h.id; selP=null; syncAR(); drawPlan(); return; } }
+  if(!reticle.visible) return;
+  if(!xr.placed) return placeAll();
+  const it=S.layout.find(i=>i.id===sel);
+  if(it){ // مبل انتخاب‌شده به نقطه‌ای که زده شد می‌رود (مرکز ردپا)
+    const l=arRoot.worldToLocal(reticlePos()), f=FP[it.t], cx=(f.x0+f.x1)/2, cz=(f.z0+f.z1)/2, c=Math.cos(it.r), s_=Math.sin(it.r);
+    it.x=l.x-(cx*c+cz*s_); it.z=l.z-(-cx*s_+cz*c); changedAR(); }
+  else placeAll(); }
+function changedAR(){ syncAR(); drawPlan(); dims(); scheduleExport(); }
+/* حرکت نسبت به نگاه کاربر: ▲ دورتر، ▼ نزدیک‌تر، ◀ ▶ چپ و راست صفحه */
+function nudge(m){ const it=S.layout.find(i=>i.id===sel); if(!it) return;
+  if(m==='rl'||m==='rr'){ const r=it.r+(m==='rl'?1:-1)*Math.PI/12; it.r=Math.atan2(Math.sin(r),Math.cos(r)); return changedAR(); }
+  const cam=renderer.xr.getCamera(), fwd=new THREE.Vector3(0,0,-1).transformDirection(cam.matrixWorld);
+  fwd.applyQuaternion(arRoot.quaternion.clone().invert()); fwd.y=0; if(fwd.lengthSq()<1e-6) return; fwd.normalize();
+  const right=new THREE.Vector3(-fwd.z,0,fwd.x), st=0.05, d={f:fwd,b:fwd.clone().negate(),r:right,l:right.clone().negate()}[m];
+  it.x=Math.round((it.x+d.x*st)*100)/100; it.z=Math.round((it.z+d.z*st)*100)/100; changedAR(); }
+let rep=null; const stopRep=()=>{ clearTimeout(rep); clearInterval(rep); rep=null; };
+xo.addEventListener('pointerdown',e=>{ const b=e.target.closest('button[data-m]'); if(!b) return; e.preventDefault(); nudge(b.dataset.m);
+  stopRep(); rep=setTimeout(()=>{ rep=setInterval(()=>nudge(b.dataset.m),90); },380); });
+for(const t of ['pointerup','pointercancel','pointerleave']) xo.addEventListener(t,stopRep);
+xo.addEventListener('click',e=>{ const b=e.target.closest('button[data-x]'); if(!b||!xr) return;
+  if(b.dataset.x==='exit') return xr.session.end();
+  sel=null; selP=null; syncAR(); drawPlan(); });
+function endXR(){ xr=null; stopRep(); xo.hidden=true; reticle.visible=false; scene.add(piecesRoot,ring,ground,sun,sun.target); arRoot.position.set(0,0,0); arRoot.rotation.set(0,0,0);
+  controls.enabled=true; const w=stage.clientWidth,h=stage.clientHeight; renderer.setSize(w,h,false); camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix();
+  syncScene(); drawPlan(); frameCamera(); reqShadow(); }
 arBtn.addEventListener('click',async()=>{
+  if(ANDROID&&xrOK&&window.isSecureContext&&!xr){ try{ return await startXR(); }catch(err){ console.error(err); xo.hidden=true; } }
   // اندروید فقط روی https اجازه AR وب می‌دهد (قانون امنیتی مرورگر)
   if(ANDROID&&window.isSecureContext&&arState!=='ready'){ const q=await askQuality(); if(!q) return; arQ=q;
     const f=staticAR(q==='high'); if(f) return sceneViewer(f);
