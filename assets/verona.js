@@ -14,11 +14,11 @@ export const TOPNAME={wood:'هم‌رنگ چوب',carrara:'مرمر سفید ک�
 /* مواد: سه جایگاه wood / top / trim */
 export function veronaQuick(S){ const f=FINISHES.find(x=>x.v===S.finish), P=THREE.MeshPhysicalMaterial, t=TRIMS.find(x=>x.v===S.trim);
   const wood=new P({color:S.finish,roughness:0.85});
-  return { wood, top:S.top==='wood'?wood:new P({color:S.top==='nero'?'#1c1c1e':'#ecebe8',roughness:0.15,clearcoat:0.6}),
+  return { wood, rail:new THREE.MeshStandardMaterial({color:'#a9adb1',metalness:1,roughness:0.4}), top:S.top==='wood'?wood:new P({color:S.top==='nero'?'#1c1c1e':'#ecebe8',roughness:0.15,clearcoat:0.6}),
     trim:t.color?new THREE.MeshStandardMaterial({color:t.color,metalness:1,roughness:0.28}):wood }; }
 export async function veronaMaterials(S,kit){ const f=FINISHES.find(x=>x.v===S.finish), t=TRIMS.find(x=>x.v===S.trim);
   const wood=await kit.wood(S.finish,{gloss:!!f.gloss}), top=S.top==='wood'?wood:await kit.marble(S.top);
-  return { wood, top, trim:t.color?kit.metal(t.color,t.rough):wood }; }
+  return { wood, top, rail:kit.metal('#a9adb1',0.38), trim:t.color?kit.metal(t.color,t.rough):wood }; }
 export const veronaKey=S=>S.finish+S.top+S.trim;
 export function veronaPrewarm(kit){ kit.marble('carrara').catch(()=>{}); kit.marble('nero').catch(()=>{}); }
 
@@ -46,7 +46,9 @@ export function addHandle(g,type,x,y,z,{vertical=false,span=0.3}={}){
   if(type==='knob') return g.add(mesh(knobGeo(),slot.trim,x,y,z));
   if(type==='ring'){ if(!GEO.ring){ const ros=lathe([[0,0],[0.013,0],[0.013,0.003],[0.009,0.006],[0.004,0.011],[0,0.012]],{radial:32,flute:(r,y,a)=>r*(0.88+0.12*Math.abs(Math.cos(4*a)))}); ros.rotateX(Math.PI/2);
       GEO.ring={ros,ring:new THREE.TorusGeometry(0.019,0.0028,10,40)}; }
-    g.add(mesh(GEO.ring.ros,slot.trim,x,y,z)); const r=mesh(GEO.ring.ring,slot.trim,x,y-0.019,z+0.009); r.rotation.x=0.25; g.add(r); return; }
+    g.add(mesh(GEO.ring.ros,slot.trim,x,y,z));
+    const pv=new THREE.Group(); pv.position.set(x,y-0.002,z+0.009); pv.add(mesh(GEO.ring.ring,slot.trim,0,-0.019,0));
+    pv.userData.swing={phi:0.1,v:0,psi:0,w:0,L:0.019,rest:0.1}; pv.rotation.x=-0.1; g.add(pv); return; }
   if(type==='bar'){ const L=Math.max(0.08,Math.min(0.16,span*0.4)), k='bar'+L;
     if(!GEO[k]){ const post=lathe([[0,0],[0.006,0],[0.0045,0.004],[0.0045,0.022],[0,0.022]],{radial:20}); post.rotateX(Math.PI/2);
       const bar=lathe([[0,-L/2-0.004],[0.0045,-L/2],[0.0055,0],[0.0045,L/2],[0,L/2+0.004]],{radial:20}); GEO[k]={post,bar}; }
@@ -91,7 +93,16 @@ export function drawer(g,w,h,x,y,fz,dd,handle){
   box(d,bw,dd,y0,y0+0.012,0,-dd/2-0.004);                               // کف
   for(const s of [-1,1]) box(d,0.012,dd,y0,y0+bh,s*(bw/2-0.006),-dd/2-0.004);   // بغل‌ها
   box(d,bw,0.012,y0,y0+bh,0,-dd+0.002);                                  // پشت
-  d.position.set(x,y,fz+0.002); d.userData.open={type:'drawer',dist:dd*0.8}; g.add(d); return d; }
+  d.position.set(x,y,fz+0.002); d.userData.open={type:'drawer',dist:dd*0.8}; g.add(d);
+  // ریل ساچمه‌ای سه‌تکه: بیرونی روی بدنه ثابت، میانی نصف مسیر، داخلی همراه کشو
+  const rh=Math.min(0.032,bh*0.55), ry=y0+bh*0.45, L=dd-0.02, zc=-dd/2-0.004, rail=(w_,h_,t_)=>{ const b=boxUV(new THREE.BoxGeometry(t_,h_,w_)); return b; };
+  if(!GEO['rl'+L+rh]) GEO['rl'+L+rh]={ o:rail(L,rh,0.004), m:rail(L*0.97,rh*0.78,0.003), i:rail(L*0.94,rh*0.56,0.003), lip:rail(L,0.004,0.011) };
+  const R=GEO['rl'+L+rh], followers=[];
+  for(const s of [-1,1]){ const xo=s*(bw/2+0.0115), xm=s*(bw/2+0.0078), xi=s*(bw/2+0.0042);
+    d.add(mesh(R.i,slot.rail,xi,ry,zc));                                                  // داخلی (روی بدنه کشو)
+    g.add(mesh(R.o,slot.rail,x+xo,y+ry,fz+0.002+zc)); g.add(mesh(R.lip,slot.rail,x+s*(bw/2+0.008),y+ry-rh/2,fz+0.002+zc)); g.add(mesh(R.lip,slot.rail,x+s*(bw/2+0.008),y+ry+rh/2,fz+0.002+zc)); // بیرونی (لبه‌دار)
+    const m=mesh(R.m,slot.rail,x+xm,y+ry,fz+0.002+zc); m.userData.z0=m.position.z; m.userData.k=0.5; g.add(m); followers.push(m); }
+  d.userData.followers=followers; return d; }
 /* در: لولا روی لبه بیرونی (hx)، s=-1 لولا سمت چپ، s=+1 راست. handle سمت آزاد */
 export function door(g,w,h,hx,y,fz,s,{handle='knob',medal=false}={}){
   const d=new THREE.Group(), cx=-s*w/2;
