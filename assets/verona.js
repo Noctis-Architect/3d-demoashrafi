@@ -89,7 +89,7 @@ export function addFeet(g,h,xs,zs){ const k='foot'+h; if(!GEO[k]){
 /* کشو: جلو (پنل) + جعبه واقعی پشتش. (x,y)=مرکز جلو، fz=سطح جلوی بدنه، dd=عمق جعبه */
 export function drawer(g,w,h,x,y,fz,dd,handle){
   const d=new THREE.Group(); panel(d,w,h,0,0,-0.004,{handle});
-  const bw=w-0.05, bh=h-0.03, y0=-h/2+0.012;
+  const bw=w-0.05, bh=h-0.045, y0=-h/2+0.014;   // جعبه کمی کوتاه‌تر از جلو تا به طبقه/نوار بالا نخورد
   box(d,bw,dd,y0,y0+0.012,0,-dd/2-0.004);                               // کف
   for(const s of [-1,1]) box(d,0.012,dd,y0,y0+bh,s*(bw/2-0.006),-dd/2-0.004);   // بغل‌ها
   box(d,bw,0.012,y0,y0+bh,0,-dd+0.002);                                  // پشت
