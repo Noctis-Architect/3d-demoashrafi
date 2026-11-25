@@ -35,6 +35,17 @@ if not os.path.exists(cert) or old_ip != ip:
 class H(http.server.SimpleHTTPRequestHandler):
     extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map, ".js": "text/javascript", ".glb": "model/gltf-binary"}
     def log_message(self, *a): pass
+    # کلید گواهی، پیشنهاد قیمت و فایل‌های گیت روی شبکه دیده نشوند
+    HIDDEN = ("/.cert", "/private", "/.git", "/.claude", "/server.py", "/run.sh")
+    def _hidden(self):
+        p = self.path.split("?")[0]
+        return any(p == h or p.startswith(h + "/") for h in self.HIDDEN)
+    def do_GET(self):
+        if self._hidden(): self.send_error(404); return
+        super().do_GET()
+    def do_HEAD(self):
+        if self._hidden(): self.send_error(404); return
+        super().do_HEAD()
     # فقط برای ساخت فایل‌های آماده AR از همین کامپیوتر (?genar): ذخیره در پوشه ar/
     def do_PUT(self):
         name = os.path.basename(self.path.split("?")[0])
