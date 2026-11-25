@@ -665,13 +665,13 @@ function buildMilan(t){
   const tight=S.back==='tight', backT=tight?0.13:0.16, zB=-D/2+backT, armTop=S.arm==='round'?0.63:0.61;
   // سکوی زیر نشیمن و قاب پشتی (پارچه بدنه)
   g.add(mesh(slabY(rrect(new THREE.Shape(),aw?W-aw:W-0.01,D-0.02,0.03),legH,deck,0.022),M.back));
-  g.add(mesh(slabY(rrect(new THREE.Shape(),aw?inner+0.02:W-0.01,backT,0.035),deck-0.02,Math.min(tight?0.6:0.66,armTop-(aw?0.01:0)),0.03),M.back,0,0,-D/2+backT/2+0.005));
+  g.add(mesh(slabY(rrect(new THREE.Shape(),W-0.01,backT,0.035),legH,tight?0.8:0.76,0.035),M.back,0,0,-D/2+backT/2+0.002));
   // دسته‌ها
   if(aw) for(const s of [-1,1]){ const x=s*(W/2-aw/2);
     if(S.arm==='round'){ // دسته لوله‌ای: بدنه صاف + استوانه بالا با پنل جلو و قیطان دورش
       const R=aw/2, yc=armTop-R;
       g.add(mesh(armGeo(aw,D,legH,yc+0.03,'square'),M.back,x,0,0));
-      g.add(mesh(sweep([V3(0,yc,-D/2+0.012),V3(0,yc,0),V3(0,yc,D/2+0.012)],[R+0.006],{radial:36,seg:24,e:1}),M.back,x,0,0));
+      g.add(mesh(sweep([V3(0,yc,-D/2+backT),V3(0,yc,0),V3(0,yc,D/2+0.012)],[R],{radial:36,seg:24,e:1}),M.back,x,0,0));
       if(pipe) g.add(mesh(new THREE.TorusGeometry(R+0.004,0.0055,8,56),M.welt,x,yc,D/2+0.013)); }
     else g.add(mesh(armGeo(aw,D,legH,armTop,S.arm),M.back,x,0,0)); }
   // کوسن‌های نشیمن (قیطان بالا و پایین، کمی پف وسط و برآمدگی جلو)
@@ -680,7 +680,7 @@ function buildMilan(t){
   // پشتی: کوسن آزاد (کمی خوابیده، تکیه به قاب) یا پشتی ثابت پددار
   const a=tight?0.12:0.24, T=tight?0.1:0.18, Hc=tight?0.82-seatTop:0.41;
   const backs=tight?[inner]:Array(n).fill(sw);
-  x=-inner/2; for(const w of backs){ const c=seatCushion(w-0.006,T,Hc,0.05,tight?0.01:0.03,tight?0.004:0.014,{mat:M.seat,pipe,both:true});
+  x=-inner/2; for(const w of backs){ const c=seatCushion(w-0.014,T,Hc,0.05,tight?0.01:0.03,tight?0.004:0.014,{mat:M.seat,pipe,both:true});
     c.rotation.x=Math.PI/2-a; c.position.set(x+w/2,seatTop-0.02+Hc/2*Math.cos(a)+T/2*Math.sin(a),zB+Hc/2*Math.sin(a)+T/2*Math.cos(a)); g.add(c); x+=w; }
   const frontZ=y=>zB+T+(seatTop+Hc*Math.cos(a)-y)*Math.tan(a);
   // پایه‌ها
