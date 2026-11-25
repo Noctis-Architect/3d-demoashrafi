@@ -142,6 +142,8 @@ export function productPage(P){
   function partAt(e){ const r=cv.getBoundingClientRect(); ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1); ray.setFromCamera(ndc,camera);
     for(const h of ray.intersectObjects(root.children,true)){ let o=h.object; while(o&&o!==root){ if(o.userData.open) return o; o=o.parent; } return null; } return null; }
   let down=null;
+  /* نگه‌داشتن انگشت روی صحنه نباید منو یا انتخاب متن بیاورد */
+  stage.addEventListener('contextmenu',e=>e.preventDefault()); stage.addEventListener('selectstart',e=>e.preventDefault());
   cv.addEventListener('pointerdown',e=>{ down={x:e.clientX,y:e.clientY,t:performance.now()}; });
   cv.addEventListener('pointerup',e=>{ if(!down) return; const d=down; down=null;
     if(Math.hypot(e.clientX-d.x,e.clientY-d.y)<6&&performance.now()-d.t<500){ const o=partAt(e); if(o){ toggle(o); controls.autoRotate=false; $('rotBtn').setAttribute('aria-pressed','false'); } } });

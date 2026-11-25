@@ -810,6 +810,8 @@ function pick(objs){ for(const h of ray.intersectObjects(objs,true)){ let o=h.ob
 function pickFloor(hs=[0.3,0.15,0],skip=null){ for(const h of hs){ const p=onPlane(h); if(!p) continue;
   for(const it of [...S.layout].reverse()){ if(it.id===skip) continue; const f=FP[it.t], dx=p.x-it.x, dz=p.z-it.z, c=Math.cos(it.r), s_=Math.sin(it.r), lx=dx*c-dz*s_, lz=dx*s_+dz*c;
     if(lx>f.x0&&lx<f.x1&&lz>f.z0&&lz<f.z1) return {id:it.id,pid:null}; } } return null; }
+  /* نگه‌داشتن انگشت روی صحنه نباید منو یا انتخاب متن بیاورد */
+  stage.addEventListener('contextmenu',e=>e.preventDefault()); stage.addEventListener('selectstart',e=>e.preventDefault());
 const hint=document.getElementById('hint'), pointers=new Set(); let down=null;
 addEventListener('pointerup',e=>pointers.delete(e.pointerId),true); addEventListener('pointercancel',e=>pointers.delete(e.pointerId),true);
 stage.addEventListener('pointerdown',e=>{

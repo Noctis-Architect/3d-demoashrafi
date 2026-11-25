@@ -111,3 +111,7 @@ a{color:inherit}
 .page-head{padding:clamp(24px,5vw,56px) 0 clamp(20px,3vw,32px)}
 .page-head h1{font-size:clamp(30px,4.4vw,52px);line-height:1.3;margin:14px 0 10px;font-weight:800;letter-spacing:-.5px}
 .page-head p{color:var(--muted);max-width:620px;margin:0;font-size:clamp(15px,1.4vw,17px)}
+/* لمس روی صحنه سه‌بعدی و دکمه‌ها: بدون انتخاب متن، بدون منوی نگه‌داشتن و بدون هایلایت آبی (مخصوصاً اندروید) */
+*{-webkit-tap-highlight-color:transparent}
+.stage,.stage *,button,.btn,.seg,.sw,.chip,.pill,.plan,.addbar,.tb,.icon-btn,.filters,.tabs,.p-card,.cat{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.stage canvas{touch-action:none}
