@@ -630,7 +630,7 @@ async function fabricMat(name,id,hex){ const F=FABRICS[id], T=await fabricTex(id
     sheen:F.sheen, sheenRoughness:F.sr, sheenColor:c.clone().lerp(new THREE.Color('#fff'),0.5) }); }
 async function woodMat(hex,name='legs'){ const Wd=TEX('cherry_veneer'); const [wd,wn,wr]=await Promise.all([Wd('diff'),Wd('nor_gl'),Wd('rough')].map(loadImg));
   cache.wn??=tex(wn,false,0.35); cache.wr??=tex(wr,false,0.35); const k='wl'+hex; cache[k]??=tex(stain(wd,hex),true,0.35);
-  return new THREE.MeshPhysicalMaterial({name,map:cache[k],normalMap:cache.wn,roughnessMap:cache.wr,roughness:0.8,clearcoat:0.45,clearcoatRoughness:0.25}); }
+  return new THREE.MeshPhysicalMaterial({name,map:cache[k],normalMap:cache.wn,roughnessMap:cache.wr,roughness:1,specularIntensity:0.35}); }   // چوب مات
 
 /* ============ مبل راحتی میلان ============ */
 const MIL_ARM={round:0.19,square:0.15,slim:0.075,none:0};

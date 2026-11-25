@@ -20,8 +20,9 @@ export const kit={
     TEXC.wn??=tex(wn,false,0.35); TEXC.wr??=tex(wr,false,0.35);
     const dark=new THREE.Color(hex).getHSL({}).l<0.2;
     return TEXC[k]??=new THREE.MeshPhysicalMaterial({name:'lacquer',map:tex(stain(wd,hex),true,0.35),normalMap:TEXC.wn,normalScale:new THREE.Vector2(0.8,0.8),
-      roughnessMap:TEXC.wr,metalnessMap:TEXC.wr,metalness:0,roughness:dark?0.7:0.75,clearcoat:gloss?1:0.55,clearcoatRoughness:gloss?0.05:0.18,
-      clearcoatNormalMap:TEXC.wn,clearcoatNormalScale:new THREE.Vector2(0.15,0.15),specularIntensity:0.6}); },
+      roughnessMap:TEXC.wr,metalness:0,specularIntensity:gloss?0.6:0.35,
+      // مات: بدون لایه لاک، زبری بالا (فقط کمی برق نرم روی رگه‌ها)
+      ...(gloss?{roughness:dark?0.7:0.75,clearcoat:1,clearcoatRoughness:0.05,clearcoatNormalMap:TEXC.wn,clearcoatNormalScale:new THREE.Vector2(0.15,0.15)}:{roughness:1})}); },
   metal(hex,rough=0.28){ const k='metal'+hex+rough; return TEXC[k]??=new THREE.MeshStandardMaterial({name:'metal',color:hex,metalness:1,roughness:rough}); },
   /* پارچه: اسکن واقعی خاکستری‌شده × رنگ دلخواه */
   async fabric(id,hex,{tile=0.25,sheen=0.8,rough=1}={}){ const k='fab'+id+hex; if(TEXC[k]) return TEXC[k];

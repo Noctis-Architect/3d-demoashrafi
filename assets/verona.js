@@ -3,8 +3,8 @@ import { THREE, slot } from './product.js';
 import { V3, lathe, sweep, rrect, slabY, slabZ, mesh, boxUV } from './geo.js';
 
 export const FINISHES=[
-  {v:'#0c0c0d',label:'مشکی براق',gloss:1}, {v:'#3a2417',label:'گردویی'}, {v:'#9a6038',label:'راش فندقی'},
-  {v:'#d6ae84',label:'راش طبیعی'}, {v:'#6a1c22',label:'زرشکی براق',gloss:1}, {v:'#efe9df',label:'سفید صدفی',gloss:1},
+  {v:'#0c0c0d',label:'مشکی مات'}, {v:'#3a2417',label:'گردویی'}, {v:'#9a6038',label:'راش فندقی'},
+  {v:'#d6ae84',label:'راش طبیعی'}, {v:'#6a1c22',label:'زرشکی'}, {v:'#efe9df',label:'سفید صدفی'},
 ];
 export const TOPS=[{v:'wood',label:'هم‌رنگ چوب'},{v:'carrara',label:'مرمر سفید'},{v:'nero',label:'مرمر مشکی'}];
 export const TRIMS=[{v:'gold',label:'طلایی',color:'#d4ab62'},{v:'silver',label:'نقره‌ای',color:'#d5d6d8'},{v:'bronze',label:'برنز',color:'#8a5a3b'},{v:'black',label:'مشکی',color:'#1d1d1f',rough:0.45},{v:'none',label:'هم‌رنگ چوب'}];
@@ -13,7 +13,7 @@ export const TOPNAME={wood:'هم‌رنگ چوب',carrara:'مرمر سفید ک�
 
 /* مواد: سه جایگاه wood / top / trim */
 export function veronaQuick(S){ const f=FINISHES.find(x=>x.v===S.finish), P=THREE.MeshPhysicalMaterial, t=TRIMS.find(x=>x.v===S.trim);
-  const wood=new P({color:S.finish,roughness:f.gloss?0.3:0.55,clearcoat:f.gloss?1:0.4,clearcoatRoughness:0.06});
+  const wood=new P({color:S.finish,roughness:0.85});
   return { wood, top:S.top==='wood'?wood:new P({color:S.top==='nero'?'#1c1c1e':'#ecebe8',roughness:0.15,clearcoat:0.6}),
     trim:t.color?new THREE.MeshStandardMaterial({color:t.color,metalness:1,roughness:0.28}):wood }; }
 export async function veronaMaterials(S,kit){ const f=FINISHES.find(x=>x.v===S.finish), t=TRIMS.find(x=>x.v===S.trim);
