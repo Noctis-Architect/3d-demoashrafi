@@ -291,6 +291,8 @@ export function productPage(P){
   if(location.hostname==='localhost') window.__openAll=(p=1)=>{ shown.traverse(o=>{ if(o.userData.open){ const u=o.userData; u.base??=o.position.z; u.p=p; u.target=p?1:0; pose(o); } }); renderer.shadowMap.needsUpdate=true; dirty=true; };
   if(location.hostname==='localhost') window.__ringProbe=()=>{ const r=[]; shown.traverse(o=>{ if(o.userData.swing) r.push(+o.userData.swing.phi.toFixed(3)); }); return r.slice(0,2); };
   if(location.hostname==='localhost') window.__toggleAll=()=>{ let n=0; shown.traverse(o=>{ if(o.userData.open){ toggle(o); n++; } }); return n; };
+  if(location.hostname==='localhost') window.__view=(pos,tgt,w=1600,h=1000,fov=30)=>{ renderer.setPixelRatio(1); renderer.setSize(w,h,false); camera.aspect=w/h; camera.fov=fov; camera.updateProjectionMatrix();
+    camera.position.set(...pos); controls.target.set(...tgt); controls.update(); renderer.shadowMap.needsUpdate=true; renderer.render(scene,camera); return cv.toDataURL('image/png'); };
   window.__shot=(w=1800,h=1160,az)=>{ renderer.setPixelRatio(1); renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); frame();
     if(az){ const d=camera.position.clone().sub(controls.target); d.setFromSphericalCoords(d.length(),az[0],az[1]); camera.position.copy(controls.target).add(d); controls.update(); }
     renderer.shadowMap.needsUpdate=true; renderer.render(scene,camera); return cv.toDataURL('image/png'); };

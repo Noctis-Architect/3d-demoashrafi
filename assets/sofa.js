@@ -26,7 +26,7 @@ const SEATS = [ // زمینه|نقش
   ['#ddd6ca|#8d7378','کرم با نقش گلبهی'], ['#2b2e35|#727e8f','ذغالی با نقش طوسی'], ['#3a1d22|#8f5a52','زرشکی'],
 ];
 const BACKS = [
-  ['#e4dcc4','کرم (رنگ عکس محصول)'], ['#d7cdb8','بژ'], ['#c9ccc9','طوسی روشن'], ['#b9c4c9','آبی یخی'], ['#8a6f5a','قهوه‌ای'], ['#2c3e50','سرمه‌ای'], ['#5a2730','زرشکی'],
+  ['#dcd3b2','کرم زیتونی (رنگ عکس محصول)'], ['#e4dcc4','کرم'], ['#d7cdb8','بژ'], ['#c9ccc9','طوسی روشن'], ['#b9c4c9','آبی یخی'], ['#8a6f5a','قهوه‌ای'], ['#2c3e50','سرمه‌ای'], ['#5a2730','زرشکی'],
 ];
 /* پارچه‌های واقعی (اسکن Poly Haven یا بافت ساخته‌شده با کد). tile = اندازه واقعی یک کاشی به متر */
 const FABRICS={
@@ -47,11 +47,12 @@ const PSZ={L:{w:0.46,h:0.46,t:0.17},S:{w:0.40,h:0.40,t:0.15},C:{w:0.36,h:0.27,t:
 
 const MODELS={
   naria:{ name:'مبل ناریا A603', arPrefix:'',
-    defaults:{ frame:FRAMES[0][0], gild:'0', seat:SEATS[0][0], bfab:'chenille', back:BACKS[0][0], pfab:'chenille', pillow:BACKS[0][0], pillows:'4' },
+    defaults:{ frame:FRAMES[0][0], gild:'0', seat:SEATS[0][0], bfab:'chenille', back:BACKS[0][0], cback:'cane', pfab:'velvet', pillow:'#dfd2b6', pillows:'4' },
     options:[
       {sec:'چوب'},
       {key:'frame',label:'رنگ کلاف (چوب)',type:'sw',items:FRAMES,eff:'mat'},
       {key:'gild',label:'طلاکاری حکاکی‌ها',type:'seg',items:[['0','ندارد'],['1','طلایی']],eff:'mat'},
+      {key:'cback',label:'پشتی مبل تک',type:'seg',items:[['cane','حصیری'],['uph','پارچه‌ای']],eff:'geo'},
       {sec:'پارچه'},
       {key:'seat',label:'پارچه نشیمن (ژاکارد)',type:'sw',items:SEATS,eff:'mat',parts:['زمینه','نقش'],
         style:v=>{ const [a,b]=v.split('|'); return `background:radial-gradient(circle at 35% 35%,${b} 0 22%,transparent 23%),radial-gradient(circle at 70% 70%,${b} 0 16%,${a} 17%)`; }},
@@ -59,10 +60,10 @@ const MODELS={
       {key:'back',label:'رنگ پشتی و دسته',type:'sw',items:BACKS,eff:'mat'},
       {sec:'کوسن‌ها'},
       {key:'pillows',label:'تعداد کوسن',type:'seg',items:[['0','بدون'],['2','۲ تایی'],['4','۴ تایی']],eff:'pillows'},
-      {key:'pfab',label:'جنس پارچه کوسن',type:'seg',items:FAB_ITEMS(['chenille','velvet','linen','boucle']),eff:'mat'},
-      {key:'pillow',label:'رنگ کوسن',type:'sw',items:[...BACKS.slice(0,1),...PCOLORS.slice(1)],eff:'mat'},
+      {key:'pfab',label:'جنس پارچه کوسن',type:'seg',items:FAB_ITEMS(['velvet','chenille','linen','boucle']),eff:'mat'},
+      {key:'pillow',label:'رنگ کوسن',type:'sw',items:[['#dfd2b6','شامپاینی (رنگ عکس محصول)'],...BACKS.slice(0,1),...PCOLORS.slice(1)],eff:'mat'},
     ],
-    geoKey:()=>'', build:t=>t==='1'?buildChair():buildSofa(+t),
+    geoKey:()=>S.cback, build:t=>t==='1'?buildChair():buildSofa(+t),
     quick:()=>nariaQuick(), prepare:()=>nariaPrepare(),
     presets:()=>({ '3':[['3',0,0,0]], '2':[['2',0,0,0]], '1':[['1',0,0,0]],
       '311':[['3',0,-0.6,0],['1',-1.55,0.15,0.55],['1',1.55,0.15,-0.55]],
@@ -114,10 +115,10 @@ function autoPresets(){ const w=t=>FP[t].x1-FP[t].x0, d=t=>FP[t].z1-FP[t].z0;
       ['1',w('3')/2+d('1')/2+0.08,-0.9+d('3')/2+w('1')/2-0.25,-H2],['1',w('3')/2+d('1')/2+0.08,-0.9+d('3')/2+w('1')*1.5-0.13,-H2]] }; }
 let pid=0;
 function defPillows(t,n){ n=+n; if(!n) return [];
-  if(t==='1') return [{id:++pid,s:'C',x:0,fwd:0,yaw:0,roll:0}];
+  if(t==='1') return MODEL_ID==='naria'?[]:[{id:++pid,s:'C',x:0,fwd:0,yaw:0,roll:0}];
   const two=t==='2', ai=CTX[t]?CTX[t].armIn:(two?0.717:0.982), bx=ai-0.25, out=[];
   for(const s of [-1,1]){ out.push({id:++pid,s:'L',x:s*bx,fwd:0,yaw:-s*0.05,roll:s*0.03});
-    if(n===4) out.push({id:++pid,s:'S',x:s*(two?0.17:bx-0.43),fwd:two?0.13:0,yaw:s*0.06,roll:-s*0.02}); }
+    if(n===4) out.push({id:++pid,s:'S',x:s*Math.max(0.36,bx-0.3),fwd:0.07,yaw:s*0.08,roll:-s*0.02}); }
   return out; }
 let uid=0; const item=(t,x,z,r,pl)=>({id:++uid,t,x,z,r,pl:pl||defPillows(t,S.pillows)});
 
@@ -315,7 +316,8 @@ function legGeo(){
   const fl=(r,y,a)=> (y>0.045&&y<0.18) ? r*(1-0.10*Math.pow(Math.max(0,Math.cos(12*a)),2)) : r;
   return LEG={ turned:lathe(prof,{radial:48,flute:fl}), block:slabY(rrect(new THREE.Shape(),0.056,0.056,0.006),0.214,h,0.004), h };
 }
-function addLeg(g,x,z){ const L=legGeo(); g.add(mesh(L.turned,M.frame,x,0,z)); g.add(mesh(L.block,M.frame,x,0,z)); }
+const LEG_H=0.15;   // پایه کوتاه مثل عکس محصول (خراطی همان، فشرده‌تر)
+function addLeg(g,x,z){ const L=legGeo(), k=LEG_H/L.h; for(const geo of [L.turned,L.block]){ const m=mesh(geo,M.frame,x,0,z); m.scale.y=k; g.add(m); } }
 
 /* تاج حکاکی: گل‌رز پرپر وسط + غنچه خراطی شیاردار بالا + دو طومار C با برگ */
 let CREST=null;
@@ -520,7 +522,7 @@ function liteMaterials(){ const dark=new THREE.Color(S.frame||S.legc||'#000').ge
 function buildSofa(seats){
   const g=new THREE.Group();
   const W=seats===3?2.15:1.62, D=0.80, hw=W/2, hd=D/2;
-  const aY0=0.255, aY1=0.335, deck=aY1+0.02;
+  const aY0=LEG_H, aY1=LEG_H+0.1, deck=0.29;
 
   // پایه‌ها
   const xs = seats===3 ? [-hw+0.04,-0.36,0.36,hw-0.04] : [-hw+0.04,0,hw-0.04];
@@ -534,29 +536,31 @@ function buildSofa(seats){
   g.add(mesh(slabY(rrect(new THREE.Shape(),W-0.12,D-0.10,0.02),aY0+0.03,deck,0.012),M.seat));
   // تشک دقیقاً بین دو پنل دسته و جلوی پشتی (کمی فشرده در آنها، بدون درز باز)
   const armIn=hw-0.093, sa=armIn+0.006, zB=-0.355, zF=hd-0.015;
-  { const cu=seatCushion(2*sa,0.128,zF-zB,0.035,0.015); cu.position.set(0,deck+0.064,(zF+zB)/2); g.add(cu); }
-  const seatTop=deck+0.128;
+  { const cu=seatCushion(2*sa,0.19,zF-zB,0.045,0.02); cu.position.set(0,deck+0.095,(zF+zB)/2); g.add(cu); }
+  const seatTop=deck+0.19;
   const backFront=y=>-hd+0.05+0.0255-0.07*y;   // جلوی پنل پشتی در ارتفاع y
 
   // پشتی: قاب حکاکی + پنل رویه‌دار + مدالیون حصیری + تاج
   const back=new THREE.Group(); back.position.set(0,0,-hd+0.05); back.rotation.x=-0.07; g.add(back);
   const top=[[-hw+0.036,0.325],[-hw+0.035,0.47],[-hw+0.035,0.62],[-hw+0.04,0.80],[-hw+0.10,0.925],[-hw+0.30,0.972],[-0.45,0.985],[-0.13,0.998],[0,1.012],[0.13,0.998],[0.45,0.985],[hw-0.30,0.972],[hw-0.10,0.925],[hw-0.04,0.80],[hw-0.035,0.62],[hw-0.035,0.47],[hw-0.036,0.325]];
-  back.add(mesh(sweep(top.map(([x,y])=>V3(x,y,0)),[0.024],{seg:Math.round(W*130+90),bead:0.18,period:0.032,flat:0.85,radial:18}),M.frame));
+  back.add(mesh(sweep(top.map(([x,y])=>V3(x,y,0)),[0.021],{seg:Math.round(W*130+90),bead:0.1,period:0.03,flat:0.85,radial:18}),M.frame));
   const ps=new THREE.Shape(); ps.moveTo(top[0][0]+0.02,deck);
   const pc=new THREE.CatmullRomCurve3(top.map(([x,y])=>V3(x,y,0)),false,'centripetal').getSpacedPoints(80);
   for(const p of pc) ps.lineTo(Math.max(-hw+0.055,Math.min(hw-0.055,p.x)),Math.max(deck,p.y-0.012));
   ps.lineTo(top[top.length-1][0]-0.02,deck); ps.closePath();
   back.add(mesh(slabZ(ps,0.075,0.03),M.back,0,0,-0.012));
-  const med=medallion(0.16,0.245); med.position.set(0,0.715,0.03); back.add(med);
+  const med=medallion(0.18,0.215); med.position.set(0,0.775,0.03); back.add(med);
+  // سرستون حکاکی کوچک جایی که پشتی به دسته می‌رسد
+  for(const s of [-1,1]){ const f=lathe([[0,0],[0.016,0],[0.019,0.012],[0.013,0.026],[0.016,0.036],[0.02,0.05],[0.014,0.066],[0.006,0.075],[0,0.078]],{radial:28,flute:(r,y,a)=>y>0.03&&y<0.068?r*(1-0.12*Math.pow(Math.abs(Math.cos(4*a)),2)):r});
+    g.add(mesh(f,M.carve,s*(hw-0.034),0.645,-hd+0.035)); }
   const cr=crest(1.1); cr.position.set(0,1.0,0.0); back.add(cr);
 
   // دسته‌ها
   for(const s of [-1,1]){
     g.add(mesh(sweep([V3(s*(hw-0.035),0.64,-hd-0.0),V3(s*(hw-0.03),0.665,-0.1),V3(s*(hw-0.02),0.66,hd-0.12),V3(s*(hw-0.012),0.625,hd-0.03),V3(s*(hw-0.02),0.52,hd-0.025),V3(s*(hw-0.035),aY1-0.01,hd-0.035)],
       [0.023,0.024,0.025,0.03,0.024,0.026],{radial:20,seg:170,bead:0.15,period:0.03}),M.frame));
-    g.add(mesh(SE(0.036,0.02,0.2,0.4,0.5,{nu:20,nv:12}),M.back,s*(hw-0.03),0.69,-0.06));
     const ph=(0.672-deck)/2, z0=-hd+0.02, z1=hd-0.04;
-    g.add(mesh(SE(0.028,ph,(z1-z0)/2,0.25,0.3,{nu:24,nv:20}),M.back,s*(hw-0.065),deck+ph-0.01,(z0+z1)/2));
+    { const hz=(z1-z0)/2; g.add(mesh(SE(0.028,ph,hz,0.25,0.3,{nu:24,nv:24,mod:(x,y,z)=>[x,y>0?y*(1-0.22*(z/hz+1)/2):y,z]}),M.back,s*(hw-0.065),deck+ph-0.01,(z0+z1)/2)); }
   }
   CTX[seats===3?'3':'2']={seatTop,frontZ:backFront,armIn,lean0:0.3,maxF:0.3};
   return g;
@@ -564,7 +568,7 @@ function buildSofa(seats){
 
 /* ============ مبل تک ناریا ============ */
 function buildChair(){
-  const g=new THREE.Group(), W=0.70, D=0.68, hw=W/2, hd=D/2, aY0=0.255, aY1=0.335, deck=aY1+0.02;
+  const g=new THREE.Group(), W=0.70, D=0.68, hw=W/2, hd=D/2, aY0=LEG_H, aY1=LEG_H+0.1, deck=0.3;
   for(const [x,z] of [[-hw+0.035,hd-0.035],[hw-0.035,hd-0.035],[-hw+0.05,-hd+0.05],[hw-0.05,-hd+0.05]]) addLeg(g,x,z);
   const ring=rrect(new THREE.Shape(),W,D,0.03); ring.holes.push(rrect(new THREE.Path(),W-0.07,D-0.07,0.015));
   g.add(mesh(slabY(ring,aY0,aY1,0.01),M.frame));
@@ -572,13 +576,14 @@ function buildChair(){
   g.add(mesh(SE(0.05,0.025,0.012,0.7,0.6,{nu:18,nv:12}),M.carve,0,(aY0+aY1)/2,hd+0.008));
   g.add(mesh(slabY(rrect(new THREE.Shape(),W-0.12,D-0.10,0.02),aY0+0.03,deck,0.012),M.seat));
   const armIn=hw-0.086, zB=-hd-0.012, zF=hd-0.015;
-  { const cu=seatCushion(2*(armIn+0.006),0.124,zF-zB,0.035,0.016); cu.position.set(0,deck+0.062,(zF+zB)/2); g.add(cu); }
-  const seatTop=deck+0.124;
+  { const cu=seatCushion(2*(armIn+0.006),0.18,zF-zB,0.045,0.035); cu.position.set(0,deck+0.09,(zF+zB)/2); g.add(cu); }
+  const seatTop=deck+0.18;
 
   // پشتی بیضی حصیری با تاج
   const back=new THREE.Group(); back.position.set(0,0,-hd+0.035); back.rotation.x=-0.12; g.add(back);
-  const MY=0.775, MRX=0.235, MRY=0.27;
+  const MY=0.73, MRX=0.22, MRY=0.225;   // قاب پشتی گرد و کوتاه‌تر مثل عکس
   const med=medallion(MRX,MRY); med.position.set(0,MY,0); back.add(med);
+  if(S.cback==='uph'){ const pd=SE(MRX-0.014,MRY-0.014,0.028,0.55,0.55,{nu:48,nv:28}); back.add(mesh(pd,M.back,0,MY,0.004)); }
   const cr=crest(0.95); cr.position.set(0,MY+MRY-0.012,0.0); back.add(cr);
   const pad=new THREE.Shape(); pad.absellipse(0,0,MRX-0.012,MRY-0.012,0,2*Math.PI,false,0);
   back.add(mesh(slabZ(pad,0.045,0.018),M.back,0,MY,-0.03));
@@ -592,9 +597,8 @@ function buildChair(){
     { const a=-0.26, lx=MRX*Math.cos(a), ly=MY+MRY*Math.sin(a); var rail0=V3(s*(lx-0.006),ly*Math.cos(0.12),-hd+0.035-ly*Math.sin(0.12)); }
     g.add(mesh(sweep([rail0,V3(s*0.275,0.685,-hd+0.0),V3(s*(hw-0.035),0.665,-0.12),V3(s*(hw-0.02),0.655,hd-0.12),V3(s*(hw-0.012),0.62,hd-0.03),V3(s*(hw-0.02),0.52,hd-0.025),V3(s*(hw-0.035),aY1-0.01,hd-0.035)],
       [0.018,0.022,0.024,0.025,0.03,0.024,0.026],{radial:20,seg:170,bead:0.15,period:0.03}),M.frame));
-    g.add(mesh(SE(0.034,0.02,0.17,0.4,0.5,{nu:20,nv:12}),M.back,s*(hw-0.025),0.682,-0.03));
-    const ph=(0.668-deck)/2, z0=-hd-0.055, z1=hd-0.04;
-    g.add(mesh(SE(0.026,ph,(z1-z0)/2,0.25,0.3,{nu:24,nv:20}),M.back,s*(hw-0.06),deck+ph-0.01,(z0+z1)/2));
+    const ph=(0.74-deck)/2, z0=-hd-0.055, z1=hd-0.04;
+    { const hz=(z1-z0)/2, w=mesh(SE(0.026,ph,hz,0.25,0.3,{nu:24,nv:24,mod:(x,y,z)=>[x,y>0?y*(1-0.4*(z/hz+1)/2):y,z]}),M.back,s*(hw-0.072),deck+ph-0.01,(z0+z1)/2); w.rotation.y=s*0.05; g.add(w); }   // بال پارچه‌ای: عقبش به سمت قاب بیضی خم می‌شود
   }
   CTX['1']={seatTop,frontZ:medFront,armIn,lean0:0.36,maxF:0.16};
   return g;
@@ -871,7 +875,7 @@ if(QS.has('genar')&&location.hostname==='localhost') window.__genAR=async()=>{ c
   for(const pill of [MODEL.defaults.pillows]){ S.pillows=pill;
     for(const p in PRESETS){ S.layout=PRESETS[p].map(a=>item(...a)); sel=null; selP=null; changed(true);
       await new Promise(r=>setTimeout(r,300)); const root=piecesRoot.clone(), drop=[]; root.traverse(o=>{ if(o.userData.noExport) drop.push(o); }); drop.forEach(o=>o.removeFromParent());
-      const sc=new THREE.Scene(); sc.add(root); const glb=await exporter.parseAsync(sc,{binary:true,maxTextureSize:GEN_HQ?2048:MODEL.arPrefix?512:1024});
+      const sc=new THREE.Scene(); sc.add(root); const glb=await exporter.parseAsync(sc,{binary:true,maxTextureSize:GEN_HQ?2048:512});
       const r=await fetch(`ar/${MODEL.arPrefix}${p}-p${pill}${GEN_HQ?'-hq':''}.glb`,{method:'PUT',body:glb}); out.push(p+'-p'+pill+': '+(glb.byteLength/1048576).toFixed(1)+'MB '+r.status); } }
   return out; };
 /* کیفیت AR فقط در اندروید پرسیده می‌شود: 'high' | 'medium' — آیفون همیشه ۱K */
