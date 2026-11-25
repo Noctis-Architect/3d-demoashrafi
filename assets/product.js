@@ -159,10 +159,12 @@ export function productPage(P){
       swingStep(o,dt); }
     if(act.size){ renderer.shadowMap.needsUpdate=true; dirty=true; } }
   function toggle(o){ const u=o.userData; u.p??=0; u.base??=o.position.z; u.target=u.target?0:1; moving.add(o); }
-  renderer.setAnimationLoop(()=>{ const now=performance.now(), dt=Math.min(0.05,(now-lastT)/1000); lastT=now;
-    if(moving.size||swinging.size) animParts(dt); if(controls.update()) dirty=true; if(dirty){ dirty=false; renderer.render(scene,camera); } });
+  renderer.setAnimationLoop((time,xrFrame)=>{ const now=performance.now(), dt=Math.min(0.05,(now-lastT)/1000); lastT=now;
+    if(moving.size||swinging.size) animParts(dt);
+    if(xrFrame&&xr){ xrTick(xrFrame); renderer.render(scene,camera); return; } if(controls.update()) dirty=true; if(dirty){ dirty=false; renderer.render(scene,camera); } });
   const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
-  function partAt(e){ const r=cv.getBoundingClientRect(); ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1); ray.setFromCamera(ndc,camera);
+  function partAt(e){ const r=cv.getBoundingClientRect(); ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1); ray.setFromCamera(ndc,camera); return partHit(); }
+  function partHit(){
     for(const h of ray.intersectObjects(root.children,true)){ let o=h.object; while(o&&o!==root){ if(o.userData.open) return o; o=o.parent; } return null; } return null; }
   let down=null;
   /* نگه‌داشتن انگشت روی صحنه نباید منو یا انتخاب متن بیاورد */
@@ -226,8 +228,50 @@ export function productPage(P){
   function sceneViewer(file){ const u=new URL(file,location.href).href, back=location.href.split('#')[0];
     location.href='intent://arvr.google.com/scene-viewer/1.0?file='+encodeURIComponent(u)+'&mode=ar_only&resizable=false&title='+encodeURIComponent(P.arTitle||P.name)+
       '#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url='+encodeURIComponent(back)+';end;'; }
-  arBtn.addEventListener('click',()=>{
+  /* ---- AR داخل مرورگر (اندروید، WebXR): اندازه واقعی روی کف اتاق؛ در و کشو با لمس باز و بسته می‌شوند ---- */
+  let xrOK=false; if(ANDROID&&navigator.xr) navigator.xr.isSessionSupported('immersive-ar').then(v=>{ xrOK=v; }).catch(()=>{});
+  const xo=document.createElement('div'); xo.className='xr-ui'; xo.hidden=true;
+  xo.innerHTML='<div class="xr-msg" id="xrMsg"></div><div class="xr-bar"><button data-x="l" aria-label="چرخش به چپ">⟲</button><button data-x="exit">✕ خروج</button><button data-x="r" aria-label="چرخش به راست">⟳</button></div>';
+  document.body.appendChild(xo);
+  xo.addEventListener('beforexrselect',e=>{ if(e.target.closest('button')) e.preventDefault(); });   // لمس دکمه‌ها به صحنه نرسد
+  const xrMsg=t=>{ $('xrMsg').textContent=t; };
+  const reticle=new THREE.Mesh(new THREE.RingGeometry(0.09,0.115,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.85,depthTest:false}));
+  reticle.matrixAutoUpdate=false; reticle.visible=false; reticle.renderOrder=20; scene.add(reticle, sun.target);
+  const SUN0=sun.position.clone();
+  let xr=null;
+  async function startXR(){
+    xo.hidden=false; xrMsg('گوشی را آرام روی کف اتاق بچرخانید تا دایره سفید بیاید');
+    const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:xo}});
+    renderer.xr.enabled=true; renderer.xr.setReferenceSpaceType('local'); await renderer.xr.setSession(session);
+    const viewer=await session.requestReferenceSpace('viewer'), hit=await session.requestHitTestSource({space:viewer});
+    xr={session,hit,placed:false}; root.visible=false; ground.visible=false; controls.enabled=false; controls.autoRotate=false;
+    session.addEventListener('select',onXRSelect); session.addEventListener('end',endXR); }
+  function xrTick(frame){ const ref=renderer.xr.getReferenceSpace(), r=frame.getHitTestResults(xr.hit);
+    if(r.length){ const p=r[0].getPose(ref); reticle.matrix.fromArray(p.transform.matrix); reticle.visible=true;
+      if(!xr.placed) xrMsg('روی دایره بزنید تا '+P.name+' با اندازه واقعی آن‌جا قرار بگیرد'); }
+    else reticle.visible=false; }
+  function place(){ const p=new THREE.Vector3().setFromMatrixPosition(reticle.matrix), c=new THREE.Vector3().setFromMatrixPosition(renderer.xr.getCamera().matrixWorld);
+    root.position.copy(p); root.rotation.y=Math.atan2(c.x-p.x,c.z-p.z); root.visible=true;
+    ground.position.copy(p); ground.visible=true; sun.position.copy(p).add(SUN0); sun.target.position.copy(p); renderer.shadowMap.needsUpdate=true;
+    xr.placed=true; xrMsg('روی در یا کشو بزنید تا باز شود · جای خالی کف را بزنید تا جابجا شود'); }
+  function onXRSelect(e){ const ref=renderer.xr.getReferenceSpace(), pose=e.frame.getPose(e.inputSource.targetRaySpace,ref);
+    if(xr.placed&&pose){ const m=new THREE.Matrix4().fromArray(pose.transform.matrix);
+      ray.ray.origin.setFromMatrixPosition(m); ray.ray.direction.set(0,0,-1).transformDirection(m);
+      const o=partHit(); if(o){ toggle(o); return; }
+      if(ray.intersectObjects(root.children,true).length) return; }
+    if(reticle.visible) place(); }
+  function endXR(){ xr=null; xo.hidden=true; reticle.visible=false; root.position.set(0,0,0); root.rotation.y=0; root.visible=true;
+    ground.position.set(0,0,0); ground.visible=true; sun.position.copy(SUN0); sun.target.position.set(0,0,0); controls.enabled=true;
+    const w=stage.clientWidth,h=stage.clientHeight; renderer.setSize(w,h,false); camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix(); frame(); renderer.shadowMap.needsUpdate=true; req(); }
+  xo.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||!xr) return;
+    if(b.dataset.x==='exit') return xr.session.end();
+    root.rotation.y+=(b.dataset.x==='l'?1:-1)*Math.PI/12; renderer.shadowMap.needsUpdate=true; });
+  /* آیفون: برای طرح پیش‌فرض، فایل USDZ واقعی روی سایت → Quick Look با اندازه قفل‌شده (بزرگ و کوچک نمی‌شود) */
+  function quickLook(file){ const a=document.createElement('a'); a.rel='ar'; a.href=new URL(file,location.href).href+'#allowsContentScaling=0'; a.appendChild(document.createElement('img')); a.click(); }
+  arBtn.addEventListener('click',async()=>{
     if(ANDROID&&!window.isSecureContext) return alert('در اندروید، نمایش در خانه فقط روی https کار می‌کند.');
+    if(ANDROID&&xrOK&&!xr){ try{ return await startXR(); }catch(err){ console.error(err); xo.hidden=true; } }
+    if(IOS&&P.arDefault?.(S)) return quickLook(P.arFile(S).replace(/\.glb$/,'.usdz'));
     if(ANDROID&&arState!=='ready'&&P.arDefault?.(S)) return sceneViewer(P.arFile(S));
     if(arState==='ready'){ if(mv.canActivateAR) mv.activateAR(); else alert(ANDROID?'این گوشی AR را پشتیبانی نمی‌کند یا «Google Play Services for AR» نصب نیست.':'این دستگاه AR را پشتیبانی نمی‌کند.'); }
     else if(arState==='stale') doExport(); });
@@ -238,7 +282,11 @@ export function productPage(P){
   /* فقط روی همین کامپیوتر: ساخت فایل‌های آماده AR اندروید (?genar) و عکس محصول (?shot) */
   if(QS.has('genar')&&location.hostname==='localhost') window.__genAR=async()=>{ const out=[];
     for(const v of P.arVariants||[]){ Object.assign(S,P.defaults,v); await refresh(true);
-      const glb=await exportGLB(1024), f=P.arFile(S); const r=await fetch(f,{method:'PUT',body:glb}); out.push(f+': '+(glb.byteLength/1048576).toFixed(2)+'MB '+r.status); }
+      const glb=await exportGLB(1024), f=P.arFile(S); const r=await fetch(f,{method:'PUT',body:glb}); out.push(f+': '+(glb.byteLength/1048576).toFixed(2)+'MB '+r.status);
+      // USDZ برای Quick Look آیفون (با مبدل خود model-viewer)
+      const u=URL.createObjectURL(new Blob([glb],{type:'model/gltf-binary'})); await new Promise(res=>{ mv.addEventListener('load',res,{once:true}); mv.src=u; });
+      const uz=await mv.prepareUSDZ(), buf=await (await fetch(uz)).arrayBuffer(), fz=f.replace(/\.glb$/,'.usdz');
+      const r2=await fetch(fz,{method:'PUT',body:buf}); out.push(fz+': '+(buf.byteLength/1048576).toFixed(2)+'MB '+r2.status); }
     return out; };
   if(location.hostname==='localhost') window.__openAll=(p=1)=>{ shown.traverse(o=>{ if(o.userData.open){ const u=o.userData; u.base??=o.position.z; u.p=p; u.target=p?1:0; pose(o); } }); renderer.shadowMap.needsUpdate=true; dirty=true; };
   if(location.hostname==='localhost') window.__ringProbe=()=>{ const r=[]; shown.traverse(o=>{ if(o.userData.swing) r.push(+o.userData.swing.phi.toFixed(3)); }); return r.slice(0,2); };
