@@ -99,12 +99,12 @@ function reliefGeo(C,depth,map,{step=MOBILE?0.0026:0.0016,back=false,mirror=fals
 
 /* ================= نقش‌ها ================= */
 /* صدف بادبزنی: پایه (cx,cy)، dir=1 رو به بالا، -1 رو به پایین */
-function shell(C,cx,cy,size,{dir=1,n=9,spread=2.5,h=0.95,lip=true}={}){
+function shell(C,cx,cy,size,{dir=1,n=9,spread=2.5,h=0.95,lip=true,fat=1}={}){
   const lobe=[];
   for(let k=0;k<n;k++){ const t=k/(n-1)-0.5, a=t*spread, L=size*(1-0.42*Math.pow(Math.abs(2*t),1.6)), dx=Math.sin(a), dy=Math.cos(a)*dir;
     const p0=[cx+dx*size*0.14,cy+dy*size*0.14], p1=[cx+dx*L*0.6+dx*0.002,cy+dy*L*0.6], p2=[cx+dx*L,cy+dy*L];
     lobe.push([dx,dy,L]);
-    C.tube([p0,p1,p2],t2=>size*0.085*(0.35+0.75*Math.pow(t2,0.7))*(t2>0.86?Math.sqrt(Math.max(0,1-Math.pow((t2-0.86)/0.14,2))):1),t2=>h*(0.62+0.38*t2)); }
+    C.tube([p0,p1,p2],t2=>size*0.085*fat*(0.35+0.75*Math.pow(t2,0.7))*(t2>0.86?Math.sqrt(Math.max(0,1-Math.pow((t2-0.86)/0.14,2))):1),t2=>h*(0.62+0.38*t2)); }
   // شیار میان پره‌ها و لبه کنگره‌ای
   for(let k=0;k<n-1;k++){ const t=(k+0.5)/(n-1)-0.5, a=t*spread, L=size*(1-0.42*Math.pow(Math.abs(2*t),1.6))*0.92, dx=Math.sin(a), dy=Math.cos(a)*dir;
     C.groove([[cx+dx*size*0.2,cy+dy*size*0.2],[cx+dx*L*0.55,cy+dy*L*0.55],[cx+dx*L,cy+dy*L]],size*0.022,0.55); }
@@ -123,15 +123,15 @@ function acanthus(C,pts,w,h,{lobes=4,curl=0}={}){
 function leaf(C,x,y,ang,len,w,h){ const p=[[x,y],[x+Math.cos(ang)*len*0.5,y+Math.sin(ang)*len*0.5+w*0.25],[x+Math.cos(ang)*len,y+Math.sin(ang)*len]];
   C.tube(p,leafR(w,0.7),t=>h*(0.6+0.4*Math.sin(Math.PI*t))); C.groove([p[0],p[1],[x+Math.cos(ang)*len*0.85,y+Math.sin(ang)*len*0.85]],w*0.18,0.7); }
 /* شاخه مواج با برگ‌های یک‌درمیان و غنچه لاله‌ای در انتها (دو طرف تاج) */
-function spray(C,s,x0,x1,y,amp,{h=0.55,stem=0.0028,leafLen=0.024,bud=true}={}){
+function spray(C,s,x0,x1,y,amp,{h=0.55,stem=0.0028,leafLen=0.024,leafW=leafLen*0.24,bud=true}={}){
   const pts=[]; for(let i=0;i<=24;i++){ const t=i/24, x=x0+(x1-x0)*t; pts.push([s*x,y+amp*Math.sin(t*Math.PI*2.2+0.4)]); }
   C.tube(pts,t=>stem*(1-0.35*t),h);
-  const n=Math.round(Math.abs(x1-x0)/0.034);
+  const n=Math.round(Math.abs(x1-x0)/(leafLen*1.05));
   for(let k=1;k<n;k++){ const t=k/n, x=x0+(x1-x0)*t, yy=y+amp*Math.sin(t*Math.PI*2.2+0.4), up=k%2?1:-1;
-    leaf(C,s*x,yy,(s>0?0:Math.PI)+s*up*0.75,leafLen*(1-0.25*t),leafLen*0.24,h*1.15); }
+    leaf(C,s*x,yy,(s>0?0:Math.PI)+s*up*0.75,leafLen*(1-0.25*t),leafW*(1-0.2*t),h*1.15); }
   if(bud){ const x=s*x1, yy=y+amp*Math.sin(Math.PI*2.2+0.4), d=s;
-    for(const a of [-0.55,0,0.55]) C.tube([[x,yy],[x+d*0.012*Math.cos(a),yy+0.012*Math.sin(a)],[x+d*0.022*Math.cos(a),yy+0.02*Math.sin(a)]],leafR(0.0048,0.5),h*1.2);
-    C.dome(x,yy,0.005,h*1.1); } }
+    const B=leafLen/0.024; for(const a of [-0.55,0,0.55]) C.tube([[x,yy],[x+d*0.012*B*Math.cos(a),yy+0.012*B*Math.sin(a)],[x+d*0.022*B*Math.cos(a),yy+0.02*B*Math.sin(a)]],leafR(0.0048*B,0.5),h*1.2);
+    C.dome(x,yy,0.005*B,h*1.1); } }
 /* گل شش‌پر با دکمه وسط */
 function flower(C,x,y,R,h,{n=6,rot=0.3}={}){
   for(let k=0;k<n;k++){ const a=rot+k*2*Math.PI/n; C.tube([[x+Math.cos(a)*R*0.2,y+Math.sin(a)*R*0.2],[x+Math.cos(a)*R*0.62,y+Math.sin(a)*R*0.62],[x+Math.cos(a)*R,y+Math.sin(a)*R]],t=>R*0.32*Math.pow(Math.sin(Math.PI*(0.15+0.8*t)),0.6),h*0.82);
@@ -141,45 +141,47 @@ function flower(C,x,y,R,h,{n=6,rot=0.3}={}){
 function cscroll(C,cx,cy,r,a0,turn,w,h){ C.tube(spiral(cx,cy,r,r*0.3,a0,a0+turn,36),t=>w*(1-0.45*t),h); C.dome(...spiral(cx,cy,r,r*0.3,a0,a0+turn,1)[1],w*0.75,h*1.05); }
 
 /* ---- ترکیب‌ها (مطابق عکس‌ها) ---- */
-/* تاج وسط پشتی: صدف بلند بالای قاب، برگ‌های کنگری دو طرف، طومارهای پایین، شاخه‌های مواج تا دو طرف */
-function crestArt(){ const C=new Carve(-0.46,0.46,-0.034,0.088);
-  shell(C,0,-0.014,0.092,{n:11,spread:2.55,h:1});
+/* تاج وسط پشتی (عکس اول): صدف بادبزنی پهن بالای قاب، برگ‌های کنگری درشت دو طرف پای صدف،
+   دو طومار پشت‌به‌پشت زیر صدف، شاخه‌های برگ‌دار پرپشت تا دو طرف با غنچه لاله‌ای */
+function crestArt(){ const C=new Carve(-0.47,0.47,-0.034,0.1);
+  shell(C,0,-0.012,0.108,{n:11,spread:2.8,h:1,fat:1.75});
   for(const s of [-1,1]){
-    cscroll(C,s*0.016,-0.024,0.0075,s>0?Math.PI*1.1:-0.1,s*-4.2,0.0042,0.9);                       // دو طومار ریز زیر صدف
-    acanthus(C,[[s*0.012,-0.006],[s*0.04,-0.004],[s*0.066,0.006],[s*0.08,0.018]],0.0085,0.95,{lobes:4,curl:s>0?1:-1});   // برگ بالا رو به بیرون
-    acanthus(C,[[s*0.018,-0.02],[s*0.05,-0.022],[s*0.085,-0.016],[s*0.11,-0.008]],0.007,0.85,{lobes:4,curl:s>0?-1:1}); // برگ پایین
-    cscroll(C,s*0.118,0.002,0.009,s>0?Math.PI:0,s>0?-4.4:4.4,0.004,0.75);
-    spray(C,s,0.13,0.43,-0.006,0.006,{h:0.62});
+    cscroll(C,s*0.017,-0.025,0.009,s>0?Math.PI*1.1:-0.1,s*-4.4,0.0052,1);                       // دو طومار زیر صدف
+    acanthus(C,[[s*0.014,-0.004],[s*0.045,0.0],[s*0.072,0.012],[s*0.086,0.03]],0.0145,1,{lobes:5,curl:s>0?1:-1});   // برگ بالا رو به بیرون و بالا
+    acanthus(C,[[s*0.02,-0.02],[s*0.055,-0.024],[s*0.092,-0.018],[s*0.125,-0.006]],0.0115,0.95,{lobes:5,curl:s>0?-1:1}); // برگ پایین رو به بیرون
+    acanthus(C,[[s*0.1,0.006],[s*0.12,0.012],[s*0.142,0.006],[s*0.15,-0.006]],0.007,0.85,{lobes:3});
+    cscroll(C,s*0.156,-0.012,0.0095,s>0?Math.PI*0.6:Math.PI*0.4,s>0?-4.4:4.4,0.0048,0.9);
+    spray(C,s,0.17,0.44,-0.006,0.007,{h:0.75,stem:0.0042,leafLen:0.034,leafW:0.0095});
   }
   return C.done(); }
 /* نقش کناری پشتی (عکس سوم): برگ طوماری، روبان ضربدری، گل شش‌پر، برگ دنباله‌دار */
-function sideArt(){ const C=new Carve(-0.13,0.13,-0.03,0.016);
-  acanthus(C,[[-0.115,-0.012],[-0.09,-0.004],[-0.06,-0.008],[-0.04,-0.004]],0.0065,0.8,{lobes:3,curl:-1});
-  C.tube([[-0.05,-0.018],[-0.035,-0.004],[-0.02,0.008]],0.0042,0.95); C.tube([[-0.05,0.008],[-0.035,-0.004],[-0.018,-0.017]],0.0042,0.85);   // روبان X
-  acanthus(C,[[-0.024,-0.014],[0.0,-0.012],[0.018,-0.006]],0.005,0.75,{lobes:2});
-  flower(C,0.036,-0.005,0.0125,1);
-  acanthus(C,[[0.05,-0.006],[0.075,-0.002],[0.1,0.002],[0.122,0.0]],0.0055,0.75,{lobes:3});
-  leaf(C,0.055,-0.014,-0.25,0.03,0.006,0.7);
+function sideArt(){ const C=new Carve(-0.15,0.15,-0.031,0.018);
+  acanthus(C,[[-0.14,-0.014],[-0.11,-0.002],[-0.075,-0.008],[-0.045,-0.002]],0.0095,0.95,{lobes:4,curl:-1});
+  C.tube([[-0.056,-0.022],[-0.04,-0.005],[-0.022,0.01]],0.0058,1); C.tube([[-0.056,0.01],[-0.04,-0.005],[-0.02,-0.021]],0.0058,0.9);   // روبان X
+  acanthus(C,[[-0.026,-0.016],[0.0,-0.014],[0.02,-0.006]],0.0075,0.85,{lobes:3});
+  flower(C,0.04,-0.006,0.0165,1.05);
+  acanthus(C,[[0.058,-0.004],[0.085,0.0],[0.115,0.004],[0.145,0.0]],0.008,0.9,{lobes:4});
+  leaf(C,0.06,-0.016,-0.2,0.04,0.0085,0.85);
   return C.done(); }
 /* گل کوچک کنار گوشه پشتی */
-function cornerArt(){ const C=new Carve(-0.07,0.07,-0.03,0.016);
-  flower(C,0,-0.006,0.011,1,{n:5});
-  for(const s of [-1,1]){ leaf(C,s*0.012,-0.008,s>0?0.15:Math.PI-0.15,0.035,0.006,0.75); leaf(C,s*0.01,-0.014,s>0?-0.4:Math.PI+0.4,0.028,0.005,0.65); C.tube(mir([[0.04,-0.004],[0.052,0.002],[0.064,-0.004]],s),0.0025,0.5); }
+function cornerArt(){ const C=new Carve(-0.085,0.085,-0.031,0.018);
+  flower(C,0,-0.006,0.0145,1.05,{n:5});
+  for(const s of [-1,1]){ leaf(C,s*0.014,-0.004,s>0?0.2:Math.PI-0.2,0.045,0.0085,0.9); leaf(C,s*0.012,-0.016,s>0?-0.3:Math.PI+0.3,0.038,0.007,0.8); C.tube(mir([[0.05,-0.006],[0.064,0.003],[0.08,-0.004]],s),0.0035,0.65); }
   return C.done(); }
 /* تیر نشیمن: صدف آویزان با برگ‌ها و شاخه دو طرف */
-function apronShellArt(){ const C=new Carve(-0.2,0.2,-0.075,0.024);
-  shell(C,0,-0.004,0.058,{dir:-1,n:9,spread:2.2,h:1});
+function apronShellArt(){ const C=new Carve(-0.22,0.22,-0.085,0.026);
+  shell(C,0,-0.002,0.07,{dir:-1,n:9,spread:2.3,h:1,fat:1.65});
   for(const s of [-1,1]){
-    acanthus(C,[[s*0.012,0.004],[s*0.04,0.008],[s*0.062,0.002],[s*0.07,-0.012]],0.0075,0.95,{lobes:4,curl:s>0?-1:1});
-    cscroll(C,s*0.03,-0.028,0.008,s>0?Math.PI*0.5:Math.PI*0.5,s>0?-4:4,0.0038,0.8);
-    spray(C,s,0.085,0.19,0.0,0.004,{h:0.6,leafLen:0.02,stem:0.0024});
+    acanthus(C,[[s*0.014,0.006],[s*0.045,0.01],[s*0.07,0.002],[s*0.08,-0.016]],0.01,1,{lobes:5,curl:s>0?-1:1});
+    cscroll(C,s*0.036,-0.034,0.01,Math.PI*0.5,s>0?-4:4,0.0048,0.9);
+    spray(C,s,0.095,0.21,0.0,0.005,{h:0.75,leafLen:0.028,leafW:0.008,stem:0.0034});
   }
   return C.done(); }
 /* وسط تیر نشیمن (روی پایه وسط): کارتوش با صدف کوچک */
-function apronCenterArt(){ const C=new Carve(-0.1,0.1,-0.07,0.024);
-  shell(C,0,0.006,0.042,{dir:-1,n:7,spread:2.1,h:0.95});
-  for(const s of [-1,1]){ cscroll(C,s*0.024,0.008,0.009,s>0?Math.PI:0,s>0?-4.2:4.2,0.0042,0.9);
-    acanthus(C,[[s*0.03,-0.002],[s*0.055,0.004],[s*0.08,0.0],[s*0.095,0.006]],0.0055,0.75,{lobes:3}); }
+function apronCenterArt(){ const C=new Carve(-0.12,0.12,-0.075,0.026);
+  shell(C,0,0.008,0.05,{dir:-1,n:7,spread:2.2,h:0.95,fat:1.6});
+  for(const s of [-1,1]){ cscroll(C,s*0.028,0.01,0.011,s>0?Math.PI:0,s>0?-4.2:4.2,0.0052,0.95);
+    acanthus(C,[[s*0.036,-0.004],[s*0.065,0.004],[s*0.092,0.0],[s*0.11,0.007]],0.0075,0.85,{lobes:3}); }
   return C.done(); }
 /* زانوی پایه: برگ کنگری آویزان + رگه وسط تا مچ */
 function kneeArt(){ const C=new Carve(-0.032,0.032,0.03,0.27, MOBILE?1500:2400);
@@ -191,7 +193,7 @@ function kneeArt(){ const C=new Carve(-0.032,0.032,0.03,0.27, MOBILE?1500:2400);
 
 /* ================= پایه کابریول ================= */
 /* مقطع افقی گردگوشه با تیزی جلو؛ A رو به بیرون پایه */
-const LEG=[[0.275,0,0.029],[0.235,0.01,0.031],[0.2,0.026,0.031],[0.16,0.022,0.025],[0.12,0.006,0.019],[0.08,-0.008,0.016],[0.05,-0.012,0.015],[0.03,-0.004,0.016],[0.016,0.008,0.02],[0.006,0.012,0.021],[0,0.012,0.018]];
+const LEG=[[0.275,0,0.026],[0.235,0.01,0.028],[0.2,0.026,0.027],[0.16,0.021,0.021],[0.12,0.005,0.0165],[0.08,-0.008,0.014],[0.05,-0.012,0.0135],[0.03,-0.004,0.015],[0.016,0.008,0.018],[0.006,0.012,0.019],[0,0.012,0.016]];
 const legCurve=new THREE.CatmullRomCurve3(LEG.map(([y,a,r])=>V3(a,y,r)),false,'centripetal');
 function legAt(y){ // a (جابجایی رو به جلو) و r در ارتفاع y
   let lo=0,hi=1; for(let k=0;k<30;k++){ const m=(lo+hi)/2; legCurve.getPoint(m).y>y?lo=m:hi=m; } const p=legCurve.getPoint((lo+hi)/2); return [p.x,p.z]; }
@@ -226,31 +228,32 @@ export function buildLouis(){ if(GEO.g) return GEO.g.clone();
   const topMap=(sc,mir)=>(X,Y)=>{ const f=TF.at(sc+X); return {p:f.P.clone().addScaledVector(f.U,Y).addScaledVector(f.F,tfront(Y)),n:f.F}; };
   const mid=TF.L/2, sAt=x=>{ let best=0,bd=9; for(const f of TF){ const d=Math.abs(f.P.x-x)+(f.P.z>ZB+0.01?1:0); if(d<bd){bd=d;best=f.s;} } return best; };
   GEO.crest??=crestArt(); GEO.side??=sideArt(); GEO.corner??=cornerArt();
-  add(reliefGeo(GEO.crest,0.011,topMap(mid),{back:true}),slot.carve);
+  add(reliefGeo(GEO.crest,0.014,topMap(mid),{back:true}),slot.carve);
   for(const s of [-1,1]){ const sc=sAt(s*0.55), sk=sAt(s*0.84);
     add(reliefGeo(GEO.side,0.008,topMap(sc),{mirror:s<0}),slot.carve);
     add(reliefGeo(GEO.corner,0.008,topMap(sk),{mirror:s<0}),slot.carve); }
 
   /* ---- سر دسته: طومار بزرگ + برگ‌های آویزان؛ ستون دسته تا تیر نشیمن ---- */
   for(const s of [-1,1]){ const e=s<0?TF[0]:TF[TF.N], fw=e.T.clone().multiplyScalar(s<0?-1:1).setY(0).normalize(), up=V3(0,1,0), side=V3(s,0,0);
-    const c=e.P.clone().addScaledVector(fw,0.012).addScaledVector(up,-0.012), vol=[];
-    for(let i=0;i<=40;i++){ const t=i/40, a=Math.PI*0.6-t*Math.PI*2.3, r=0.03*(1-0.62*t); vol.push(c.clone().addScaledVector(fw,Math.cos(a)*r).addScaledVector(up,Math.sin(a)*r).addScaledVector(side,0.004*t)); }
-    add(white(sweep(vol,[0.024,0.02,0.015,0.01,0.007],{seg:70,radial:18,e:0.75,flat:0.85})),slot.carve);
-    for(const [dx,len,w] of [[-0.016,0.07,0.011],[0,0.085,0.013],[0.016,0.065,0.01]]){   // برگ‌های کنگری روی جلوی دسته
-      const p0=c.clone().addScaledVector(fw,0.026).addScaledVector(side,dx).addScaledVector(up,0.012), lp=[];
-      for(let i=0;i<=10;i++){ const t=i/10; lp.push(p0.clone().addScaledVector(fw,0.012*Math.sin(Math.PI*t)+0.004).addScaledVector(up,-len*t).addScaledVector(side,dx*0.4*t)); }
-      add(white(sweep(lp,[w*0.5,w,w*0.85,w*0.4],{seg:30,radial:12,e:0.7,flat:0.45,bead:0.25,period:0.012})),slot.carve); }
-    // ستون جلوی دسته: S ملایم تا گوشه تیر نشیمن
-    const post=[c.clone().addScaledVector(up,-0.02),V3(s*1.07,0.53,0.372),V3(s*1.058,0.45,0.386),V3(s*1.04,0.37,0.388),V3(s*1.03,0.3,0.384),V3(s*1.025,0.262,0.38)];
-    add(sweep(post,[0.025,0.021,0.019,0.021,0.025],{seg:60,radial:20,e:0.7}),slot.wood);
-    const trail=[]; for(let i=0;i<=8;i++){ const t=i/8; trail.push(new THREE.CatmullRomCurve3(post).getPoint(0.15+0.65*t).add(V3(s*0.0,0,0.021))); }
-    add(white(sweep(trail,[0.004,0.0065,0.0055,0.0045,0.003],{seg:60,radial:10,bead:0.55,period:0.016,flat:0.7})),slot.carve); }
+    const c=e.P.clone().addScaledVector(fw,0.016).addScaledVector(up,-0.018), vol=[];
+    for(let i=0;i<=44;i++){ const t=i/44, a=Math.PI*0.62-t*Math.PI*2.4, r=0.038*(1-0.64*t); vol.push(c.clone().addScaledVector(fw,Math.cos(a)*r).addScaledVector(up,Math.sin(a)*r).addScaledVector(side,0.008*t)); }
+    add(white(sweep(vol,[0.03,0.026,0.02,0.014,0.009],{seg:80,radial:20,e:0.75,flat:0.9})),slot.carve);
+    // برگ‌های کنگری پرپشت روی سر دسته که رو به پایین و بیرون می‌ریزند (مثل عکس)
+    for(const [dx,len,w,out] of [[-0.022,0.075,0.012,0.6],[0,0.1,0.015,0.2],[0.022,0.08,0.012,-0.2],[-0.012,0.05,0.01,1],[0.014,0.055,0.01,-0.8]]){
+      const p0=c.clone().addScaledVector(fw,0.034).addScaledVector(side,dx).addScaledVector(up,0.018), lp=[];
+      for(let i=0;i<=12;i++){ const t=i/12; lp.push(p0.clone().addScaledVector(fw,0.016*Math.sin(Math.PI*t)+0.002-0.01*t).addScaledVector(up,-len*t).addScaledVector(side,(dx*0.5-out*0.01)*t*s)); }
+      add(white(sweep(lp,[w*0.4,w,w*0.9,w*0.35],{seg:36,radial:12,e:0.7,flat:0.5,bead:0.3,period:0.011})),slot.carve); }
+    // ستون جلوی دسته: تقریباً عمودی زیر سر دسته تا گوشه تیر نشیمن (لبه جلوی بال)
+    const post=[c.clone().addScaledVector(up,-0.03),V3(s*1.06,0.5,0.364),V3(s*1.05,0.42,0.372),V3(s*1.04,0.34,0.378),V3(s*1.032,0.262,0.382)];
+    add(sweep(post,[0.026,0.022,0.021,0.023,0.027],{seg:60,radial:20,e:0.7}),slot.wood);
+    const PC=new THREE.CatmullRomCurve3(post), trail=[]; for(let i=0;i<=10;i++){ const t=i/10, p=PC.getPoint(0.12+0.72*t), tg=PC.getTangent(0.12+0.72*t), n=V3(0,0,1).addScaledVector(tg,-tg.z).normalize(); trail.push(p.addScaledVector(n,0.022)); }
+    add(white(sweep(trail,[0.0045,0.0075,0.0065,0.005,0.0035],{seg:70,radial:10,bead:0.6,period:0.017,flat:0.65})),slot.carve); }
 
   /* ---- رویه داخل پشتی و دسته‌ها (یکپارچه، کمی پف‌دار) + قیطان زیر قاب ---- */
   const NV=26, inRows=[], outRows=[], weltIn=[], weltOut=[];
-  for(let i=0;i<=TF.N;i+=2){ const {P,F,U}=TF[i], top=P.clone().addScaledVector(U,-0.03).addScaledVector(F,0.008), wing=Math.abs(F.z)<0.7;
-    const bot=V3(top.x,DECK_Y-0.02,top.z).addScaledVector(F,wing?0.035:0.075), row=[];
-    for(let k=0;k<=NV;k++){ const v=k/NV, q=top.clone().lerp(bot,v); q.addScaledVector(F,0.04*Math.pow(Math.sin(Math.PI*Math.min(1,v*1.15)),0.7)+0.012*Math.sin(Math.PI*Math.min(1,v*8))); row.push(q); }
+  for(let i=0;i<=TF.N;i+=2){ const {P,F,U,s:si}=TF[i], tp=Math.min(1,Math.min(si,TF.L-si)/0.22), tk=tp*tp*(3-2*tp), top=P.clone().addScaledVector(U,-0.03).addScaledVector(F,0.008), wing=Math.abs(F.z)<0.7;
+    const bot=V3(top.x,DECK_Y-0.02,top.z).addScaledVector(F,wing?0.012+0.025*tk:0.075), row=[];
+    for(let k=0;k<=NV;k++){ const v=k/NV, q=top.clone().lerp(bot,v); q.addScaledVector(F,(0.006+0.034*tk)*Math.pow(Math.sin(Math.PI*Math.min(1,v*1.15)),0.7)+0.012*Math.sin(Math.PI*Math.min(1,v*8))); row.push(q); }
     inRows.push(row); weltIn.push(top.clone().addScaledVector(F,0.006).addScaledVector(U,0.002));
     const ot=P.clone().addScaledVector(U,-0.03).addScaledVector(F,-0.018), ob=V3(Math.max(-1.032,Math.min(1.032,ot.x)),SEAT_Y-0.004,Math.max(ZB-0.012,ot.z)), orow=[];
     for(let k=0;k<=NV;k++){ const v=k/NV, q=ot.clone().lerp(ob,v); q.addScaledVector(F,-0.008*Math.sin(Math.PI*v)); orow.push(q); }
@@ -284,10 +287,14 @@ export function buildLouis(){ if(GEO.g) return GEO.g.clone();
   add(slabY(rrect(new THREE.Shape(),2.0,0.78,0.06),DECK_Y-0.02,DECK_Y,0.008),slot.velvet,0,0,0.0);
 
   /* ---- تشک یکپارچه دمسک با قیطان بالا و پایین ---- */
-  const ca=1.0, cb=0.082, cc=0.368, cz=0.062, cy=DECK_Y+cb-0.004;
+  const ca=1.0, cb=0.09, cc=0.368, cz=0.062, cy=DECK_Y+cb-0.004;
   const cush=SE(ca,cb,cc,0.22,0.1,{nu:MOBILE?96:140,nv:MOBILE?28:40,mod:(x,y,z)=>{ const zz=(z/cc+1)/2, taper=1-0.075*(1-zz);
     return [x*taper,y+(y>0?0.014:0.004)*(1-Math.pow(x/ca,4))*(1-Math.pow(z/cc,4)),z]; }});
-  add(cush,slot.damask,0,cy,cz);
+  // تشک جعبه‌ای واقعی: رویه بالا و پایین جدا از نوار دور (UV صاف روی رویه تا نقش کشیده نشود)؛ درزها زیر قیطان
+  { const nu=MOBILE?96:140, nv=MOBILE?28:40, pa=cush.attributes.position, row=i=>Array.from({length:nu+1},(_,j)=>V3(pa.getX(i*(nu+1)+j),pa.getY(i*(nu+1)+j),pa.getZ(i*(nu+1)+j)));
+    const R=Array.from({length:nv+1},(_,i)=>row(i)), thr=cb*0.93; let i0=0,i1=nv; while(R[i0+1][0].y<-thr) i0++; while(R[i1-1][0].y>thr) i1--;
+    const planar=g=>{ const p=g.attributes.position, u=g.attributes.uv; for(let k=0;k<p.count;k++) u.setXY(k,p.getX(k),-p.getZ(k)); return g; };
+    add(sheet(R.slice(i0,i1+1)),slot.damask,0,cy,cz); add(planar(sheet(R.slice(i1))),slot.damask,0,cy,cz); add(planar(sheet(R.slice(0,i0+1))),slot.damask,0,cy,cz); }
   for(const yy of [-1,1]){ const pts=[]; for(let i=0;i<120;i++){ const ph=-Math.PI+2*Math.PI*i/120, c=Math.cos(ph), sn=Math.sin(ph), cf=Math.sign(c)*Math.pow(Math.abs(c),0.1), sf=Math.sign(sn)*Math.pow(Math.abs(sn),0.1);
       const z=cc*sf*0.985, zz=(z/cc+1)/2, x=ca*cf*0.985*(1-0.075*(1-zz)); pts.push(V3(x,cy+yy*(cb*0.93)+(yy>0?0.004:0),cz+z)); }
     add(sweep(pts,[0.0055],{closed:true,seg:360,radial:10}),slot.pipe); }
@@ -304,40 +311,46 @@ export function buildLouis(){ if(GEO.g) return GEO.g.clone();
 
 /* ================= پارچه دمسک (ساخته‌شده با کد، مطابق عکس تشک) ================= */
 export const SEATS=[
-  {v:'red',  label:'دمسک قرمز و سبز (عکس محصول)', ground:'#7c1d14', ground2:'#9c3424', floral:'#7a7840', floralHi:'#a7a264', floralLo:'#43431e', gold:'#c9a54e', goldLo:'#7a5a22', lat:'#e6b83a'},
+  {v:'red',  label:'دمسک قرمز و سبز (عکس محصول)', ground:'#7a1c13', ground2:'#a33a28', floral:'#86814a', floralHi:'#b9b177', floralLo:'#3f3f1c', gold:'#c9a54e', goldLo:'#7a5a22', lat:'#e6b83a'},
   {v:'navy', label:'دمسک سرمه‌ای و طلایی', ground:'#1e2b45', ground2:'#34466a', floral:'#a68b4a', floralHi:'#d6bd7a', floralLo:'#5b4822', gold:'#d0ad5a', goldLo:'#6e5524', lat:'#e3c060'},
   {v:'cream',label:'دمسک کرم و طلایی', ground:'#d9cdb0', ground2:'#ece2c8', floral:'#a88d55', floralHi:'#cdb780', floralLo:'#6a5530', gold:'#b8934a', goldLo:'#6a5226', lat:'#d8b052'},
   {v:'wine', label:'دمسک زرشکی و طلایی', ground:'#4a1018', ground2:'#6c2330', floral:'#9a7a3e', floralHi:'#c9a865', floralLo:'#553e1c', gold:'#cfa654', goldLo:'#6a4c20', lat:'#e0b448'},
 ];
-export const DAMASK_TILE=[0.30,0.26];
+export const DAMASK_TILE=[0.27,0.2];
 const DMS={};
 export function damaskTex(cfg){ if(DMS[cfg.v]) return DMS[cfg.v];
   const k=MOBILE?0.55:1, W=Math.round(780*k), H=Math.round(W*DAMASK_TILE[1]/DAMASK_TILE[0]), ppm=W/DAMASK_TILE[0];
   const cv=(w=W,h=H)=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; return [c,c.getContext('2d',{willReadFrequently:true})]; };
   let sd=11; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
-  // ماسک گل‌وبوته (کات‌مخمل سبز) — خوشه متقارن روی لبه‌های کاشی، تکرار بی‌درز
-  const [mc,mx]=cv(); mx.fillStyle='#000'; mx.fillRect(0,0,W,H); mx.fillStyle='#fff';
-  const P=(x,y)=>[x*ppm,y*ppm], ell=(x,y,rx,ry,a)=>{ for(const ox of [-W,0,W]) for(const oy of [-H,0,H]){ const [px,py]=P(x,y); mx.beginPath(); mx.ellipse(px+ox,py+oy,rx*ppm,ry*ppm,a,0,6.2832); mx.fill(); } };
-  const cluster=(cx,cy)=>{ ell(cx,cy,0.012,0.11,0);
-    for(const s of [-1,1]) for(let i=0;i<9;i++){ const t=i/8, y=cy-0.1+0.2*t, len=0.035+0.04*Math.sin(Math.PI*(0.15+0.75*t)), a=s*(0.35+0.9*(1-t))*-1;
-      const x=cx+s*(0.012+len*0.45*Math.cos(a)), yy=y-len*0.35*Math.sin(Math.abs(a))*0.6;
-      ell(x,yy,len*0.5,0.009+0.006*rnd(),s*(0.5-0.5*t)); for(let q=0;q<3;q++) ell(x+s*len*(0.1+0.25*q),yy+(rnd()-0.5)*0.012,0.008,0.006,rnd()*3);
-      ell(cx+s*(0.03+0.05*rnd()),y+(rnd()-0.5)*0.02,0.006,0.004,rnd()*3); } };
-  cluster(0,DAMASK_TILE[1]*0.5);
-  const md=mx.getImageData(0,0,W,H).data;
-  // شیار داخلی و سایه لبه از ماسک تار
-  const [bc,bx]=cv(); bx.filter=`blur(${Math.max(1,3*k)}px)`; bx.drawImage(mc,0,0); const bd=bx.getImageData(0,0,W,H).data;
-  // نقش طلایی: قوس طوماری و مربع شبکه‌ای زرد
+  // ماسک گل‌وبوته (کات‌مخمل): صدها برگ ریز درهم در قالب یک بوته متقارن روی لبه‌های کاشی؛ هر برگ تُن خودش را دارد
+  const [mc,mx]=cv(), [tc,tx]=cv(); for(const x of [mx,tx]){ x.fillStyle='#000'; x.fillRect(0,0,W,H); }
+  const ell=(x,y,rx,ry,a,tone)=>{ for(const ox of [-W,0,W]) for(const oy of [-H,0,H]){ const px=x*ppm+ox, py=y*ppm+oy;
+      mx.fillStyle='#fff'; mx.beginPath(); mx.ellipse(px,py,rx*ppm,ry*ppm,a,0,6.2832); mx.fill();
+      const t=Math.round(tone*255); tx.fillStyle=`rgb(${t},${t},${t})`; tx.beginPath(); tx.ellipse(px,py,rx*ppm*0.86,ry*ppm*0.8,a,0,6.2832); tx.fill(); } };
+  const HT=DAMASK_TILE[1], hw=v=>0.016+0.056*Math.pow(Math.sin(Math.PI*(0.08+0.84*v)),0.8)*(1-0.25*Math.exp(-Math.pow((v-0.62)/0.08,2)));
+  for(let n=0;n<380;n++){ const v=rnd(), y=HT*(0.04+0.92*v), w=hw(1-v), u=Math.pow(rnd(),0.8)*w, sgn=rnd()<0.5?-1:1;
+    const a=sgn*(0.4+1.0*rnd())*(u/w)+Math.PI/2*(rnd()-0.5)*0.4, L=0.005+0.008*rnd()*(0.6+0.6*u/w);
+    for(const ss of [-1,1]) ell(ss*sgn*u,y,L,L*(0.38+0.2*rnd()),ss*a+Math.PI/2*0,0.35+0.65*rnd()); }
+  ell(0,HT*0.5,0.006,HT*0.44,0,0.5);                                                   // ساقه وسط
+  const md=mx.getImageData(0,0,W,H).data, td=tx.getImageData(0,0,W,H).data;
+  const [bc,bx]=cv(); bx.filter=`blur(${Math.max(1,2.2*k)}px)`; bx.drawImage(mc,0,0); const bd=bx.getImageData(0,0,W,H).data;
+  // نقش طلایی: قوس طوماری پهن، برگ‌های طلایی و مربع شبکه‌ای زرد
   const [gc,gx]=cv(); gx.lineCap='round'; gx.lineJoin='round';
-  const arch=(col,w)=>{ gx.strokeStyle=col; gx.lineWidth=w*k; const c=W/2;
-    for(const s of [-1,1]){ gx.beginPath(); gx.moveTo(c+s*0.05*ppm,H*1.0); gx.bezierCurveTo(c+s*0.075*ppm,H*0.82,c+s*0.07*ppm,H*0.42,c+s*0.035*ppm,H*0.24); gx.quadraticCurveTo(c+s*0.01*ppm,H*0.16,c,H*0.1); gx.stroke();
-      gx.beginPath(); gx.arc(c+s*0.062*ppm,H*0.93,0.011*ppm,s>0?Math.PI:0,s>0?Math.PI*2.6:-Math.PI*1.6,s<0); gx.stroke();
-      gx.beginPath(); gx.moveTo(c+s*0.055*ppm,H*0.62); gx.quadraticCurveTo(c+s*0.03*ppm,H*0.57,c+s*0.026*ppm,H*0.48); gx.stroke();
-      gx.beginPath(); gx.moveTo(c+s*0.068*ppm,H*0.7); gx.bezierCurveTo(c+s*0.1*ppm,H*0.66,c+s*0.11*ppm,H*0.5,c+s*0.095*ppm,H*0.38); gx.stroke(); }
-    gx.beginPath(); gx.moveTo(c,H*0.1); gx.lineTo(c,H*0.02); gx.stroke(); };
-  arch('#000',9); arch('#fff',5);
+  const arch=(col,w)=>{ gx.strokeStyle=col; gx.fillStyle=col; gx.lineWidth=w*k; const c=W/2;
+    for(const s of [-1,1]){ gx.beginPath(); gx.moveTo(c+s*0.048*ppm,H*1.0); gx.bezierCurveTo(c+s*0.078*ppm,H*0.82,c+s*0.074*ppm,H*0.42,c+s*0.036*ppm,H*0.24); gx.quadraticCurveTo(c+s*0.01*ppm,H*0.16,c,H*0.1); gx.stroke();
+      gx.beginPath(); gx.arc(c+s*0.062*ppm,H*0.93,0.012*ppm,s>0?Math.PI:0,s>0?Math.PI*2.6:-Math.PI*1.6,s<0); gx.stroke();
+      gx.beginPath(); gx.moveTo(c+s*0.058*ppm,H*0.6); gx.quadraticCurveTo(c+s*0.03*ppm,H*0.56,c+s*0.028*ppm,H*0.45); gx.stroke();
+      gx.beginPath(); gx.moveTo(c+s*0.07*ppm,H*0.7); gx.bezierCurveTo(c+s*0.105*ppm,H*0.66,c+s*0.115*ppm,H*0.48,c+s*0.098*ppm,H*0.34); gx.stroke();
+      for(let i=0;i<5;i++){ const t=i/4, y=H*(0.3+0.5*t), x=c+s*(0.058+0.018*Math.sin(t*3))*ppm; gx.beginPath(); gx.ellipse(x+s*0.008*ppm,y,0.009*ppm+w*k*0.3,0.0035*ppm+w*k*0.3,s*(0.6-0.4*t),0,6.2832); gx.fill(); } }
+    gx.beginPath(); gx.moveTo(c,H*0.1); gx.lineTo(c,H*0.02); gx.stroke(); gx.beginPath(); gx.ellipse(c,H*0.035,0.004*ppm+w*k*0.3,0.012*ppm+w*k*0.3,0,0,6.2832); gx.fill(); };
+  arch('#000',13); arch('#fff',8);
   const gd=gx.getImageData(0,0,W,H).data;
-  const sq=0.042*ppm, sx=W/2-sq/2, sy=H*0.66-sq/2;
+  const sq=0.04*ppm, sx=W/2-sq/2, sy=H*0.68-sq/2;
+  // نقش تن‌به‌تن قرمز تیره در زمینه ساتن (دمسک داخل قرمز)
+  const [dc,dx]=cv(); dx.fillStyle='#000'; dx.fillRect(0,0,W,H); dx.strokeStyle='#fff'; dx.lineWidth=2.2*k; dx.lineCap='round';
+  for(const ox of [-W,0,W]) for(const s of [-1,1]){ const c=W*0.25+ox; dx.beginPath(); dx.moveTo(c,H*0.15); dx.bezierCurveTo(c+s*0.03*ppm,H*0.3,c+s*0.03*ppm,H*0.7,c,H*0.85); dx.stroke();
+    const c2=W*0.75+ox; dx.beginPath(); dx.moveTo(c2,H*0.15); dx.bezierCurveTo(c2+s*0.03*ppm,H*0.3,c2+s*0.03*ppm,H*0.7,c2,H*0.85); dx.stroke(); }
+  const dd=dx.getImageData(0,0,W,H).data;
   // رنگ‌آمیزی
   const [oc,ox]=cv(), o=ox.createImageData(W,H), a=o.data, hx=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));
   const G0=hx(cfg.ground), G1=hx(cfg.ground2), F0=hx(cfg.floral), F1=hx(cfg.floralHi), F2=hx(cfg.floralLo), A0=hx(cfg.gold), A1=hx(cfg.goldLo), Y0=hx(cfg.lat);
@@ -346,9 +359,9 @@ export function damaskTex(cfg){ if(DMS[cfg.v]) return DMS[cfg.v];
   for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const i=y*W+x, q=i*4;
     // ساتن: خط‌های ریز عمودی پود براق
     const sat=0.5+0.5*Math.sin(x*2.1+Math.sin(y*0.05)*2)*0.6+(nz[i]-0.5)*0.35, stripe=((x+(y>>3))%4===0)?0.12:0;
-    let c=G0.map((v,j)=>v+(G1[j]-v)*Math.max(0,Math.min(1,sat*0.45+stripe))), ht=0.05, ro=0.42;
+    let c=G0.map((v,j)=>(v+(G1[j]-v)*Math.max(0,Math.min(1,sat*0.45+stripe)))*(1-0.22*dd[q]/255)), ht=0.05, ro=0.42;
     const m=md[q]/255, e=bd[q]/255;
-    if(m>0.02){ const pile=0.55+0.45*nz[(i*7)%nz.length], inner=Math.max(0,Math.min(1,(e-0.45)/0.5)), f=F0.map((v,j)=>{ const lo=F2[j], hi=F1[j]; const base=lo+(v-lo)*(0.35+0.65*inner); return base+(hi-base)*Math.max(0,pile-0.55)*0.9; });
+    if(m>0.02){ const tone=td[q]/255, pile=0.75+0.25*nz[(i*7)%nz.length], inner=Math.max(0,Math.min(1,(e-0.4)/0.5)), f=F0.map((v,j)=>{ const lo=F2[j], hi=F1[j]; const base=lo+(v-lo)*Math.min(1,0.25+0.9*tone*inner); return (base+(hi-base)*Math.max(0,tone-0.6)*1.6)*pile; });
       c=c.map((v,j)=>v+(f[j]-v)*m); ht=0.05+0.95*m*(0.75+0.25*inner); ro=0.42+0.58*m; }
     const gk=gd[q+3]?gd[q]/255:0, go=gd[q+3]/255;
     if(go>0){ const gg=A1.map((v,j)=>v+(A0[j]-v)*gk); c=c.map((v,j)=>v+(gg[j]-v)*go); ht=Math.max(ht,0.35*go+0.2*gk); ro=ro*(1-go)+0.6*go; }
@@ -356,6 +369,7 @@ export function damaskTex(cfg){ if(DMS[cfg.v]) return DMS[cfg.v];
       c=edge?A1:line?Y0.map(v=>v*0.62):Y0.map(v=>v*(0.92+0.12*nz[i])); ht=0.3; ro=0.55; }
     a[q]=c[0]; a[q+1]=c[1]; a[q+2]=c[2]; a[q+3]=255; h[q]=h[q+1]=h[q+2]=ht*255; h[q+3]=255; r[q]=r[q+1]=r[q+2]=ro*255; r[q+3]=255; }
   ox.putImageData(o,0,0); hxx.putImageData(hd,0,0); rx.putImageData(rd,0,0);
+  for(const [c,x] of [[oc,ox],[hc,hxx],[rc,rx]]){ const t=document.createElement('canvas'); t.width=W; t.height=H; t.getContext('2d').drawImage(c,0,0); x.save(); x.setTransform(1,0,0,-1,0,H); x.drawImage(t,0,0); x.restore(); }
   // نرمال از ارتفاع
   const [nc,nx]=cv(); const t2=cv(); t2[1].filter=`blur(${Math.max(0.7,1.2*k)}px)`; t2[1].drawImage(hc,0,0); const hh=t2[1].getImageData(0,0,W,H).data, nd=nx.createImageData(W,H), n=nd.data;
   const HH=(x,y)=>hh[(((y+H)%H)*W+((x+W)%W))*4]/255;
@@ -367,4 +381,4 @@ export function damaskTex(cfg){ if(DMS[cfg.v]) return DMS[cfg.v];
 /* مخمل: اسکن واقعی velour خاکستری‌شده × رنگ */
 let VEL=null;
 export async function velvetTex(){ if(VEL) return VEL; const [d,n]=await Promise.all(['diff','nor_gl'].map(k=>loadImg(`tex/velour_velvet_${k}_1k.jpg`)));
-  return VEL={map:tex(neutral(d,178,1.9),true,0.3),normal:tex(n,false,0.3)}; }
+  return VEL={map:tex(neutral(d,192,0.85),true,0.3),normal:tex(n,false,0.3)}; }

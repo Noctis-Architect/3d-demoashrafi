@@ -35,14 +35,14 @@
 import { productPage, THREE, kit } from './assets/product.js';
 import { DIM, SEATS, buildLouis, damaskTex, velvetTex } from './assets/louis.js';
 
-const FIN=[{v:'#5c2a17',label:'گردویی قرمز براق (عکس محصول)'},{v:'#2e170d',label:'گردویی تیره'},{v:'#0c0c0d',label:'مشکی براق'},{v:'#9a6038',label:'فندقی'},{v:'#efe9df',label:'سفید صدفی'}];
-const VELV=[{v:'#7a5a1c',label:'خردلی زیتونی (عکس محصول)'},{v:'#5f6b52',label:'سبز زیتونی'},{v:'#6a1c22',label:'زرشکی'},{v:'#2f3b4c',label:'سرمه‌ای'},{v:'#c9b9a3',label:'کرم'},{v:'#8e8d89',label:'طوسی'}];
+const FIN=[{v:'#52200f',label:'گردویی قرمز براق (عکس محصول)'},{v:'#2e170d',label:'گردویی تیره'},{v:'#0c0c0d',label:'مشکی براق'},{v:'#9a6038',label:'فندقی'},{v:'#efe9df',label:'سفید صدفی'}];
+const VELV=[{v:'#80591a',label:'خردلی زیتونی (عکس محصول)'},{v:'#5f6b52',label:'سبز زیتونی'},{v:'#6a1c22',label:'زرشکی'},{v:'#2f3b4c',label:'سرمه‌ای'},{v:'#c9b9a3',label:'کرم'},{v:'#8e8d89',label:'طوسی'}];
 const SEATOPT=[...SEATS.map(s=>({v:s.v,label:s.label.replace(' (عکس محصول)',''),sub:s.v==='red'?'عکس محصول':''})),{v:'same',label:'مخمل هم‌رنگ پشتی'}];
 const P=THREE.MeshPhysicalMaterial;
 
 function velvetMat(hex,{name='velvet',dark=1}={}){ return VT=>{ const c=new THREE.Color(hex).multiplyScalar(dark);
-  return new P({name,color:c,map:VT.map,normalMap:VT.normal,normalScale:new THREE.Vector2(0.5,0.5),roughness:0.92,
-    sheen:1,sheenRoughness:0.32,sheenColor:c.clone().lerp(new THREE.Color('#fff1c8'),0.55)}); }; }
+  return new P({name,color:c,map:VT.map,normalMap:VT.normal,normalScale:new THREE.Vector2(0.3,0.3),roughness:0.95,
+    sheen:0.85,sheenRoughness:0.38,sheenColor:c.clone().lerp(new THREE.Color('#f0c878'),0.45)}); }; }
 
 productPage({
   id:'louis', name:'کاناپه سلطنتی اشرافی', code:'sofa-L240', arTitle:'کاناپه سلطنتی اشرافی',
@@ -53,7 +53,7 @@ productPage({
     {key:'velvet',q:'v',label:'مخمل پشتی و دسته',type:'swatch',items:VELV},
     {key:'seat',q:'s',label:'پارچه تشک',type:'seg',items:SEATOPT},
   ],
-  defaults:{finish:'#5c2a17',gild:'0',velvet:'#7a5a1c',seat:'red'},
+  defaults:{finish:'#52200f',gild:'0',velvet:'#80591a',seat:'red'},
   hint:'بکشید تا بچرخد · دو انگشت برای زوم و دیدن ریزکاری‌ها',
   dims:()=>[DIM.W,DIM.D,DIM.H],
   geoKey:()=>'L',
