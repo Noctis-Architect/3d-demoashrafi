@@ -9,150 +9,78 @@
 <link rel="preload" href="fonts/Vazirmatn-ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/site.css">
 <style>
-  /* ---------- هیرو ---------- */
   .hero{padding:clamp(28px,5vw,64px) 0 clamp(48px,7vw,96px)}
   .hero .wrap{display:grid;grid-template-columns:1fr 1.15fr;gap:clamp(24px,4vw,64px);align-items:center}
-  .hero h1{font-size:clamp(34px,5.2vw,64px);line-height:1.25;font-weight:800;letter-spacing:-.8px;margin:18px 0 18px}
+  .hero h1{font-size:clamp(34px,5.2vw,64px);line-height:1.25;font-weight:800;letter-spacing:-.8px;margin:18px 0}
   .hero h1 em{font-style:normal;color:var(--gold)}
   .hero p.lead{font-size:clamp(15px,1.5vw,18px);color:var(--muted);margin:0 0 30px;max-width:520px}
-  .hero .ctas{display:flex;gap:10px;flex-wrap:wrap}
+  .ctas{display:flex;gap:10px;flex-wrap:wrap}
   .hero-stats{display:flex;gap:clamp(18px,3vw,40px);margin-top:40px;padding-top:26px;border-top:1px solid var(--line);flex-wrap:wrap}
   .hero-stats b{display:block;font-size:24px;font-weight:800;line-height:1.3}
   .hero-stats span{font-size:13px;color:var(--muted)}
-  .hero-visual{position:relative;aspect-ratio:1.08;border-radius:var(--r-lg);overflow:hidden;
-    background:radial-gradient(120% 90% at 50% 30%,#fdfcfa 0%,#ece5da 70%,#e2d9cc 100%)}
+  .hero-visual{position:relative;aspect-ratio:1.08;border-radius:var(--r-lg);overflow:hidden;background:radial-gradient(120% 90% at 50% 30%,#fdfcfa 0%,#ece5da 70%,#e2d9cc 100%)}
   .hero-visual::after{content:"";position:absolute;inset:auto 0 0 0;height:34%;background:linear-gradient(to top,rgba(214,204,190,.5),transparent)}
-  .hero-visual img{position:absolute;inset:6% 2% 10%;width:96%;height:84%;object-fit:contain;z-index:1;filter:drop-shadow(0 28px 22px rgba(60,45,30,.18))}
+  .hero-visual img{position:absolute;z-index:1;object-fit:contain;filter:drop-shadow(0 28px 22px rgba(60,45,30,.18));transition:opacity .8s,transform .8s}
+  .hero-visual .main{inset:4% 2% 18%;width:96%;height:78%}
+  .hero-visual .side{width:44%;height:30%;bottom:6%;inset-inline-start:4%;filter:drop-shadow(0 16px 14px rgba(60,45,30,.2))}
   .chip{position:absolute;z-index:2;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-    padding:8px 14px 8px 10px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:var(--shadow)}
+    padding:8px 14px 8px 10px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:var(--shadow);text-decoration:none}
   .chip i{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--gold-soft);color:var(--gold)}
   .chip svg{width:16px;height:16px}
   .chip.c1{top:22px;inset-inline-start:22px} .chip.c2{bottom:22px;inset-inline-end:22px}
-  .swatches{position:absolute;z-index:2;bottom:22px;inset-inline-start:22px;display:flex;gap:6px;background:rgba(255,255,255,.88);backdrop-filter:blur(8px);padding:7px;border-radius:999px;box-shadow:var(--shadow)}
-  .swatches span{width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
 
-  /* ---------- محصولات ---------- */
-  .products{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
-  .p-card{position:relative;display:flex;flex-direction:column;background:var(--surface);border-radius:var(--r-lg);overflow:hidden;text-decoration:none;
-    box-shadow:var(--shadow);transition:transform .25s,box-shadow .25s;border:1px solid var(--line)}
-  .p-card:hover{transform:translateY(-4px);box-shadow:0 1px 2px rgba(28,25,22,.04),0 24px 48px -16px rgba(28,25,22,.22)}
-  .p-img{position:relative;aspect-ratio:1.35;background:radial-gradient(110% 90% at 50% 25%,#fbfaf7 0%,#efe9df 80%)}
-  .p-img img{position:absolute;inset:8%;width:84%;height:84%;object-fit:contain;transition:transform .5s;filter:drop-shadow(0 18px 16px rgba(60,45,30,.16))}
-  .p-card:hover .p-img img{transform:scale(1.04)}
-  .badge3d{position:absolute;top:16px;inset-inline-start:16px;display:flex;align-items:center;gap:6px;background:var(--ink);color:#fff;font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px}
-  .badge3d svg{width:14px;height:14px}
-  .p-body{padding:22px 24px 24px;display:flex;flex-direction:column;gap:6px;flex:1}
-  .p-body .code{font-size:12px;color:var(--muted);direction:ltr;text-align:right}
-  .p-body h3{margin:0;font-size:22px;font-weight:800;line-height:1.4}
-  .p-body p{margin:0;color:var(--muted);font-size:14px}
-  .tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
-  .tags span{font-size:12px;padding:3px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--ink-2)}
-  .p-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:14px}
-  .p-foot .go{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px}
-  .p-foot .go i{width:36px;height:36px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;transition:transform .2s}
-  .p-card:hover .go i{transform:translateX(-4px)}
-  .p-foot .go svg{width:16px;height:16px}
-  .dots{display:flex;gap:4px} .dots span{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)}
-  .soon{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border:1.5px dashed #d9cfc2;border-radius:var(--r-lg);padding:22px 26px;color:var(--muted);font-size:14px}
-  .soon b{color:var(--ink);font-size:16px;display:block}
-  .soon .tags{margin:0}
+  .cats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .cat{position:relative;display:flex;flex-direction:column;justify-content:space-between;min-height:240px;padding:24px;border-radius:var(--r-lg);text-decoration:none;overflow:hidden;
+    background:var(--surface);border:1px solid var(--line);transition:box-shadow .25s,transform .25s}
+  .cat:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+  .cat h3{margin:0;font-size:20px} .cat p{margin:4px 0 0;color:var(--muted);font-size:14px}
+  .cat img{position:absolute;inset-inline-end:-6%;bottom:-4%;width:78%;filter:drop-shadow(0 14px 12px rgba(60,45,30,.16));transition:transform .4s}
+  .cat:hover img{transform:scale(1.04)}
+  .cat>div{position:relative;z-index:1;max-width:58%}
+  .cat .n{font-size:12px;color:var(--gold);font-weight:600}
+  .cat.dark{background:var(--ink);color:#f3eee7;border-color:var(--ink)} .cat.dark p{color:#a2978b}
+  .cat .go{position:relative;z-index:1;margin-top:auto;width:40px;height:40px;border-radius:50%;background:var(--bg);display:grid;place-items:center;color:var(--ink)}
+  .cat .go svg{width:16px;height:16px}
 
-  /* ---------- ویژگی‌ها ---------- */
   .feats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
   .feat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:24px}
   .feat i{width:46px;height:46px;border-radius:14px;background:var(--gold-soft);color:var(--gold);display:grid;place-items:center;margin-bottom:16px}
   .feat svg{width:22px;height:22px}
-  .feat h3{margin:0 0 6px;font-size:17px}
-  .feat p{margin:0;color:var(--muted);font-size:14px}
+  .feat h3{margin:0 0 6px;font-size:17px} .feat p{margin:0;color:var(--muted);font-size:14px}
 
-  /* ---------- AR ---------- */
-  .ar{background:var(--ink);color:#f3eee7;border-radius:var(--r-lg);padding:clamp(28px,5vw,64px);display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(24px,5vw,64px);align-items:center;overflow:hidden;position:relative}
-  .ar::before{content:"";position:absolute;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(169,132,79,.35),transparent 65%);inset-inline-end:-160px;top:-160px}
-  .ar .eyebrow{background:rgba(169,132,79,.18);color:#d9b98a} .ar .eyebrow i{background:#d9b98a}
-  .ar h2{font-size:clamp(26px,3.4vw,40px);line-height:1.35;margin:14px 0 14px;font-weight:800}
-  .ar p{color:#b9afa4;margin:0 0 26px;font-size:15px}
-  .steps{list-style:none;margin:0 0 30px;padding:0;display:grid;gap:14px;counter-reset:s}
-  .steps li{display:flex;gap:14px;align-items:flex-start;counter-increment:s;font-size:15px}
-  .steps li::before{content:counter(s,persian);flex:none;width:32px;height:32px;border-radius:50%;border:1px solid #4b433b;display:grid;place-items:center;font-weight:800;font-size:14px;color:#d9b98a}
-  .steps b{display:block;color:#fff} .steps span{color:#a2978b;font-size:13px}
-  .ar .btn-light{background:#fff;border-color:#fff}
-  .phone{position:relative;z-index:1;justify-self:center;width:min(300px,100%);aspect-ratio:9/18.5;border-radius:42px;background:#0c0b0a;padding:10px;box-shadow:0 40px 80px -20px rgba(0,0,0,.6),inset 0 0 0 2px #2c2824}
-  .screen{position:relative;width:100%;height:100%;border-radius:33px;overflow:hidden;
-    background:linear-gradient(180deg,#d9d2c7 0%,#e9e3da 52%,#c9b8a2 52%,#b9a68e 100%)}
-  .screen::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 46px,rgba(80,60,40,.07) 46px 47px);top:52%}
-  .screen .win{position:absolute;top:12%;inset-inline-start:14%;width:34%;height:30%;border-radius:6px;background:linear-gradient(160deg,#f7f5f1,#dfe6ea);box-shadow:inset 0 0 0 5px #efe9e0}
-  .screen img{position:absolute;left:6%;width:88%;top:38%;filter:drop-shadow(0 14px 10px rgba(40,30,20,.35))}
-  .screen .ring{position:absolute;left:12%;right:12%;top:71%;height:9%;border:2px dashed rgba(255,255,255,.85);border-radius:50%}
-  .screen .ui{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.9);color:var(--ink);font-size:11px;font-weight:600;padding:6px 12px;border-radius:999px;white-space:nowrap}
-  .screen .notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:90px;height:24px;border-radius:14px;background:#0c0b0a}
-  .screen .tag{position:absolute;top:44px;left:50%;transform:translateX(-50%);background:rgba(28,25,22,.75);color:#fff;font-size:10px;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .ar-band{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center;background:var(--ink);color:#f3eee7;border-radius:var(--r-lg);padding:clamp(28px,5vw,56px);position:relative;overflow:hidden}
+  .ar-band::before{content:"";position:absolute;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(169,132,79,.35),transparent 65%);inset-inline-end:-140px;top:-180px}
+  .ar-band .eyebrow{background:rgba(169,132,79,.18);color:#d9b98a} .ar-band .eyebrow i{background:#d9b98a}
+  .ar-band h2{font-size:clamp(24px,3.2vw,38px);line-height:1.35;margin:14px 0 10px;font-weight:800}
+  .ar-band p{color:#b9afa4;margin:0 0 24px}
+  .ar-band .btn-light{background:#fff;border-color:#fff}
+  .ar-band .mini{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .ar-band .mini div{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:16px 14px;font-size:13px;color:#cfc6bb}
+  .ar-band .mini b{display:block;font-size:26px;color:#d9b98a;font-weight:800;line-height:1.4}
 
-  /* ---------- چرا جدا ---------- */
-  .split{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-  .domain{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:28px}
-  .domain h3{margin:0 0 6px;font-size:18px}
-  .domain p{margin:0 0 18px;color:var(--muted);font-size:14px}
-  .url{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;direction:ltr;font-weight:600}
-  .url i{width:10px;height:10px;border-radius:50%;background:#7cb37a;flex:none}
-  .url.main i{background:#c9bfb2}
-  .flow{display:grid;gap:10px}
-  .domain ul{margin:18px 0 0;padding:0;list-style:none;display:grid;gap:8px;font-size:14px}
-  .domain li{display:flex;gap:10px;align-items:flex-start}
-  .domain li::before{content:"";flex:none;width:18px;height:18px;margin-top:4px;border-radius:50%;background:var(--gold-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a9844f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center/11px no-repeat}
-
-  /* ---------- CTA ---------- */
   .cta{text-align:center;padding:clamp(48px,7vw,88px) var(--gut);border-radius:var(--r-lg);background:radial-gradient(90% 120% at 50% 0%,#fff 0%,var(--bg-2) 100%);border:1px solid var(--line)}
-  .cta h2{font-size:clamp(26px,3.6vw,44px);margin:0 0 12px;line-height:1.35;font-weight:800}
+  .cta h2{font-size:clamp(26px,3.6vw,44px);margin:14px 0 12px;line-height:1.35;font-weight:800}
   .cta p{color:var(--muted);margin:0 auto 28px;max-width:520px}
-  .cta .ctas{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .cta .ctas{justify-content:center}
 
-  .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
-  .reveal.in{opacity:1;transform:none}
-
-  @media (max-width:980px){
-    .feats{grid-template-columns:repeat(2,1fr)}
-  }
+  @media (max-width:980px){ .feats{grid-template-columns:repeat(2,1fr)} .cats{grid-template-columns:1fr 1fr} .cats .cat:last-child{grid-column:1/-1} }
   @media (max-width:860px){
-    .hero .wrap{grid-template-columns:1fr}
-    .hero-visual{order:-1;aspect-ratio:1.25}
-    .ar{grid-template-columns:1fr}
-    .phone{width:min(240px,70%)}
-    .split{grid-template-columns:1fr}
+    .hero .wrap{grid-template-columns:1fr} .hero-visual{order:-1;aspect-ratio:1.2}
+    .ar-band{grid-template-columns:1fr}
   }
   @media (max-width:640px){
-    .products{grid-template-columns:1fr}
-    .feats{grid-template-columns:1fr 1fr;gap:10px}
-    .feat{padding:18px}
-    .feat i{width:40px;height:40px;margin-bottom:12px}
-    .chip{font-size:12px;padding:6px 12px 6px 8px} .chip i{width:24px;height:24px}
-    .chip.c1{top:14px;inset-inline-start:14px} .chip.c2{display:none} .swatches{bottom:14px;inset-inline-start:14px}
+    .cats{grid-template-columns:1fr} .cat{min-height:200px} .cat img{width:66%;inset-inline-end:-4%}
+    .feats{gap:10px} .feat{padding:18px}
+    .chip{font-size:12px;padding:6px 12px 6px 8px} .chip i{width:24px;height:24px} .chip.c1{top:14px;inset-inline-start:14px} .chip.c2{display:none}
     .hero .ctas .btn{flex:1 1 auto}
   }
   @media (max-width:400px){ .feats{grid-template-columns:1fr} }
 </style>
 </head>
-<body>
-
-<header class="hdr" id="hdr">
-  <div class="wrap">
-    <a class="logo" href="./" aria-label="استودیو سه‌بعدی مبل اشرافی">
-      <span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3"/><path d="M2 13a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/><path d="M5 18v2M19 18v2"/></svg></span>
-      <span><b>مبل اشرافی</b><small>استودیو سه‌بعدی</small></span>
-    </a>
-    <nav class="nav" id="nav">
-      <a href="#products">محصولات</a>
-      <a href="#features">امکانات</a>
-      <a href="#ar">نمایش در خانه</a>
-      <a href="#contact">سفارش</a>
-    </nav>
-    <a class="btn btn-light btn-sm hdr-cta" href="https://moblashrafi.com" target="_blank" rel="noopener">سایت اصلی
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
-    <button class="menu-btn" id="menuBtn" aria-label="منو" aria-expanded="false"><span></span></button>
-  </div>
-</header>
+<body data-page="home">
+<script src="assets/layout.js"></script>
 
 <main>
-  <!-- هیرو -->
   <section class="hero">
     <div class="wrap">
       <div>
@@ -160,197 +88,91 @@
         <h1>مبل را قبل از خرید، <em>در خانه خودتان</em> ببینید.</h1>
         <p class="lead">مدل‌های مبل اشرافی را سه‌بعدی بچرخانید، پارچه و رنگ چوب را عوض کنید و با گوشی، در اندازه واقعی کنار دیوار خانه‌تان بگذارید.</p>
         <div class="ctas">
-          <a class="btn btn-dark" href="naria.html">طراحی مبل ناریا
+          <a class="btn btn-dark" href="products.html">مشاهده محصولات
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></a>
-          <a class="btn btn-light" href="#products">همه محصولات</a>
+          <a class="btn btn-light" href="ar.html">نمایش در خانه چطور است؟</a>
         </div>
         <div class="hero-stats">
-          <div><b>۳۶۰°</b><span>چرخش آزاد محصول</span></div>
-          <div><b>+۳۰</b><span>ترکیب پارچه و چوب</span></div>
+          <div><b>۴</b><span>محصول سه‌بعدی</span></div>
+          <div><b>۳۶۰°</b><span>چرخش آزاد</span></div>
           <div><b>۱:۱</b><span>اندازه واقعی با AR</span></div>
         </div>
       </div>
       <div class="hero-visual">
-        <img src="assets/naria.webp" alt="مبل سه‌نفره ناریا با کلاف مشکی براق و نشیمن ژاکارد" width="1400" height="900" fetchpriority="high">
-        <div class="chip c1"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></i>بچرخانید و ببینید</div>
-        <div class="chip c2"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></i>در خانه شما با AR</div>
-        <div class="swatches" aria-hidden="true">
-          <span style="background:#0c0c0d"></span><span style="background:#d6ae84"></span><span style="background:#3a2417"></span><span style="background:#6a1c22"></span><span style="background:#eee8dd"></span>
-        </div>
+        <img class="main" src="assets/naria.webp" alt="مبل کلاسیک ناریا" width="1400" height="900" fetchpriority="high">
+        <a class="chip c1" href="naria.html"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></i>مبل ناریا را بچرخانید</a>
+        <a class="chip c2" href="ar.html"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></i>در خانه شما با AR</a>
       </div>
     </div>
   </section>
 
-  <!-- محصولات -->
-  <section class="sec" id="products" style="padding-top:0">
-    <div class="wrap">
-      <div class="sec-head reveal">
-        <div><span class="eyebrow"><i></i>کلکسیون سه‌بعدی</span><h2>محصولاتی که می‌توانید<br>همین حالا طراحی کنید</h2></div>
-        <p>هر محصول از روی عکس‌های واقعی استودیو ساخته شده؛ رنگ، پارچه و اندازه را خودتان انتخاب کنید.</p>
-      </div>
-
-      <div class="products">
-        <a class="p-card reveal" href="naria.html">
-          <div class="p-img">
-            <span class="badge3d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>سه‌بعدی + AR</span>
-            <img src="assets/naria.webp" alt="مبل ناریا" loading="lazy" width="1400" height="900">
-          </div>
-          <div class="p-body">
-            <span class="code">sofa-A603</span>
-            <h3>مبل کلاسیک ناریا</h3>
-            <p>کلاف خراطی‌شده براق، مدالیون حصیری و نشیمن ژاکارد. چیدمان دلخواه از مبل تک تا ست ۳+۲+۱+۱.</p>
-            <div class="tags"><span>چیدمان آزاد</span><span>۶ رنگ چوب</span><span>۵ پارچه ژاکارد</span><span>کوسن</span></div>
-            <div class="p-foot">
-              <div class="dots" aria-hidden="true"><span style="background:#0c0c0d"></span><span style="background:#9a6038"></span><span style="background:#e8e0c9"></span><span style="background:#2b2e35"></span></div>
-              <span class="go">طراحی کنید<i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></i></span>
-            </div>
-          </div>
-        </a>
-
-        <a class="p-card reveal" href="console.html">
-          <div class="p-img">
-            <span class="badge3d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>سه‌بعدی + AR</span>
-            <img src="assets/console.webp" alt="کنسول ورونا" loading="lazy" width="1400" height="900">
-          </div>
-          <div class="p-body">
-            <span class="code">console-C210</span>
-            <h3>کنسول ورونا</h3>
-            <p>کنسول کلاسیک با پایه‌های خراطی شیاردار، دو کشو و یراق طلایی. رویه چوبی یا سنگ مرمر.</p>
-            <div class="tags"><span>۳ اندازه</span><span>رویه مرمر</span><span>یراق طلایی</span><span>طبقه پایین</span></div>
-            <div class="p-foot">
-              <div class="dots" aria-hidden="true"><span style="background:#0c0c0d"></span><span style="background:#3a2417"></span><span style="background:#f1ece4"></span><span style="background:#c9a25a"></span></div>
-              <span class="go">طراحی کنید<i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></i></span>
-            </div>
-          </div>
-        </a>
-
-        <div class="soon reveal">
-          <div><b>به‌زودی در استودیو سه‌بعدی</b>محصولات بعدی به همین شکل اضافه می‌شوند.</div>
-          <div class="tags"><span>سرویس خواب</span><span>میز ناهارخوری</span><span>میز جلومبلی</span><span>میز تلویزیون</span></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- امکانات -->
-  <section class="sec" id="features" style="background:var(--surface);border-block:1px solid var(--line)">
-    <div class="wrap">
-      <div class="sec-head reveal">
-        <div><span class="eyebrow"><i></i>چرا سه‌بعدی؟</span><h2>مشتری مطمئن‌تر خرید می‌کند</h2></div>
-        <p>به‌جای چند عکس ثابت، مشتری خودش محصول را می‌سازد و همان چیزی را سفارش می‌دهد که دیده است.</p>
-      </div>
-      <div class="feats">
-        <div class="feat reveal"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></i>
-          <h3>چرخش ۳۶۰ درجه</h3><p>هر زاویه و هر جزئیات؛ از خراطی پایه تا بافت پارچه، از نزدیک.</p></div>
-        <div class="feat reveal"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2"/><circle cx="17.5" cy="10.5" r="2"/><circle cx="8.5" cy="7.5" r="2"/><circle cx="6.5" cy="12.5" r="2"/><path d="M12 2a10 10 0 0 0 0 20c1 0 1.5-.8 1.5-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6H16a6 6 0 0 0 6-6C22 6 17.5 2 12 2z"/></svg></i>
-          <h3>پارچه و رنگ دلخواه</h3><p>پارچه‌ها و رگه چوب از اسکن واقعی‌اند؛ هر رنگی که بخواهید.</p></div>
-        <div class="feat reveal"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></i>
-          <h3>نمایش در خانه</h3><p>با دوربین گوشی، مبل را کف خانه‌تان بگذارید و دورش راه بروید.</p></div>
-        <div class="feat reveal"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10M21 7v10M3 12h18M7 9l-4 3 4 3M17 9l4 3-4 3"/></svg></i>
-          <h3>اندازه دقیق</h3><p>ابعاد واقعی به سانتی‌متر؛ قبل از خرید ببینید جا می‌شود یا نه.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- AR -->
-  <section class="sec" id="ar">
-    <div class="wrap">
-      <div class="ar reveal">
-        <div style="position:relative;z-index:1">
-          <span class="eyebrow"><i></i>واقعیت افزوده</span>
-          <h2>در اتاق خودتان،<br>با اندازه واقعی</h2>
-          <p>بدون نصب برنامه. روی آیفون و اندروید، مستقیم از داخل مرورگر.</p>
-          <ol class="steps">
-            <li><div><b>محصول را باز کنید</b><span>مبل ناریا یا کنسول ورونا</span></div></li>
-            <li><div><b>رنگ و پارچه را بسازید</b><span>ترکیب دلخواه خودتان</span></div></li>
-            <li><div><b>«نمایش در خانه شما» را بزنید</b><span>گوشی را به سمت زمین بگیرید</span></div></li>
-          </ol>
-          <a class="btn btn-light" href="naria.html">امتحان کنید</a>
-        </div>
-        <div class="phone" aria-hidden="true">
-          <div class="screen">
-            <div class="win"></div>
-            <img src="assets/naria.webp" alt="" loading="lazy">
-            <div class="ring"></div>
-            <div class="notch"></div>
-            <div class="tag">۲۱۵ × ۹۲ سانتی‌متر</div>
-            <div class="ui">✓ روی زمین قرار گرفت</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- دامنه جدا -->
   <section class="sec" style="padding-top:0">
     <div class="wrap">
       <div class="sec-head reveal">
-        <div><span class="eyebrow"><i></i>کنار سایت اصلی</span><h2>یک زیردامنه، مخصوص سه‌بعدی</h2></div>
-        <p>سایت فروشگاه همان‌طور که هست می‌ماند؛ بخش سه‌بعدی سنگین روی آدرس جدا و سرور جدا اجرا می‌شود.</p>
+        <div><span class="eyebrow"><i></i>دسته‌بندی‌ها</span><h2>از کجا شروع کنیم؟</h2></div>
+        <p>هر محصول را از همه زاویه‌ها ببینید و ترکیب دلخواهتان را بسازید.</p>
       </div>
-      <div class="split">
-        <div class="domain reveal">
-          <h3>دو آدرس، یک برند</h3>
-          <p>از صفحه هر محصول در سایت اصلی، دکمه «مشاهده سه‌بعدی» مستقیم به همین‌جا می‌آید.</p>
-          <div class="flow">
-            <div class="url main"><i></i>moblashrafi.com</div>
-            <div class="url"><i></i>3d.moblashrafi.com</div>
-          </div>
-        </div>
-        <div class="domain reveal">
-          <h3>چرا جدا بهتر است؟</h3>
-          <ul>
-            <li>سرعت سایت اصلی و سئو دست نمی‌خورد</li>
-            <li>فایل‌های سه‌بعدی و بافت‌ها روی هاست جدا، بدون فشار به فروشگاه</li>
-            <li>هر محصول جدید فقط یک صفحه به این بخش اضافه می‌کند</li>
-            <li>برای AR اندروید، https و سرعت بالا لازم است</li>
-          </ul>
-        </div>
+      <div class="cats">
+        <a class="cat reveal" href="products.html?cat=sofa"><div><span class="n">۲ مدل</span><h3>مبل</h3><p>کلاسیک ناریا و راحتی میلان</p></div><img src="assets/milan.webp" alt="" loading="lazy"><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></span></a>
+        <a class="cat reveal" href="products.html?cat=table"><div><span class="n">۲ مدل</span><h3>کنسول و میز</h3><p>مجموعه ورونا با رویه مرمر</p></div><img src="assets/tv.webp" alt="" loading="lazy"><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></span></a>
+        <a class="cat dark reveal" href="ar.html"><div><span class="n">بدون نصب برنامه</span><h3>نمایش در خانه</h3><p>آیفون و اندروید، از داخل مرورگر</p></div><span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></span></a>
       </div>
     </div>
   </section>
 
-  <!-- CTA -->
-  <section class="sec" id="contact" style="padding-top:0">
+  <section class="sec" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div><span class="eyebrow"><i></i>محصولات سه‌بعدی</span><h2>همین حالا طراحی کنید</h2></div>
+        <a class="btn btn-light" href="products.html">همه محصولات</a>
+      </div>
+      <div class="products" id="featured"></div>
+    </div>
+  </section>
+
+  <section class="sec" style="background:var(--surface);border-block:1px solid var(--line)">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div><span class="eyebrow"><i></i>چرا سه‌بعدی؟</span><h2>مطمئن‌تر انتخاب کنید</h2></div>
+        <p>به‌جای چند عکس ثابت، خودتان محصول را می‌سازید و همان چیزی را سفارش می‌دهید که دیده‌اید.</p>
+      </div>
+      <div class="feats">
+        <div class="feat reveal"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></i><h3>چرخش ۳۶۰ درجه</h3><p>هر زاویه و هر جزئیات؛ از خراطی پایه تا بافت پارچه.</p></div>
+        <div class="feat reveal"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2"/><circle cx="17.5" cy="10.5" r="2"/><circle cx="8.5" cy="7.5" r="2"/><circle cx="6.5" cy="12.5" r="2"/><path d="M12 2a10 10 0 0 0 0 20c1 0 1.5-.8 1.5-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6H16a6 6 0 0 0 6-6C22 6 17.5 2 12 2z"/></svg></i><h3>پارچه و رنگ دلخواه</h3><p>پارچه‌ها و رگه چوب از اسکن واقعی‌اند.</p></div>
+        <div class="feat reveal"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></i><h3>نمایش در خانه</h3><p>با دوربین گوشی، محصول را کف خانه‌تان بگذارید.</p></div>
+        <div class="feat reveal"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10M21 7v10M3 12h18M7 9l-4 3 4 3M17 9l4 3-4 3"/></svg></i><h3>اندازه دقیق</h3><p>ابعاد واقعی به سانتی‌متر؛ ببینید جا می‌شود یا نه.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <div class="ar-band reveal">
+        <div style="position:relative;z-index:1">
+          <span class="eyebrow"><i></i>واقعیت افزوده</span>
+          <h2>در اتاق خودتان، با اندازه واقعی</h2>
+          <p>سه قدم ساده، بدون نصب برنامه. راهنمای کامل آیفون و اندروید را ببینید.</p>
+          <a class="btn btn-light" href="ar.html">راهنمای نمایش در خانه</a>
+        </div>
+        <div class="mini"><div><b>۱</b>محصول را باز کنید</div><div><b>۲</b>رنگ را بسازید</div><div><b>۳</b>دکمه «در خانه شما»</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" style="padding-top:0">
     <div class="wrap">
       <div class="cta reveal">
         <span class="eyebrow"><i></i>سفارش</span>
-        <h2 style="margin-top:14px">طرح دلخواهتان را ساختید؟</h2>
+        <h2>طرح دلخواهتان را ساختید؟</h2>
         <p>از داخل هر محصول، طرح‌تان را با رنگ و اندازه برای ما بفرستید تا قیمت و زمان تحویل را اعلام کنیم.</p>
-        <div class="ctas">
-          <a class="btn btn-dark" href="naria.html">شروع طراحی</a>
-          <a class="btn btn-light" href="https://moblashrafi.com" target="_blank" rel="noopener">تماس از سایت اصلی</a>
-        </div>
+        <div class="ctas"><a class="btn btn-dark" href="products.html">شروع طراحی</a><a class="btn btn-light" href="contact.html">سفارش و تماس</a></div>
       </div>
     </div>
   </section>
 </main>
-
-<footer class="ftr">
-  <div class="wrap">
-    <div>
-      <a class="logo" href="./"><span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3"/><path d="M2 13a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/><path d="M5 18v2M19 18v2"/></svg></span>
-        <span><b style="color:var(--ink)">مبل اشرافی</b><small>استودیو سه‌بعدی</small></span></a>
-      <p style="margin:14px 0 0;max-width:340px">نمایش سه‌بعدی و واقعیت افزوده محصولات مبل اشرافی.</p>
-    </div>
-    <div><h4>محصولات</h4><ul><li><a href="naria.html">مبل کلاسیک ناریا</a></li><li><a href="console.html">کنسول ورونا</a></li></ul></div>
-    <div><h4>لینک‌ها</h4><ul><li><a href="https://moblashrafi.com" target="_blank" rel="noopener">سایت اصلی</a></li><li><a href="#ar">راهنمای AR</a></li><li><a href="#features">امکانات</a></li></ul></div>
-    <div class="copy"><span>© ۱۴۰۵ مبل اشرافی</span><span>نسخه نمایشی · <span class="ltr">3d.moblashrafi.com</span></span></div>
-  </div>
-</footer>
-
 <script>
-(function(){
-  var h=document.getElementById('hdr'), b=document.getElementById('menuBtn');
-  b.addEventListener('click',function(){ var o=h.classList.toggle('open'); b.setAttribute('aria-expanded',o); });
-  document.getElementById('nav').addEventListener('click',function(e){ if(e.target.closest('a')){ h.classList.remove('open'); b.setAttribute('aria-expanded',false); } });
-  var on=function(){ h.classList.toggle('scrolled',scrollY>8); }; on(); addEventListener('scroll',on,{passive:true});
-  var els=document.querySelectorAll('.reveal');
-  if('IntersectionObserver' in window){
-    var io=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }); },{rootMargin:'0px 0px -8% 0px'});
-    els.forEach(function(el){ io.observe(el); });
-  } else els.forEach(function(el){ el.classList.add('in'); });
-})();
+document.getElementById('featured').innerHTML=CATALOG.map(productCard).join('');
+siteFooter();
 </script>
 </body>
 </html>

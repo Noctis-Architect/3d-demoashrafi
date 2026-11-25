@@ -4,18 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>مبل ناریا A603 — طراحی سه‌بعدی | مبل اشرافی</title>
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/product.css">
 <script type="module" src="lib/model-viewer.min.js"></script>
 <style>
   /* فونت داخل خود سایت (بدون وابستگی به گوگل که در ایران ممکن است باز نشود و اجرای صفحه را معطل کند) */
   @font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn-Regular.woff2) format('woff2');font-weight:400;font-display:swap}
   @font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn-SemiBold.woff2) format('woff2');font-weight:600;font-display:swap}
   @font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn-ExtraBold.woff2) format('woff2');font-weight:800;font-display:swap}
-  :root{ --bg:#f1eee9; --panel:#fffdf9; --ink:#24201d; --muted:#766b62; --line:#e4ddd3; --accent:#1f1b18; }
+  :root{ --panel:#fff; }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
-  body{background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;
-       display:grid;grid-template-columns:1fr 360px;height:100dvh;overflow:hidden}
-  .stage{position:relative;min-height:0}
   .stage{background:radial-gradient(ellipse at 50% 35%,#fbfaf8 0%,#e3ddd4 75%);overflow:hidden}
   #cv{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;touch-action:none;outline:none}
   #cv.grab{cursor:grab} #cv.grabbing{cursor:grabbing}
@@ -61,7 +59,13 @@
   .q-box button b{display:block;font-size:14px} .q-box button.hq{border-color:var(--accent);background:#efe9e1}
   .q-box .q-x{text-align:center;border:0;background:none;color:var(--muted);margin-top:4px}
   .busy.soft{top:110px;transform:translateX(-50%);font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-  aside{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:18px 18px 40px}
+  /* هم‌شکل بقیه صفحه‌های محصول: صحنه چپ، پنل گزینه‌ها راست */
+  .pd{grid-template-columns:1fr 400px}
+  .top .brand{display:none}
+  .panel h2{font-size:13px;color:var(--ink);font-weight:600;margin:0 0 10px}
+  .panel .grp{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}
+  .panel .note{border-top:1px solid var(--line)}
+  @media (max-width:980px){ .pd{grid-template-columns:1fr} }
   h2{font-size:13px;color:var(--muted);font-weight:600;margin:18px 0 8px}
   h2:first-child{margin-top:0}
   .seg{display:flex;flex-wrap:wrap;gap:6px}
@@ -92,12 +96,14 @@
   .warn{color:#a3321f}
   .note{font-size:11px;color:var(--muted);line-height:1.9;margin-top:22px;border-top:1px solid var(--line);padding-top:12px}
   @media (max-width:820px){
-    body{grid-template-columns:1fr;grid-template-rows:56dvh 1fr}
-    aside{border-right:0;border-top:1px solid var(--line);padding:14px 16px 40px}
   }
 </style>
 </head>
-<body>
+<body data-page="products">
+<script src="assets/layout.js"></script>
+<main class="wrap">
+<div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">مبل کلاسیک ناریا</span></div>
+<div class="pd">
 <div class="stage">
   <canvas id="cv" tabindex="0" aria-label="نمای سه‌بعدی چیدمان؛ مبل و کوسن را بکشید"></canvas>
   <model-viewer id="mv" loading="eager" environment-image="neutral" exposure="1" tone-mapping="neutral" shadow-intensity="1"
@@ -124,41 +130,67 @@
   <div class="busy" id="busy">در حال آماده‌سازی پارچه و چوب…</div>
 </div>
 
-<aside>
-  <h2>چیدمان آماده</h2>
+<aside class="panel">
+  <div class="code">sofa-A603</div><h1>مبل کلاسیک ناریا</h1>
+  <p class="sub">کلاف خراطی‌شده براق، مدالیون حصیری و نشیمن ژاکارد. چیدمان را خودتان بچینید، رنگ چوب و پارچه را انتخاب کنید و در خانه ببینید.</p>
+  <div class="grp"><h2>چیدمان آماده</h2>
   <div class="seg" id="presets">
     <button data-p="3">سه‌نفره</button><button data-p="2">دونفره</button><button data-p="1">مبل تک</button>
     <button data-p="311">۳+۱+۱</button><button data-p="32">۳+۲</button><button data-p="3211">۳+۲+۱+۱</button>
   </div>
-
-  <h2>نقشه چیدمان (از بالا) — مبل‌ها را بکشید و جابجا کنید</h2>
+  </div>
+  <div class="grp"><h2>نقشه چیدمان (از بالا) — مبل‌ها را بکشید و جابجا کنید</h2>
   <div class="plan"><svg id="plan" aria-label="نقشه چیدمان از بالا"></svg></div>
   <div class="row add">
     <button data-add="3">+ سه‌نفره</button><button data-add="2">+ دونفره</button><button data-add="1">+ مبل تک</button>
   </div>
   <div class="selbar" id="selbar"></div>
   <div class="plan-hint">هر خانه شبکه ۵۰ سانت است. لبه پررنگ = پشتی مبل. با دستگیره گرد بچرخانید. در حالت «در خانه شما» کل چیدمان با همین فاصله‌ها و اندازه واقعی روی زمین می‌نشیند.</div>
-
-  <h2>رنگ کلاف (چوب)</h2>
+  </div>
+  <div class="grp"><h2>رنگ کلاف (چوب)</h2>
   <div class="sw" data-key="frame"></div><div class="sw-name" id="frameName"></div>
-
-  <h2>پارچه نشیمن (ژاکارد)</h2>
+  </div>
+  <div class="grp"><h2>پارچه نشیمن (ژاکارد)</h2>
   <div class="sw" data-key="seat"></div><div class="sw-name" id="seatName"></div>
-
-  <h2>پارچه پشتی و دسته</h2>
+  </div>
+  <div class="grp"><h2>پارچه پشتی و دسته</h2>
   <div class="sw" data-key="back"></div><div class="sw-name" id="backName"></div>
-
-  <h2>کوسن‌ها</h2>
+  </div>
+  <div class="grp"><h2>کوسن‌ها</h2>
   <div class="seg" data-key="pillows">
     <button data-v="0">بدون</button><button data-v="2">۲ تایی</button><button data-v="4">۴ تایی</button>
   </div>
-
+  </div>
+  <div class="actions" style="margin-top:18px"><a class="btn btn-dark" id="sendBtn" href="contact.html?p=%D9%85%D8%A8%D9%84%20%D9%86%D8%A7%D8%B1%DB%8C%D8%A7">ارسال این طرح برای استعلام قیمت</a></div>
   <div class="note">
     مدل از روی عکس‌های واقعی استودیوی مبل اشرافی ساخته شده است: کلاف مشکی براق، پایه‌های خراطی شیاردار، مدالیون بیضی حصیری و نشیمن ژاکارد.
     ابعاد تقریبی است: سه‌نفره ۲۱۵ سانت، ارتفاع پشتی ۱۰۲، ارتفاع نشیمن ۴۸.
     پارچه‌ها و رگه چوب اسکن واقعی‌اند (Poly Haven، CC0). بافت حصیر با کد ساخته شده.
   </div>
 </aside>
+</div>
+
+<section class="info">
+  <div><h3>ساخت و جنس</h3><p>کلاف چوب راش خراطی‌شده با رنگ پلی‌استر براق، مدالیون حصیر بافت فرانسوی، نشیمن ژاکارد و پشتی شنیل. اسفنج سرد با لایه الیاف.</p></div>
+  <div><h3>ابعاد سه‌نفره</h3>
+    <table class="specs">
+      <tr><td>عرض</td><td>۲۱۵ سانت</td></tr>
+      <tr><td>عمق</td><td>۹۲ سانت</td></tr>
+      <tr><td>ارتفاع پشتی</td><td>۱۰۲ سانت</td></tr>
+      <tr><td>ارتفاع نشیمن</td><td>۴۸ سانت</td></tr>
+    </table></div>
+  <div><h3>چیدمان کامل</h3><p>دونفره، سه‌نفره و مبل تک را روی نقشه بچینید؛ در «نمایش در خانه» کل چیدمان با همان فاصله‌ها و اندازه واقعی روی زمین می‌نشیند. <a href="ar.html">راهنمای AR</a></p></div>
+</section>
+
+<section class="other">
+  <a href="console.html">
+    <img src="assets/console.webp" alt="کنسول ورونا" loading="lazy">
+    <div><small>کنار این مبل</small><h3>کنسول ورونا</h3><small>همان خراطی و رنگ مشکی براق · رویه مرمر</small></div>
+    <span class="btn btn-light btn-sm">طراحی کنسول</span>
+  </a>
+</section>
+</main>
+<script>siteFooter()</script>
 
 <script>
 /* اگر روی گوشی چیزی خراب شد، متن خطا روی صفحه نشان داده شود (برای عکس‌گرفتن و عیب‌یابی) */
@@ -538,8 +570,12 @@ function duotone(img,bg,fg){
   // ترکیب در فضای خطی (مثل نور واقعی) و برگرداندن روشنی واقعی اسکن
   const lin=v=>{ v/=255; return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4); }, srgb=v=>{ v=Math.max(0,Math.min(1,v)); return 255*(v<=0.0031308?v*12.92:1.055*Math.pow(v,1/2.4)-0.055); };
   const rgb=h=>[1,3,5].map(k=>lin(parseInt(h.slice(k,k+2),16))), B=rgb(bg), F=rgb(fg);
-  for(let i=0;i<J.m.length;i++){ const t=J.m[i], r=Math.pow(J.ratio[i],1.6), o=i*4;
-    for(let k=0;k<3;k++) a[o+k]=srgb((B[k]*(1-t)+F[k]*t)*r); a[o+3]=255; }
+  // جدول ۲۵۶×۲۵۶ (سهم نقش × روشنی) به‌جای pow برای هر پیکسل؛ شاخص‌ها یک بار ساخته می‌شوند
+  if(!J.ix){ J.ix=new Uint16Array(J.m.length); for(let i=0;i<J.m.length;i++) J.ix[i]=(Math.round(J.m[i]*255)<<8)|Math.round((J.ratio[i]-0.55)/0.9*255); }
+  const LUT=new Uint8ClampedArray(65536*3);
+  for(let ti=0;ti<256;ti++){ const t=ti/255; for(let ri=0;ri<256;ri++){ const r=Math.pow(0.55+ri/255*0.9,1.6), q=((ti<<8)|ri)*3;
+    for(let k=0;k<3;k++) LUT[q+k]=srgb((B[k]*(1-t)+F[k]*t)*r); } }
+  const ix=J.ix; for(let i=0;i<ix.length;i++){ const q=ix[i]*3, o=i*4; a[o]=LUT[q]; a[o+1]=LUT[q+1]; a[o+2]=LUT[q+2]; a[o+3]=255; }
   x.putImageData(d,0,0); return c;
 }
 /* رنگ‌مایه روی چوب: روشنی هر پیکسل نسبت به میانگین اسکن (رگه، منافذ، اشعه‌های ریز راش) نگه داشته می‌شود.
@@ -552,8 +588,11 @@ function stain(img,hex){
   const C=[1,3,5].map(k=>lin(parseInt(hex.slice(k,k+2),16))), Y=0.2126*C[0]+0.7152*C[1]+0.0722*C[2];
   const add=Math.max(0,0.022-Y), warm=[1.0,0.78,0.58];
   // نوارهای روشن/تیره طولی خود اسکن (۴ برابر پررنگ‌تر؛ اسکن خام فقط ±۳٪ تغییر روشنی دارد) × لکه‌های ریز اشعه راش
-  for(let i=0;i<N;i++){ const r=Math.max(0.3,Math.min(2,1+(L[i]/mean-1)*4.2))*(1-0.17*F[i]), o=i*4, g=Math.pow(r,1.7), e=add*Math.pow(r,2.4);
-    for(let k=0;k<3;k++) a[o+k]=srgb(C[k]*g+e*warm[k]); }
+  // جدول آماده (۴۰۹۶ پله روشنی) به‌جای pow برای هر پیکسل → ده‌ها برابر سریع‌تر، بدون تفاوت دیدنی
+  const NB=4096, R0=0.24, RS=(2-R0)/(NB-1), LUT=new Uint8ClampedArray(NB*3);
+  for(let b=0;b<NB;b++){ const r=R0+b*RS, g=Math.pow(r,1.7), e=add*Math.pow(r,2.4); for(let k=0;k<3;k++) LUT[b*3+k]=srgb(C[k]*g+e*warm[k]); }
+  for(let i=0;i<N;i++){ const r=Math.max(0.3,Math.min(2,1+(L[i]/mean-1)*4.2))*(1-0.17*F[i]), o=i*4, b=((r-R0)/RS+0.5)|0;
+    a[o]=LUT[b*3]; a[o+1]=LUT[b*3+1]; a[o+2]=LUT[b*3+2]; }
   x.putImageData(d,0,0); return c;
 }
 /* لکه‌های ریز دوکی‌شکل در جهت رگه (اشعه‌های چوب راش)، تکرارشونده بدون درز */
@@ -905,10 +944,14 @@ arBtn.addEventListener('click',async()=>{
 /* ---- مواد/رنگ‌ها ---- */
 let timer=null, mjob=0;
 async function refreshMaterials(){ const my=++mjob; busy.classList.add('on');
-  try{ await prepareMaterials(); if(my!==mjob) return;
-    for(const k in BODY) delete BODY[k]; for(const o of OBJ.values()) piecesRoot.remove(o); OBJ.clear(); PG.clear();
-    for(const t of ['3','2','1']) body(t); syncScene(); dims(); busy.classList.remove('on'); scheduleExport(); }
+  try{ const prev={...M}; await prepareMaterials(); if(my!==mjob) return;
+    swapMaterials(prev); busy.classList.remove('on'); scheduleExport(); }
   catch(e){ console.error(e); busy.textContent='خطا در ساخت مدل: '+e.message; } }
+/* رنگ عوض شد → فقط ماده روی همان مش‌های موجود عوض می‌شود (بدنه از نو ساخته نمی‌شود؛ قبلاً هر کلیک چند صد میلی‌ثانیه صفحه را قفل می‌کرد) */
+function swapMaterials(prev){ const map=new Map(); for(const k in prev) if(prev[k]!==M[k]) map.set(prev[k],M[k]);
+  const fix=o=>{ if(o.isMesh&&map.has(o.material)) o.material=map.get(o.material); };
+  for(const t in BODY) BODY[t].traverse(fix); piecesRoot.traverse(fix);
+  for(const it of S.layout) it.dirty=1; syncScene(); for(const m of map.keys()) if(!Object.values(M).includes(m)) m.dispose(); }
 const schedule=(ms=150)=>{ clearTimeout(timer); timer=setTimeout(refreshMaterials,ms); };
 function resetPillows(){ for(const it of S.layout){ it.pl=defPillows(it.t,S.pillows); it.dirty=1; } selP=null; drawPlan(); syncScene(); scheduleExport(); }
 

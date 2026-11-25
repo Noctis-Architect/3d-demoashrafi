@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>سفارش و تماس — مبل اشرافی</title>
+<meta name="description" content="طرح سه‌بعدی خود را برای استعلام قیمت و زمان تحویل برای مبل اشرافی بفرستید.">
+<meta name="theme-color" content="#f7f4ef">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:20px;align-items:start;padding-bottom:72px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(20px,3vw,32px)}
+  .card h2{margin:0 0 6px;font-size:20px} .card>p{margin:0 0 20px;color:var(--muted);font-size:14px}
+  label{display:block;font-size:13px;font-weight:600;margin:0 0 6px}
+  .f{margin-bottom:16px}
+  input,textarea,select{width:100%;font:400 15px Vazirmatn,sans-serif;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 14px;outline:none;transition:border-color .15s}
+  input:focus,textarea:focus,select:focus{border-color:var(--ink);background:#fff}
+  textarea{min-height:110px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .design{display:flex;gap:12px;align-items:center;background:var(--gold-soft);border-radius:14px;padding:12px 14px;margin-bottom:18px;font-size:13px}
+  .design[hidden]{display:none}
+  .design a{color:var(--gold);font-weight:600;word-break:break-all}
+  .side{display:grid;gap:16px}
+  .side .card{padding:24px}
+  .side h3{margin:0 0 8px;font-size:16px} .side p{margin:0;color:var(--muted);font-size:14px}
+  .steps{margin:0;padding:0 18px 0 0;display:grid;gap:8px;font-size:14px;color:var(--ink-2)}
+  .ok{display:none;text-align:center;padding:24px 0} .ok b{display:block;font-size:20px;margin-bottom:6px}
+  .sent .ok{display:block} .sent form{display:none}
+  @media (max-width:860px){ .grid{grid-template-columns:1fr} }
+  @media (max-width:480px){ .row2{grid-template-columns:1fr} }
+</style>
+</head>
+<body data-page="contact">
+<script src="assets/layout.js"></script>
+
+<main class="wrap">
+  <div class="crumbs"><a href="./">خانه</a><span>/</span><span style="color:var(--ink)">سفارش و تماس</span></div>
+  <header class="page-head" style="padding-top:8px">
+    <span class="eyebrow"><i></i>استعلام قیمت</span>
+    <h1>سفارش و تماس</h1>
+    <p>طرحی را که ساخته‌اید بفرستید؛ کارشناس فروش قیمت، زمان ساخت و هزینه ارسال را با شما هماهنگ می‌کند.</p>
+  </header>
+  <div class="grid">
+    <div class="card" id="box">
+      <h2>درخواست استعلام</h2><p>پر کردن همه فیلدها لازم نیست؛ شماره تماس کافی است.</p>
+      <form id="form" novalidate>
+        <div class="design" id="design" hidden><span>طرح ضمیمه:</span><a id="designLink" target="_blank" rel="noopener"></a></div>
+        <div class="row2">
+          <div class="f"><label for="name">نام</label><input id="name" autocomplete="name"></div>
+          <div class="f"><label for="tel">شماره تماس</label><input id="tel" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" placeholder="09xx xxx xxxx" required></div>
+        </div>
+        <div class="row2">
+          <div class="f"><label for="prod">محصول</label><select id="prod"></select></div>
+          <div class="f"><label for="city">شهر</label><input id="city" autocomplete="address-level2"></div>
+        </div>
+        <div class="f"><label for="msg">توضیحات</label><textarea id="msg" placeholder="مثلاً تعداد، رنگ دیگر، زمان تحویل…"></textarea></div>
+        <button class="btn btn-dark" style="width:100%">ارسال درخواست</button>
+        <p style="font-size:12px;color:var(--muted);margin:12px 0 0">نسخه نمایشی: در این نسخه چیزی ارسال نمی‌شود. در نسخه نهایی به پنل فروش یا واتس‌اپ فروشگاه وصل می‌شود.</p>
+      </form>
+      <div class="ok"><b>✓ درخواست شما ثبت شد</b><span style="color:var(--muted)">(نسخه نمایشی) در نسخه نهایی، کارشناس فروش با شما تماس می‌گیرد.</span></div>
+    </div>
+    <div class="side">
+      <div class="card"><h3>مراحل سفارش</h3><ol class="steps"><li>طرح را در صفحه محصول بسازید</li><li>«ارسال این طرح» را بزنید</li><li>تماس کارشناس و نهایی‌کردن قیمت</li><li>ساخت و ارسال</li></ol></div>
+      <div class="card"><h3>فروشگاه و نمایشگاه</h3><p>آدرس، تلفن و ساعت کاری نمایشگاه را در سایت اصلی ببینید.</p>
+        <a class="btn btn-light btn-sm" style="margin-top:14px" href="https://moblashrafi.com" target="_blank" rel="noopener">moblashrafi.com</a></div>
+    </div>
+  </div>
+</main>
+<script>
+(function(){
+  var q=new URLSearchParams(location.search), d=q.get('design'), p=q.get('p'), sel=document.getElementById('prod');
+  sel.innerHTML='<option value="">انتخاب کنید</option>'+CATALOG.map(function(x){ return '<option'+(x.name===p?' selected':'')+'>'+x.name+'</option>'; }).join('')+'<option>چند محصول / ست</option>';
+  var same=false; try{ same=new URL(d,location.href).origin===location.origin; }catch(_){}
+  if(d&&same){ var a=document.getElementById('designLink'); a.href=d; a.textContent=p||'مشاهده طرح'; document.getElementById('design').hidden=false; }
+  document.getElementById('form').addEventListener('submit',function(e){ e.preventDefault(); var t=document.getElementById('tel');
+    if(!/^[0-9۰-۹+\s-]{8,}$/.test(t.value)){ t.focus(); t.style.borderColor='#a3321f'; return; }
+    document.getElementById('box').classList.add('sent'); });
+  siteFooter();
+})();
+</script>
+</body>
+</html>

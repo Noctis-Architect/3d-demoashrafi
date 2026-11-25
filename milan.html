@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مبل راحتی میلان M120 — طراحی سه‌بعدی | مبل اشرافی</title>
+<meta name="description" content="مبل راحتی مدرن میلان را سه‌بعدی ببینید؛ جنس و رنگ پارچه، پایه و تعداد نفرات را انتخاب کنید و در خانه با AR ببینید.">
+<meta name="theme-color" content="#f7f4ef">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/product.css">
+<script type="module" src="lib/model-viewer.min.js"></script>
+</head>
+<body data-page="products">
+<script src="assets/layout.js"></script>
+
+<main class="wrap">
+  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">مبل راحتی میلان</span></div>
+  <div class="pd" id="pd"></div>
+
+  <section class="info">
+    <div><h3>ساخت و جنس</h3><p>اسکلت چوب روسی خشک‌شده، فنر مارپیچ زیر نشیمن، اسفنج سرد ۳۵ کیلویی با لایه الیاف. روکش کوسن‌ها زیپ‌دار و قابل شستشو.</p></div>
+    <div><h3>ابعاد</h3>
+      <table class="specs">
+        <tr><td>عرض</td><td data-spec="w"></td></tr>
+        <tr><td>عمق</td><td data-spec="d"></td></tr>
+        <tr><td>ارتفاع</td><td data-spec="h"></td></tr>
+        <tr><td>ارتفاع نشیمن</td><td>۴۴ سانت</td></tr>
+      </table></div>
+    <div><h3>پارچه‌ها</h3><p>مخمل (براق و نرم)، بوکله (بافت حلقه‌ای پشمی) و کتان (مات و طبیعی). بافت هر سه از اسکن پارچه واقعی است؛ هر رنگی را می‌توانید سفارش دهید.</p></div>
+  </section>
+
+  <section class="other">
+    <a href="naria.html">
+      <img src="assets/naria.webp" alt="مبل ناریا" loading="lazy">
+      <div><small>کلاسیک بخواهید</small><h3>مبل کلاسیک ناریا</h3><small>چیدمان آزاد · ۶ رنگ چوب · ۵ پارچه ژاکارد</small></div>
+      <span class="btn btn-light btn-sm">طراحی مبل</span>
+    </a>
+  </section>
+</main>
+<script>siteFooter()</script>
+
+<script type="module">
+import { productPage, THREE, slot, kit } from './assets/product.js';
+import { SE, lathe, slabY, rrect, mesh } from './assets/geo.js';
+
+const FABRICS=[{v:'velvet',label:'مخمل',tex:'velour_velvet',tile:0.18,sheen:1,rough:0.85},{v:'boucle',label:'بوکله',tex:'wool_boucle',tile:0.22,sheen:0.4,rough:1},{v:'linen',label:'کتان',tex:'rough_linen',tile:0.2,sheen:0.2,rough:1}];
+const COLORS=[
+  {v:'#5f6b52',label:'سبز زیتونی'},{v:'#c9b9a3',label:'کرم'},{v:'#2f3b4c',label:'سرمه‌ای'},{v:'#8a4b3a',label:'آجری'},
+  {v:'#8e8d89',label:'طوسی'},{v:'#d9cfc4',label:'شیری'},{v:'#6b3b4a',label:'بادمجانی'},{v:'#3d3a37',label:'ذغالی'},
+];
+const LEGS=[{v:'walnut',label:'چوب گردو'},{v:'black',label:'فلز مشکی'},{v:'gold',label:'فلز طلایی'}];
+const H=0.80, D=0.94, LEG=0.13, SEAT=0.44, ARM=0.2;
+const seatW=S=>S.seats==='3'?0.66:0.7;
+const width=S=>(+S.seats)*seatW(S)+2*ARM;
+/* رنگ کوسن تزئینی: همان پارچه، روشن‌تر */
+const accent=hex=>'#'+new THREE.Color(hex).lerp(new THREE.Color('#efe6d8'),0.55).getHexString();
+const fab=S=>FABRICS.find(f=>f.v===S.fabric);
+
+productPage({
+  id:'milan', name:'مبل راحتی میلان', code:'sofa-M120', arTitle:'مبل راحتی میلان',
+  sub:'مبل راحتی مدرن با کوسن‌های پُر، دسته‌های گرد و پایه‌های باریک. جنس و رنگ پارچه را خودتان انتخاب کنید.',
+  options:[
+    {key:'color',q:'c',label:'رنگ پارچه',type:'swatch',items:COLORS},
+    {key:'fabric',q:'m',label:'جنس پارچه',type:'seg',items:FABRICS},
+    {key:'seats',q:'n',label:'تعداد نفرات',type:'seg',reframe:1,items:[{v:'2',label:'دونفره'},{v:'3',label:'سه‌نفره'}]},
+    {key:'legs',q:'l',label:'پایه',type:'seg',items:LEGS},
+    {key:'pillows',q:'p',label:'کوسن تزئینی',type:'seg',items:[{v:'2',label:'۲ عدد'},{v:'0',label:'بدون'}]},
+  ],
+  defaults:{color:'#5f6b52',fabric:'velvet',seats:'3',legs:'walnut',pillows:'2'},
+  dims:S=>[width(S),D,H],
+  geoKey:S=>S.seats+S.pillows,
+  matKey:S=>S.color+S.fabric+S.legs,
+  quick:S=>{ const f=fab(S), legs={walnut:kit.plain('#3a2417',0.5),black:kit.plain('#1b1b1c',0.4,{metalness:1}),gold:kit.plain('#c9a25a',0.3,{metalness:1})}[S.legs];
+    return { fabric:kit.plain(S.color,f.rough), pillow:kit.plain(accent(S.color),f.rough), legs }; },
+  async materials(S){ const f=fab(S), o={tile:f.tile,sheen:f.sheen,rough:f.rough};
+    const [fabric,pillow,legs]=await Promise.all([kit.fabric(f.tex,S.color,o),kit.fabric(f.tex,accent(S.color),o),
+      S.legs==='walnut'?kit.wood('#3a2417'):Promise.resolve(kit.metal(S.legs==='black'?'#1b1b1c':'#c9a25a',S.legs==='black'?0.45:0.28))]);
+    return {fabric,pillow,legs}; },
+  prewarm:k=>{ for(const f of FABRICS) Promise.all(['diff','nor_gl'].map(x=>new Promise(r=>{ const i=new Image(); i.onload=i.onerror=r; i.src=`tex/${f.tex}_${x}_1k.jpg`; }))); },
+  summary:(S,L)=>`مبل راحتی میلان ${L('seats')}، پارچه ${L('fabric')} ${L('color')}، پایه ${L('legs')}، ${S.pillows==='2'?'با ۲ کوسن تزئینی':'بدون کوسن تزئینی'}`,
+  arDefault:S=>S.color==='#5f6b52'&&S.fabric==='velvet'&&S.legs==='walnut'&&S.pillows==='2',
+  arFile:S=>`ar/milan-${S.seats}.glb`,
+  arVariants:[{seats:'2'},{seats:'3'}],
+  build(S){
+    const n=+S.seats, sw=seatW(S), W=width(S), inner=n*sw, g=new THREE.Group();
+    const backD=0.2, z0=-D/2, seatD=D-backD-0.02;
+    // پایه زیر (سکو) و پشتی ثابت
+    g.add(mesh(slabY(rrect(new THREE.Shape(),W-0.02,D-0.02,0.06),LEG,0.31,0.03),slot.fabric));
+    g.add(mesh(slabY(rrect(new THREE.Shape(),inner+0.02,backD,0.05),0.3,0.62,0.04),slot.fabric,0,0,z0+backD/2+0.01));
+    // دسته‌های گرد
+    for(const s of [-1,1]) g.add(mesh(SE(ARM/2,0.26,D/2-0.01,0.35,0.35,{nu:40,nv:24}),slot.fabric,s*(W/2-ARM/2),LEG+0.25,0));
+    // کوسن‌های نشیمن (پُر و کمی گرد)
+    const sz=z0+backD+seatD/2+0.01;
+    for(let i=0;i<n;i++){ const x=-inner/2+sw*(i+0.5);
+      const c=mesh(SE(sw/2-0.006,0.075,seatD/2,0.3,0.22,{nu:40,nv:20,mod:(x,y,z)=>[x,y+(y>0?0.012*Math.cos(x/sw*Math.PI)*Math.cos(z/seatD*Math.PI):0),z]}),slot.fabric,x,SEAT-0.07,sz); g.add(c);
+      // کوسن پشتی، کمی به عقب خوابیده
+      const b=mesh(SE(sw/2-0.008,0.22,0.1,0.3,0.25,{nu:40,nv:24,mod:(x,y,z)=>[x,y,z*(1+0.35*Math.cos(y/0.22*Math.PI/2)*Math.cos(x/sw*Math.PI))]}),slot.fabric,x,0.64,z0+backD+0.07);
+      b.rotation.x=-0.2; g.add(b); }
+    // کوسن‌های تزئینی
+    if(S.pillows==='2') for(const s of [-1,1]){ const p=mesh(SE(0.21,0.21,0.07,0.45,0.6,{nu:32,nv:24,mod:(x,y,z)=>[x,y,z*(1-0.5*Math.pow(Math.max(Math.abs(x),Math.abs(y))/0.21,4))]}),slot.pillow,s*(inner/2-0.24),SEAT+0.2,z0+backD+0.2);
+      p.rotation.set(-0.3,s*0.18,s*0.06); g.add(p); }
+    // پایه‌های باریک مخروطی
+    const leg=lathe([[0,0],[0.012,0],[0.014,0.005],[0.02,LEG-0.01],[0.024,LEG],[0,LEG]],{radial:28});
+    const lx=W/2-0.09, lz=D/2-0.09; for(const x of [-lx,lx]) for(const z of [-lz,lz]) g.add(mesh(leg,slot.legs,x,0,z));
+    if(n===3) for(const z of [-lz,lz]) g.add(mesh(leg,slot.legs,0,0,z));
+    return g; },
+});
+</script>
+</body>
+</html>

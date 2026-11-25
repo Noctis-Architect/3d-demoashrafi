@@ -95,8 +95,8 @@ function slabY(shape,y0,y1,bevel){
   g.rotateX(Math.PI/2); g.translate(0,y1-bevel,0); return mergeVertices(boxUV(toCreasedNormals(g,0.6)));
 }
 /* شکل عمودی (x,y) با ضخامت در z (مرکز روی z=0) */
-function slabZ(shape,t,bevel,segs=7){
-  const g=new THREE.ExtrudeGeometry(shape,{depth:Math.max(0.001,t-2*bevel),bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelOffset:-bevel,bevelSegments:segs,curveSegments:72});
+function slabZ(shape,t,bevel,segs=7,curve=72){
+  const g=new THREE.ExtrudeGeometry(shape,{depth:Math.max(0.001,t-2*bevel),bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelOffset:-bevel,bevelSegments:segs,curveSegments:curve});
   g.translate(0,0,-(t-2*bevel)/2); return mergeVertices(boxUV(toCreasedNormals(g,0.6)));
 }
 const mesh=(g,m,x=0,y=0,z=0)=>{ const o=new THREE.Mesh(g,m); o.position.set(x,y,z); return o; };
@@ -163,8 +163,12 @@ function duotone(img,bg,fg){
   // ترکیب در فضای خطی (مثل نور واقعی) و برگرداندن روشنی واقعی اسکن
   const lin=v=>{ v/=255; return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4); }, srgb=v=>{ v=Math.max(0,Math.min(1,v)); return 255*(v<=0.0031308?v*12.92:1.055*Math.pow(v,1/2.4)-0.055); };
   const rgb=h=>[1,3,5].map(k=>lin(parseInt(h.slice(k,k+2),16))), B=rgb(bg), F=rgb(fg);
-  for(let i=0;i<J.m.length;i++){ const t=J.m[i], r=Math.pow(J.ratio[i],1.6), o=i*4;
-    for(let k=0;k<3;k++) a[o+k]=srgb((B[k]*(1-t)+F[k]*t)*r); a[o+3]=255; }
+  // جدول ۲۵۶×۲۵۶ (سهم نقش × روشنی) به‌جای pow برای هر پیکسل؛ شاخص‌ها یک بار ساخته می‌شوند
+  if(!J.ix){ J.ix=new Uint16Array(J.m.length); for(let i=0;i<J.m.length;i++) J.ix[i]=(Math.round(J.m[i]*255)<<8)|Math.round((J.ratio[i]-0.55)/0.9*255); }
+  const LUT=new Uint8ClampedArray(65536*3);
+  for(let ti=0;ti<256;ti++){ const t=ti/255; for(let ri=0;ri<256;ri++){ const r=Math.pow(0.55+ri/255*0.9,1.6), q=((ti<<8)|ri)*3;
+    for(let k=0;k<3;k++) LUT[q+k]=srgb((B[k]*(1-t)+F[k]*t)*r); } }
+  const ix=J.ix; for(let i=0;i<ix.length;i++){ const q=ix[i]*3, o=i*4; a[o]=LUT[q]; a[o+1]=LUT[q+1]; a[o+2]=LUT[q+2]; a[o+3]=255; }
   x.putImageData(d,0,0); return c;
 }
 /* رنگ‌مایه روی چوب: روشنی هر پیکسل نسبت به میانگین اسکن (رگه، منافذ، اشعه‌های ریز راش) نگه داشته می‌شود.
@@ -177,8 +181,11 @@ function stain(img,hex){
   const C=[1,3,5].map(k=>lin(parseInt(hex.slice(k,k+2),16))), Y=0.2126*C[0]+0.7152*C[1]+0.0722*C[2];
   const add=Math.max(0,0.022-Y), warm=[1.0,0.78,0.58];
   // نوارهای روشن/تیره طولی خود اسکن (۴ برابر پررنگ‌تر؛ اسکن خام فقط ±۳٪ تغییر روشنی دارد) × لکه‌های ریز اشعه راش
-  for(let i=0;i<N;i++){ const r=Math.max(0.3,Math.min(2,1+(L[i]/mean-1)*4.2))*(1-0.17*F[i]), o=i*4, g=Math.pow(r,1.7), e=add*Math.pow(r,2.4);
-    for(let k=0;k<3;k++) a[o+k]=srgb(C[k]*g+e*warm[k]); }
+  // جدول آماده (۴۰۹۶ پله روشنی) به‌جای pow برای هر پیکسل → ده‌ها برابر سریع‌تر، بدون تفاوت دیدنی
+  const NB=4096, R0=0.24, RS=(2-R0)/(NB-1), LUT=new Uint8ClampedArray(NB*3);
+  for(let b=0;b<NB;b++){ const r=R0+b*RS, g=Math.pow(r,1.7), e=add*Math.pow(r,2.4); for(let k=0;k<3;k++) LUT[b*3+k]=srgb(C[k]*g+e*warm[k]); }
+  for(let i=0;i<N;i++){ const r=Math.max(0.3,Math.min(2,1+(L[i]/mean-1)*4.2))*(1-0.17*F[i]), o=i*4, b=((r-R0)/RS+0.5)|0;
+    a[o]=LUT[b*3]; a[o+1]=LUT[b*3+1]; a[o+2]=LUT[b*3+2]; }
   x.putImageData(d,0,0); return c;
 }
 /* لکه‌های ریز دوکی‌شکل در جهت رگه (اشعه‌های چوب راش)، تکرارشونده بدون درز */

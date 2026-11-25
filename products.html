@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>محصولات سه‌بعدی — مبل اشرافی</title>
+<meta name="description" content="همه محصولات سه‌بعدی مبل اشرافی: مبل کلاسیک ناریا، مبل راحتی میلان، کنسول و میز تلویزیون ورونا.">
+<meta name="theme-color" content="#f7f4ef">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 24px}
+  .filters button{font:600 14px Vazirmatn,sans-serif;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);padding:9px 18px;border-radius:999px;cursor:pointer}
+  .filters button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .filters span{font-weight:400;opacity:.6;margin-inline-start:4px}
+  .p-card[hidden]{display:none}
+  .soon{margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border:1.5px dashed #d9cfc2;border-radius:var(--r-lg);padding:22px 26px;color:var(--muted);font-size:14px}
+  .soon b{color:var(--ink);font-size:16px;display:block} .soon .tags{margin:0}
+</style>
+</head>
+<body data-page="products">
+<script src="assets/layout.js"></script>
+
+<main class="wrap" style="padding-bottom:72px">
+  <div class="crumbs"><a href="./">خانه</a><span>/</span><span style="color:var(--ink)">محصولات</span></div>
+  <header class="page-head" style="padding-top:8px">
+    <span class="eyebrow"><i></i>کلکسیون سه‌بعدی</span>
+    <h1>محصولات</h1>
+    <p>هر محصول را باز کنید، رنگ و جنس و اندازه را انتخاب کنید و با دکمه «نمایش در خانه شما» در اندازه واقعی ببینید.</p>
+  </header>
+  <div class="filters" id="filters" role="group" aria-label="دسته‌بندی"></div>
+  <div class="products" id="grid"></div>
+  <div class="soon">
+    <div><b>به‌زودی در استودیو سه‌بعدی</b>محصولات بعدی به همین شکل اضافه می‌شوند.</div>
+    <div class="tags"><span>سرویس خواب</span><span>میز ناهارخوری</span><span>میز جلومبلی</span><span>آینه ورونا</span></div>
+  </div>
+</main>
+<script>
+(function(){
+  var grid=document.getElementById('grid'), f=document.getElementById('filters');
+  grid.innerHTML=CATALOG.map(productCard).join('');
+  var cats=[['all','همه',CATALOG.length]].concat(Object.keys(CATS).map(function(k){ return [k,CATS[k],CATALOG.filter(function(p){return p.cat===k;}).length]; }));
+  f.innerHTML=cats.map(function(c){ return '<button data-c="'+c[0]+'">'+c[1]+'<span>'+c[2].toLocaleString('fa-IR')+'</span></button>'; }).join('');
+  function set(c){ f.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed',b.dataset.c===c); });
+    grid.querySelectorAll('.p-card').forEach(function(el){ el.hidden=c!=='all'&&el.dataset.cat!==c; });
+    var u=new URL(location.href); if(c==='all') u.searchParams.delete('cat'); else u.searchParams.set('cat',c); history.replaceState(null,'',u); }
+  f.addEventListener('click',function(e){ var b=e.target.closest('button'); if(b) set(b.dataset.c); });
+  var q=new URLSearchParams(location.search).get('cat'); set(CATS[q]?q:'all');
+  siteFooter();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>میز تلویزیون ورونا T180 — طراحی سه‌بعدی | مبل اشرافی</title>
+<meta name="description" content="میز تلویزیون کلاسیک ورونا را سه‌بعدی ببینید؛ رنگ چوب، رویه مرمر، یراق و عرض را انتخاب کنید و در خانه با AR ببینید.">
+<meta name="theme-color" content="#f7f4ef">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/product.css">
+<script type="module" src="lib/model-viewer.min.js"></script>
+</head>
+<body data-page="products">
+<script src="assets/layout.js"></script>
+
+<main class="wrap">
+  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">میز تلویزیون ورونا</span></div>
+  <div class="pd" id="pd"></div>
+
+  <section class="info">
+    <div><h3>ساخت و جنس</h3><p>بدنه چوب راش و MDF روکش‌دار، دو کابینت در‌دار با طبقه داخلی، طبقه باز برای دستگاه‌ها با سوراخ پشت برای سیم، دو کشو با ریل ساچمه‌ای.</p></div>
+    <div><h3>ابعاد</h3>
+      <table class="specs">
+        <tr><td>عرض</td><td data-spec="w"></td></tr>
+        <tr><td>عمق</td><td data-spec="d"></td></tr>
+        <tr><td>ارتفاع</td><td data-spec="h"></td></tr>
+        <tr><td>مناسب تلویزیون</td><td>تا ۸۵ اینچ</td></tr>
+      </table></div>
+    <div><h3>هم‌خانواده</h3><p>با <a href="console.html">کنسول ورونا</a> یکی است: همان پایه خراطی، مدالیون و یراق. رنگ چوب و یراق هر دو را یکی انتخاب کنید.</p></div>
+  </section>
+
+  <section class="other">
+    <a href="console.html">
+      <img src="assets/console.webp" alt="کنسول ورونا" loading="lazy">
+      <div><small>هم‌خانواده این میز</small><h3>کنسول ورونا</h3><small>دو کشو · رویه مرمر · سه اندازه</small></div>
+      <span class="btn btn-light btn-sm">طراحی کنسول</span>
+    </a>
+  </section>
+</main>
+<script>siteFooter()</script>
+
+<script type="module">
+import { productPage, THREE, slot, kit } from './assets/product.js';
+import { FINISHES, TOPS, TRIMS, TOPNAME, veronaQuick, veronaMaterials, veronaKey, veronaPrewarm, addFeet, panel, medallion, bead, skirt, topSlab, box } from './assets/verona.js';
+
+const H=0.56, D=0.45, FEET=0.12;
+productPage({
+  id:'tv', name:'میز تلویزیون ورونا', code:'tv-T180', arTitle:'میز تلویزیون ورونا',
+  sub:'دو کابینت در‌دار، طبقه باز وسط برای دستگاه‌ها و دو کشو؛ با همان خراطی و یراق کنسول ورونا.',
+  options:[
+    {key:'finish',q:'f',label:'رنگ چوب',type:'swatch',items:FINISHES},
+    {key:'top',q:'t',label:'رویه',type:'seg',items:TOPS},
+    {key:'trim',q:'g',label:'یراق و نوار تزئینی',type:'seg',items:TRIMS},
+    {key:'width',q:'w',label:'عرض',type:'seg',reframe:1,items:[{v:'1.6',label:'۱۶۰',sub:'سانت'},{v:'1.8',label:'۱۸۰',sub:'سانت'},{v:'2.0',label:'۲۰۰',sub:'سانت'}]},
+  ],
+  defaults:{finish:'#0c0c0d',top:'wood',trim:'gold',width:'1.8'},
+  dims:S=>[+S.width,D,H],
+  geoKey:S=>S.width,
+  matKey:veronaKey, quick:veronaQuick, materials:S=>veronaMaterials(S,kit), prewarm:veronaPrewarm,
+  summary:(S,L)=>`میز تلویزیون ورونا، عرض ${Number(S.width*100).toLocaleString('fa-IR')} سانت، چوب ${L('finish')}، رویه ${TOPNAME[S.top]}، یراق ${L('trim')}`,
+  arDefault:S=>S.finish==='#0c0c0d'&&S.top==='wood'&&S.trim==='gold',
+  arFile:S=>`ar/tv-${Math.round(S.width*100)}.glb`,
+  arVariants:[{width:'1.6'},{width:'1.8'},{width:'2.0'}],
+  build(S){
+    const W=+S.width, g=new THREE.Group(), cw=W-0.06, cd=D-0.07, fz=cd/2, t=0.02;
+    const yTop=topSlab(g,W,D,H), y0=FEET+0.03;   // زیر ابزار رویه، روی پایه‌ها
+    // بدنه: کف، بغل‌ها، پشت، دو تیغه وسط
+    const doorW=Math.min(0.46,cw*0.27), xd=cw/2-doorW, cW=2*xd;
+    box(g,cw,cd,y0,y0+t);                                    // کف
+    box(g,cw,cd,FEET,y0+0.002);                              // زهوار پایین
+    for(const s of [-1,1]){ box(g,t,cd,y0,yTop+0.002,s*(cw/2-t/2)); box(g,t,cd,y0,yTop+0.002,s*(xd-t/2)); }
+    box(g,cw,t,y0,yTop+0.002,0,-cd/2+t/2);                   // پشت
+    // درها با قاب برجسته؛ دستگیره سمت داخل
+    const dh=yTop-y0-0.03, dy=(y0+yTop)/2+0.008;
+    for(const s of [-1,1]){ panel(g,doorW-0.03,dh,s*(xd+doorW/2-0.005),dy,fz-0.012,{knobs:[[-s*(doorW/2-0.06),0]]});
+      medallion(g,s*(xd+doorW/2-0.005),dy+dh*0.18,fz+0.006); }
+    // وسط: دو کشو پایین، طبقه باز بالا با لبه یراق
+    const drH=0.13, shelfY=y0+t+drH+0.012;
+    for(const s of [-1,1]) panel(g,xd-0.03,drH,s*(xd/2),y0+t+drH/2+0.004,fz-0.012);
+    box(g,cW-0.01,cd-0.01,shelfY,shelfY+t,0,-0.005);
+    bead(g,cW-0.06,0,shelfY+t+0.002,fz-0.008,0.0035);
+    // نوار مهره‌ای و دامنه
+    bead(g,cw-0.06,0,FEET+0.016,fz+0.002);
+    skirt(g,cW*0.8,0,FEET+0.002,fz-0.006);
+    const lx=cw/2-0.035, lz=cd/2-0.035; addFeet(g,FEET+0.01,[-lx,0,lx].filter((x,i)=>i!==1||W>=1.8),[-lz,lz]);
+    return g; },
+});
+</script>
+</body>
+</html>
