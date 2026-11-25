@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>کنسول ورونا C210 — طراحی سه‌بعدی | مبل اشرافی</title>
+<meta name="description" content="کنسول کلاسیک ورونا را سه‌بعدی بچرخانید، رنگ چوب و رویه مرمر را انتخاب کنید و در اندازه واقعی در خانه ببینید.">
+<meta name="theme-color" content="#f7f4ef">
+<link rel="stylesheet" href="assets/site.css">
+<script type="module" src="lib/model-viewer.min.js"></script>
+<style>
+  .crumbs{font-size:13px;color:var(--muted);padding:18px 0 14px;display:flex;gap:8px;flex-wrap:wrap}
+  .crumbs a{text-decoration:none} .crumbs a:hover{color:var(--ink)}
+  .pd{display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start}
+  .stage{position:sticky;top:84px;height:min(720px,calc(100dvh - 104px));min-height:420px;border-radius:var(--r-lg);overflow:hidden;
+    background:radial-gradient(110% 90% at 50% 30%,#fdfcfa 0%,#ebe4d9 72%,#e0d6c8 100%);border:1px solid var(--line)}
+  #cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;cursor:grab}
+  #cv:active{cursor:grabbing}
+  #mv{position:absolute;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none}
+  #mv[ar-status="session-started"],#mv[ar-status="object-placed"]{position:fixed;inset:0;width:100%;height:100%;opacity:1;pointer-events:auto;z-index:100}
+  .st-top{position:absolute;inset:16px 16px auto 16px;display:flex;justify-content:space-between;gap:8px;pointer-events:none;z-index:2}
+  .pill{background:rgba(255,255,255,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:7px 14px;border-radius:999px;font-size:12px;color:var(--muted);box-shadow:var(--shadow)}
+  .pill b{color:var(--ink)}
+  .st-bot{position:absolute;inset:auto 16px 16px 16px;display:flex;justify-content:center;align-items:center;gap:8px;z-index:2;flex-wrap:wrap}
+  .icon-btn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow)}
+  .icon-btn svg{width:18px;height:18px}
+  .icon-btn[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .ar-btn{padding:12px 22px}
+  .no-ar{font-size:12px;color:var(--muted);background:rgba(255,255,255,.88);padding:8px 14px;border-radius:999px}
+  .hint{position:absolute;top:58px;left:50%;transform:translateX(-50%);z-index:2;font-size:12px;background:rgba(28,25,22,.78);color:#fff;padding:6px 12px;border-radius:999px;white-space:nowrap;transition:opacity .5s;pointer-events:none}
+  .hint.off{opacity:0}
+  .busy{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;font-size:13px;color:var(--muted);background:rgba(255,255,255,.92);padding:8px 14px;border-radius:12px;display:none;max-width:90%;text-align:center}
+  .busy.on{display:block}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px}
+  .panel .code{font-size:12px;color:var(--muted);direction:ltr;text-align:right}
+  .panel h1{font-size:26px;margin:2px 0 6px;line-height:1.4;font-weight:800}
+  .panel .sub{color:var(--muted);font-size:14px;margin:0 0 6px}
+  .opt{border-top:1px solid var(--line);padding:16px 0 0;margin-top:16px}
+  .opt h2{font-size:13px;font-weight:600;margin:0 0 10px;display:flex;justify-content:space-between;gap:8px}
+  .opt h2 span{color:var(--muted);font-weight:400}
+  .sw{display:flex;flex-wrap:wrap;gap:10px}
+  .sw button{width:40px;height:40px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0;transition:box-shadow .15s;background-size:cover}
+  .sw button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg button{flex:1 1 0;min-width:0;border:1px solid var(--line);background:#fff;color:var(--ink);font:400 13px Vazirmatn,sans-serif;padding:9px 8px;border-radius:12px;cursor:pointer;min-height:42px;line-height:1.4}
+  .seg button small{display:block;color:var(--muted);font-size:11px}
+  .seg button[aria-pressed="true"]{border-color:var(--ink);background:var(--bg);font-weight:600}
+  .summary{margin-top:20px;padding:14px 16px;border-radius:var(--r-md);background:var(--bg);font-size:13px;color:var(--ink-2);line-height:2}
+  .summary b{font-weight:600}
+  .actions{display:grid;gap:8px;margin-top:14px}
+  .actions .btn{width:100%}
+
+  .info{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:56px 0 0}
+  .info>div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:22px}
+  .info h3{margin:0 0 10px;font-size:16px}
+  .info p{margin:0;color:var(--muted);font-size:14px}
+  .specs{width:100%;border-collapse:collapse;font-size:14px}
+  .specs td{padding:7px 0;border-bottom:1px solid var(--line)} .specs tr:last-child td{border:0}
+  .specs td:last-child{text-align:left;font-weight:600}
+  .other{margin:56px 0 72px}
+  .other a{display:grid;grid-template-columns:200px 1fr auto;align-items:center;gap:24px;text-decoration:none;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 24px 14px 14px;transition:box-shadow .2s}
+  .other a:hover{box-shadow:var(--shadow)}
+  .other img{border-radius:16px;background:radial-gradient(110% 90% at 50% 25%,#fbfaf7,#efe9df);aspect-ratio:1.5;object-fit:contain;width:100%;padding:8px}
+  .other small{color:var(--muted)} .other h3{margin:2px 0 0;font-size:20px}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:#fff;font-size:13px;padding:10px 18px;border-radius:999px;z-index:60;transition:.3s;pointer-events:none}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:980px){
+    .pd{grid-template-columns:1fr}
+    .stage{position:relative;top:0;height:56dvh;min-height:340px}
+    .info{grid-template-columns:1fr}
+  }
+  @media (max-width:640px){
+    .crumbs{padding:12px 0 10px}
+    .stage{border-radius:var(--r-md);margin-inline:calc(var(--gut) * -1 + 8px)}
+    .panel{padding:18px}
+    .panel h1{font-size:22px}
+    .st-top{inset:12px 12px auto 12px} .st-bot{inset:auto 12px 12px 12px}
+    .other a{grid-template-columns:96px 1fr;padding:10px;gap:14px} .other a>.btn{display:none}
+    .other h3{font-size:16px}
+  }
+</style>
+</head>
+<body>
+
+<header class="hdr" id="hdr">
+  <div class="wrap">
+    <a class="logo" href="./" aria-label="استودیو سه‌بعدی مبل اشرافی">
+      <span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3"/><path d="M2 13a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/><path d="M5 18v2M19 18v2"/></svg></span>
+      <span><b>مبل اشرافی</b><small>استودیو سه‌بعدی</small></span>
+    </a>
+    <nav class="nav" id="nav">
+      <a href="./#products">محصولات</a>
+      <a href="./#features">امکانات</a>
+      <a href="./#ar">نمایش در خانه</a>
+      <a href="./#contact">سفارش</a>
+    </nav>
+    <a class="btn btn-light btn-sm hdr-cta" href="https://moblashrafi.com" target="_blank" rel="noopener">سایت اصلی
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+    <button class="menu-btn" id="menuBtn" aria-label="منو" aria-expanded="false"><span></span></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="./#products">محصولات</a><span>/</span><span style="color:var(--ink)">کنسول ورونا</span></div>
+
+  <div class="pd">
+    <div class="stage" id="stage">
+      <canvas id="cv" tabindex="0" aria-label="نمای سه‌بعدی کنسول؛ برای چرخاندن بکشید"></canvas>
+      <model-viewer id="mv" loading="eager" environment-image="neutral" exposure="1" tone-mapping="neutral" shadow-intensity="1"
+        ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor" alt="کنسول ورونا در خانه شما">
+        <span slot="ar-button" hidden></span>
+      </model-viewer>
+      <div class="st-top"><span class="pill" id="dims"></span><span class="pill"><b>۳۶۰°</b></span></div>
+      <div class="hint" id="hint">بکشید تا بچرخد · دو انگشت برای زوم</div>
+      <div class="busy" id="busy">در حال آماده‌سازی چوب و سنگ…</div>
+      <div class="st-bot">
+        <button class="icon-btn" id="rotBtn" aria-pressed="true" aria-label="چرخش خودکار" title="چرخش خودکار"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></button>
+        <button class="btn btn-dark ar-btn" id="arBtn" disabled>در حال آماده‌سازی…</button>
+        <span class="no-ar" id="noAr" hidden>برای دیدن در خانه، صفحه را روی گوشی باز کنید</span>
+        <button class="icon-btn" id="resetBtn" aria-label="نمای اول" title="نمای اول"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4M17 12h4M12 3v4M12 17v4"/><circle cx="12" cy="12" r="4"/></svg></button>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <div class="code">console-C210</div>
+      <h1>کنسول ورونا</h1>
+      <p class="sub">کنسول کلاسیک با پایه‌های خراطی شیاردار، دو کشو و مدالیون وسط. هر ترکیب را بسازید و در خانه ببینید.</p>
+
+      <div class="opt"><h2>رنگ چوب <span id="finishName"></span></h2><div class="sw" id="finish"></div></div>
+      <div class="opt"><h2>رویه <span id="topName"></span></h2>
+        <div class="seg" id="top">
+          <button data-v="wood">هم‌رنگ چوب</button><button data-v="carrara">مرمر سفید</button><button data-v="nero">مرمر مشکی</button>
+        </div></div>
+      <div class="opt"><h2>یراق و نوار تزئینی <span id="trimName"></span></h2>
+        <div class="seg" id="trim">
+          <button data-v="gold">طلایی</button><button data-v="silver">نقره‌ای</button><button data-v="none">بدون</button>
+        </div></div>
+      <div class="opt"><h2>عرض</h2>
+        <div class="seg" id="width">
+          <button data-v="1.2">۱۲۰<small>سانت</small></button><button data-v="1.4">۱۴۰<small>سانت</small></button><button data-v="1.6">۱۶۰<small>سانت</small></button>
+        </div></div>
+      <div class="opt"><h2>طبقه پایین</h2>
+        <div class="seg" id="shelf"><button data-v="1">دارد</button><button data-v="0">ندارد</button></div></div>
+
+      <div class="summary" id="summary"></div>
+      <div class="actions">
+        <button class="btn btn-dark" id="sendBtn">ارسال این طرح برای استعلام قیمت</button>
+        <button class="btn btn-light" id="copyBtn">کپی لینک همین طرح</button>
+      </div>
+    </aside>
+  </div>
+
+  <section class="info">
+    <div><h3>ساخت و جنس</h3><p>بدنه چوب راش خشک‌شده با روکش و رنگ پلی‌استر براق، رویه چوبی یا سنگ مرمر طبیعی ۲ سانتی. یراق برنجی با آبکاری طلایی یا نقره‌ای.</p></div>
+    <div><h3>ابعاد</h3>
+      <table class="specs">
+        <tr><td>عرض</td><td id="spW">۱۴۰ سانت</td></tr>
+        <tr><td>عمق</td><td>۴۰ سانت</td></tr>
+        <tr><td>ارتفاع</td><td>۸۰ سانت</td></tr>
+        <tr><td>کشو</td><td>۲ عدد، ریل ساچمه‌ای</td></tr>
+      </table></div>
+    <div><h3>همراه با آینه</h3><p>کنسول ورونا با آینه قدی هم‌خانواده و مبل ناریا یک ست کامل ورودی و پذیرایی می‌سازد. رنگ چوب هر دو را یکی انتخاب کنید.</p></div>
+  </section>
+
+  <section class="other">
+    <a href="naria.html">
+      <img src="assets/naria.webp" alt="مبل ناریا" loading="lazy">
+      <div><small>هم‌خانواده این کنسول</small><h3>مبل کلاسیک ناریا</h3><small>چیدمان آزاد · ۶ رنگ چوب · ۵ پارچه ژاکارد</small></div>
+      <span class="btn btn-light btn-sm">طراحی مبل</span>
+    </a>
+  </section>
+</main>
+
+<footer class="ftr">
+  <div class="wrap">
+    <div>
+      <a class="logo" href="./"><span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3"/><path d="M2 13a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/><path d="M5 18v2M19 18v2"/></svg></span>
+        <span><b style="color:var(--ink)">مبل اشرافی</b><small>استودیو سه‌بعدی</small></span></a>
+      <p style="margin:14px 0 0;max-width:340px">نمایش سه‌بعدی و واقعیت افزوده محصولات مبل اشرافی.</p>
+    </div>
+    <div><h4>محصولات</h4><ul><li><a href="naria.html">مبل کلاسیک ناریا</a></li><li><a href="console.html">کنسول ورونا</a></li></ul></div>
+    <div><h4>لینک‌ها</h4><ul><li><a href="https://moblashrafi.com" target="_blank" rel="noopener">سایت اصلی</a></li><li><a href="./#ar">راهنمای AR</a></li><li><a href="./#features">امکانات</a></li></ul></div>
+    <div class="copy"><span>© ۱۴۰۵ مبل اشرافی</span><span>نسخه نمایشی · <span class="ltr">3d.moblashrafi.com</span></span></div>
+  </div>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var h=document.getElementById('hdr'), b=document.getElementById('menuBtn');
+  b.addEventListener('click',function(){ var o=h.classList.toggle('open'); b.setAttribute('aria-expanded',o); });
+  var on=function(){ h.classList.toggle('scrolled',scrollY>8); }; on(); addEventListener('scroll',on,{passive:true});
+  addEventListener('error',function(e){ if(!e.message) return; var x=document.getElementById('busy'); x.textContent='خطا: '+(e.message||'بارگذاری'); x.classList.add('on'); },true);
+})();
+</script>
+<script type="module">
+import * as THREE from './lib/three/three.module.js';
+import { OrbitControls } from './lib/three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from './lib/three/addons/environments/RoomEnvironment.js';
+import { GLTFExporter } from './lib/three/addons/exporters/GLTFExporter.js';
+import { V3, lathe, sweep, rrect, slabY, slabZ, mesh, loadImg, tex, stain, MOBILE } from './assets/geo.js';
+
+/* ============ گزینه‌ها ============ */
+const FINISHES=[ // رنگ، نام، براق؟
+  ['#0c0c0d','مشکی براق',1], ['#3a2417','گردویی',0], ['#9a6038','راش فندقی',0], ['#d6ae84','راش طبیعی',0], ['#6a1c22','زرشکی براق',1], ['#efe9df','سفید صدفی',1],
+];
+const TOPS={wood:'هم‌رنگ چوب',carrara:'مرمر سفید کارارا',nero:'مرمر مشکی مارکینا'};
+const TRIMS={gold:['#d4ab62','طلایی'],silver:['#d5d6d8','نقره‌ای'],none:[null,'بدون یراق رنگی']};
+const fa=n=>Number(n).toLocaleString('fa-IR');
+const QS=new URLSearchParams(location.search);
+const S={ finish:FINISHES[0][0], top:'carrara', trim:'gold', width:'1.4', shelf:'1' };
+// طرح ذخیره‌شده در لینک (?f=...&t=...)
+for(const [k,q] of [['finish','f'],['top','t'],['trim','g'],['width','w'],['shelf','s']]){ const v=QS.get(q); if(v!=null) S[k]=k==='finish'?'#'+v.replace('#',''):v; }
+if(!FINISHES.some(f=>f[0]===S.finish)) S.finish=FINISHES[0][0];
+const DEF=JSON.stringify({ finish:FINISHES[0][0], top:'carrara', trim:'gold', shelf:'1' });
+
+/* ============ صحنه ============ */
+THREE.ShaderChunk.tonemapping_pars_fragment=THREE.ShaderChunk.tonemapping_pars_fragment.replace('vec3 CustomToneMapping( vec3 color ) { return color; }',
+`vec3 CustomToneMapping( vec3 color ) { const float sc=0.76; const float ds=0.15; color*=toneMappingExposure;
+  float x=min(color.r,min(color.g,color.b)); float off=x<0.08?x-6.25*x*x:0.04; color-=off;
+  float pk=max(color.r,max(color.g,color.b)); if(pk<sc) return color; float d=1.-sc; float np=1.-d*d/(pk+d-sc);
+  color*=np/pk; float g=1.-1./(ds*(pk-np)+1.); return mix(color,vec3(np),g); }`);
+const stage=document.getElementById('stage'), cv=document.getElementById('cv'), busy=document.getElementById('busy');
+const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true,preserveDrawingBuffer:QS.has('shot')});
+renderer.setPixelRatio(Math.min(devicePixelRatio,MOBILE?1.5:2)); renderer.toneMapping=THREE.CustomToneMapping;
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate=false;
+const scene=new THREE.Scene(), pmrem=new THREE.PMREMGenerator(renderer);
+const HALF=renderer.capabilities.isWebGL2?(renderer.extensions.has('EXT_color_buffer_float')||renderer.extensions.has('EXT_color_buffer_half_float')):renderer.extensions.has('OES_texture_half_float');
+if(HALF) scene.environment=pmrem.fromScene(new RoomEnvironment(renderer),0.04).texture;
+else { scene.add(new THREE.HemisphereLight(0xfffaf2,0x9a9086,2.6)); scene.add(new THREE.AmbientLight(0xffffff,0.9)); }
+const camera=new THREE.PerspectiveCamera(30,1,0.05,40);
+const controls=new OrbitControls(camera,cv); controls.enableDamping=true; controls.dampingFactor=0.08; controls.enablePan=false;
+controls.maxPolarAngle=1.5; controls.minDistance=0.9; controls.maxDistance=6; controls.autoRotate=!QS.has('shot'); controls.autoRotateSpeed=0.7;
+const sun=new THREE.DirectionalLight(0xffffff,1.1); sun.position.set(1.2,3.2,2.0); sun.castShadow=true; sun.shadow.mapSize.set(MOBILE?1024:2048,MOBILE?1024:2048);
+sun.shadow.camera.left=sun.shadow.camera.bottom=-1.4; sun.shadow.camera.right=sun.shadow.camera.top=1.4; sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.01; sun.shadow.radius=5;
+scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.ShadowMaterial({opacity:0.2})); ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; ground.userData.noExport=1; scene.add(ground);
+const root=new THREE.Group(); scene.add(root);
+let dirty=true; const req=()=>{ dirty=true; };
+controls.addEventListener('change',req);
+new ResizeObserver(()=>{ const w=stage.clientWidth,h=stage.clientHeight; renderer.setSize(w,h,false); camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix(); frame(!framed); req(); }).observe(stage);
+renderer.setAnimationLoop(()=>{ if(controls.update()) dirty=true; if(dirty){ dirty=false; renderer.render(scene,camera); } });
+
+const H=0.80, D=0.40, TOPT=0.032;
+let framed=false;
+function frame(reset=true){ const W=+S.width, r=Math.hypot(W/2,H/2,D/2)*1.08, vf=camera.fov*Math.PI/360, hf=Math.atan(Math.tan(vf)*camera.aspect);
+  const dist=r/Math.sin(Math.min(vf,hf)); controls.target.set(0,H*0.46,0); controls.maxDistance=dist*2;
+  if(reset||!framed){ framed=true; const a=0.55, el=0.3; camera.position.set(Math.sin(a)*Math.cos(el)*dist,H*0.46+Math.sin(el)*dist,Math.cos(a)*Math.cos(el)*dist); }
+  controls.update(); }
+
+/* ============ مواد ============ */
+const M={}, cache={};
+function marbleCanvas(kind,size=MOBILE?512:1024){
+  // مرمر رویه‌ای با رگه‌های پیوسته (نویز فراکتال + پیچش)، تکرارشونده بدون درز
+  const c=document.createElement('canvas'); c.width=c.height=size; const x=c.getContext('2d'), im=x.createImageData(size,size), d=im.data;
+  const P=64, g=new Float32Array(P*P); let sd=kind==='nero'?11:5; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647); for(let i=0;i<g.length;i++) g[i]=rnd();
+  const sm=t=>t*t*(3-2*t);
+  const vn=(u,v,f)=>{ u*=f; v*=f; const i=Math.floor(u), j=Math.floor(v), fu=sm(u-i), fv=sm(v-j), m=f;
+    const a=g[((j%m)*P+(i%m))%g.length], b=g[((j%m)*P+((i+1)%m))%g.length], c2=g[(((j+1)%m)*P+(i%m))%g.length], e=g[(((j+1)%m)*P+((i+1)%m))%g.length];
+    return a+(b-a)*fu+(c2-a)*fv+(a-b-c2+e)*fu*fv; };
+  const fbm=(u,v)=>{ let s=0,a=0.5,f=4; for(let o=0;o<6;o++){ s+=a*vn(u,v,f); a*=0.5; f*=2; } return s; };
+  const base=kind==='nero'?[22,22,24]:[240,238,234], vein=kind==='nero'?[226,222,214]:[128,124,124], soft=kind==='nero'?[48,47,50]:[214,211,206];
+  for(let y=0;y<size;y++) for(let xx=0;xx<size;xx++){ const u=xx/size, v=y/size, n=fbm(u,v), n2=fbm(u+0.37,v+0.71);
+    const t=Math.abs(Math.sin((u*2+v*1)*Math.PI*2+n*7.5)), vv=Math.pow(1-t,kind==='nero'?36:22), t2=Math.abs(Math.sin((u*1-v*2)*Math.PI*2+n2*6)), v2=Math.pow(1-t2,60)*0.7;
+    const cl=Math.pow(n2,1.5)*0.6, i=(y*size+xx)*4, k=Math.min(1,vv+v2);
+    for(let ch=0;ch<3;ch++){ const b=base[ch]+(soft[ch]-base[ch])*cl; d[i+ch]=b+(vein[ch]-b)*k; } d[i+3]=255; }
+  x.putImageData(im,0,0); return c; }
+function metal(hex){ return new THREE.MeshStandardMaterial({name:'brass',color:hex,metalness:1,roughness:0.28}); }
+function quickMaterials(){ const f=FINISHES.find(x=>x[0]===S.finish);
+  M.wood=new THREE.MeshPhysicalMaterial({name:'lacquer',color:S.finish,roughness:f[2]?0.3:0.55,clearcoat:f[2]?1:0.4,clearcoatRoughness:0.06});
+  M.top=S.top==='wood'?M.wood:new THREE.MeshPhysicalMaterial({name:'marble',color:S.top==='nero'?'#1c1c1e':'#ecebe8',roughness:0.15,clearcoat:0.6});
+  M.trim=TRIMS[S.trim][0]?metal(TRIMS[S.trim][0]):M.wood; }
+async function prepareMaterials(){
+  const [wd,wn,wr]=await Promise.all(['diff','nor_gl','rough'].map(k=>loadImg(`tex/cherry_veneer_${k}_1k.jpg`)));
+  cache.wn??=tex(wn,false,0.35); cache.wr??=tex(wr,false,0.35);
+  const wk='w'+S.finish; cache[wk]??=tex(stain(wd,S.finish),true,0.35);
+  const f=FINISHES.find(x=>x[0]===S.finish), gloss=f[2], dark=new THREE.Color(S.finish).getHSL({}).l<0.2;
+  M.wood=new THREE.MeshPhysicalMaterial({name:'lacquer',map:cache[wk],normalMap:cache.wn,normalScale:new THREE.Vector2(0.8,0.8),roughnessMap:cache.wr,metalnessMap:cache.wr,metalness:0,
+    roughness:dark?0.7:0.75,clearcoat:gloss?1:0.55,clearcoatRoughness:gloss?0.05:0.18,clearcoatNormalMap:cache.wn,clearcoatNormalScale:new THREE.Vector2(0.15,0.15),specularIntensity:0.6});
+  if(S.top==='wood') M.top=M.wood;
+  else { const mk='m'+S.top; cache[mk]??=tex(marbleCanvas(S.top),true,0.9,0.9);
+    M.top=new THREE.MeshPhysicalMaterial({name:'marble',map:cache[mk],roughness:0.12,clearcoat:0.8,clearcoatRoughness:0.05}); }
+  M.trim=TRIMS[S.trim][0]?metal(TRIMS[S.trim][0]):M.wood;
+}
+
+/* ============ مدل کنسول ============ */
+const GEO={};
+function legGeo(LH){ const k='leg'+LH; if(GEO[k]) return GEO[k];
+  // پایه خراطی شیاردار: سم (یراق) پایین، ساقه مخروطی با شیار، حلقه یراق، گلدانی و مکعب بالا
+  const b=LH-0.075, prof=[[0,0.028],[0.019,0.028],[0.024,0.036],[0.025,0.046],[0.018,0.056],[0.017,0.066],[0.020,0.074],
+    [0.0195,0.09],[0.021,0.2],[0.024,0.32],[0.027,b-0.07],[0.028,b-0.05],[0.024,b-0.042],[0.026,b-0.036],[0.033,b-0.022],[0.035,b-0.008],[0.03,b],[0.026,b+0.004],[0.03,b+0.01],[0,b+0.012]];
+  const fl=(r,y,a)=> (y>0.09&&y<b-0.05) ? r*(1-0.09*Math.pow(Math.max(0,Math.cos(10*a)),2)) : r;
+  const sabot=lathe([[0,0],[0.016,0],[0.02,0.006],[0.021,0.02],[0.019,0.028],[0,0.028]],{radial:40});
+  const ring=lathe([[0.0245,b-0.05],[0.03,b-0.047],[0.03,b-0.039],[0.0245,b-0.036]],{radial:40});
+  const block=slabY(rrect(new THREE.Shape(),0.06,0.06,0.006),b+0.012,LH,0.004);
+  return GEO[k]={turned:lathe(prof,{radial:48,flute:fl}),sabot,ring,block}; }
+
+function buildConsole(){
+  const W=+S.width, g=new THREE.Group(), add=(o,sh=true)=>{ o.castShadow=sh; o.receiveShadow=true; g.add(o); return o; };
+  const topY0=H-TOPT, molY0=topY0-0.016, apY0=molY0-0.12, cw=W-0.07, cd=D-0.08, fz=cd/2;
+  // رویه
+  add(mesh(slabY(rrect(new THREE.Shape(),W,D,0.02),topY0,H,S.top==='wood'?0.01:0.008),M.top));
+  // ابزار زیر رویه
+  add(mesh(slabY(rrect(new THREE.Shape(),W-0.03,D-0.035,0.014),molY0,topY0+0.002,0.007),M.wood));
+  // بدنه کشوها (کلاف)
+  add(mesh(slabY(rrect(new THREE.Shape(),cw,cd,0.006),apY0,molY0+0.002,0.004),M.wood));
+  // کشوها: پنل برجسته با قاب و دستگیره
+  const med=0.17, inner=cw-0.13, dw=(inner-med)/2, dh=0.082, dy=apY0+0.06;
+  for(const s of [-1,1]){ const x=s*(med/2+dw/2);
+    add(mesh(slabZ(rrect(new THREE.Shape(),dw,dh,0.006),0.014,0.004,3),M.wood,x,dy,fz+0.005));
+    add(mesh(slabZ(rrect(new THREE.Shape(),dw-0.03,dh-0.03,0.004),0.008,0.003,2),M.wood,x,dy,fz+0.014));
+    const kn=lathe([[0,0],[0.006,0.001],[0.005,0.008],[0.004,0.012],[0.011,0.018],[0.012,0.024],[0.008,0.029],[0,0.03]],{radial:32}); kn.rotateX(Math.PI/2);
+    add(mesh(kn,M.trim,x,dy,fz+0.016));
+    // نوار مهره‌ای زیر هر کشو
+  }
+  // مدالیون وسط: بیضی با قاب مهره‌ای و گل وسط
+  const pts=[]; for(let i=0;i<40;i++){ const a=2*Math.PI*i/40; pts.push(V3(0.058*Math.cos(a),0.034*Math.sin(a),0)); }
+  add(mesh(sweep(pts,[0.0055],{closed:true,seg:120,radial:10,bead:0.3,period:0.012,flat:0.8}),M.trim,0,dy,fz+0.006));
+  const ov=new THREE.Shape(); ov.absellipse(0,0,0.052,0.028,0,2*Math.PI,false,0);
+  add(mesh(slabZ(ov,0.012,0.004,3),M.wood,0,dy,fz+0.002));
+  const ros=lathe([[0,0.012],[0.01,0.01],[0.016,0.004],[0.018,0]],{radial:40,flute:(r,y,a)=>r*(0.86+0.14*Math.abs(Math.cos(4*a)))}); ros.rotateX(Math.PI/2);
+  add(mesh(ros,M.trim,0,dy,fz+0.008));
+  // نوار مهره‌ای پایین بدنه (جلو)
+  add(mesh(sweep([V3(-cw/2+0.03,0,0),V3(0,0,0),V3(cw/2-0.03,0,0)],[0.0045],{seg:Math.round(cw*80),radial:10,bead:0.25,period:0.012}),M.trim,0,apY0+0.008,fz+0.002));
+  // دامنه کنده‌کاری زیر کلاف (منحنی وسط)
+  const sk=new THREE.Shape(); const sw=cw-0.14; sk.moveTo(-sw/2,0); sk.lineTo(sw/2,0); sk.lineTo(sw/2,-0.012);
+  sk.bezierCurveTo(sw*0.25,-0.012,0.08,-0.016,0.035,-0.03); sk.quadraticCurveTo(0,-0.05,-0.035,-0.03); sk.bezierCurveTo(-0.08,-0.016,-sw*0.25,-0.012,-sw/2,-0.012); sk.closePath();
+  add(mesh(slabZ(sk,0.02,0.005,3),M.wood,0,apY0+0.001,fz-0.006));
+  // پایه‌ها
+  const L=legGeo(apY0), lx=cw/2-0.03, lz=cd/2-0.03;
+  for(const x of [-lx,lx]) for(const z of [-lz,lz]){ add(mesh(L.turned,M.wood,x,0,z)); add(mesh(L.block,M.wood,x,0,z)); add(mesh(L.sabot,M.trim,x,0,z)); add(mesh(L.ring,M.trim,x,0,z)); }
+  // طبقه پایین
+  if(S.shelf==='1'){ add(mesh(slabY(rrect(new THREE.Shape(),cw-0.02,cd-0.01,0.01),0.12,0.14,0.006),M.wood));
+    add(mesh(sweep([V3(-lx+0.03,0,0),V3(0,0,0),V3(lx-0.03,0,0)],[0.0035],{seg:Math.round(cw*60),radial:8,bead:0.25,period:0.012}),M.trim,0,0.13,cd/2-0.003)); }
+  return g; }
+
+function rebuild(resetCam=false){ root.clear(); root.add(buildConsole()); renderer.shadowMap.needsUpdate=true; if(resetCam) frame(); req(); ui(); scheduleExport(); }
+
+/* ============ رابط ============ */
+const $=id=>document.getElementById(id);
+function ui(){ const W=+S.width*100, f=FINISHES.find(x=>x[0]===S.finish);
+  $('dims').innerHTML=`<b>${fa(W)}</b> × ${fa(40)} × ${fa(80)} سانت`; $('spW').textContent=fa(W)+' سانت';
+  $('finishName').textContent=f[1]; $('topName').textContent=TOPS[S.top]; $('trimName').textContent=TRIMS[S.trim][1];
+  for(const k of ['top','trim','width','shelf']) $(k).querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S[k]));
+  $('finish').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.finish));
+  $('summary').innerHTML=`<b>طرح شما:</b> کنسول ورونا، عرض ${fa(W)} سانت، چوب ${f[1]}، رویه ${TOPS[S.top]}، یراق ${TRIMS[S.trim][1]}، ${S.shelf==='1'?'با':'بدون'} طبقه پایین`;
+  const u=new URL(location.href); u.search=''; const p=u.searchParams; p.set('f',S.finish.slice(1)); p.set('t',S.top); p.set('g',S.trim); p.set('w',S.width); p.set('s',S.shelf);
+  history.replaceState(null,'',u); }
+for(const [c,n] of FINISHES){ const b=document.createElement('button'); b.dataset.v=c; b.title=n; b.setAttribute('aria-label',n); b.style.background=c; $('finish').appendChild(b); }
+let mjob=0;
+async function refresh(resetCam){ const my=++mjob; quickMaterials(); rebuild(resetCam);
+  try{ await prepareMaterials(); if(my!==mjob) return; rebuild(false); busy.classList.remove('on'); }catch(e){ console.error(e); busy.textContent='بافت چوب بار نشد (اینترنت). صفحه را تازه کنید.'; busy.classList.add('on'); } }
+$('finish').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; S.finish=b.dataset.v; refresh(false); });
+for(const k of ['top','trim','width','shelf']) $(k).addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; S[k]=b.dataset.v; refresh(k==='width'); });
+const hint=$('hint'), stopHint=()=>{ hint.classList.add('off'); };
+cv.addEventListener('pointerdown',()=>{ stopHint(); controls.autoRotate=false; $('rotBtn').setAttribute('aria-pressed','false'); });
+setTimeout(stopHint,5000);
+$('rotBtn').addEventListener('click',e=>{ controls.autoRotate=!controls.autoRotate; e.currentTarget.setAttribute('aria-pressed',controls.autoRotate); });
+$('resetBtn').addEventListener('click',()=>{ frame(); req(); });
+const toast=t=>{ const el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),2200); };
+$('copyBtn').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(location.href); toast('لینک طرح کپی شد'); }catch(_){ prompt('لینک طرح:',location.href); } });
+$('sendBtn').addEventListener('click',async()=>{ const text=$('summary').textContent+'\n'+location.href;
+  if(navigator.share){ try{ await navigator.share({title:'کنسول ورونا',text}); }catch(_){ } } else { try{ await navigator.clipboard.writeText(text); toast('مشخصات طرح کپی شد؛ برای فروشگاه بفرستید'); }catch(_){ prompt('مشخصات طرح:',text); } } });
+
+/* ============ AR ============ */
+const mv=$('mv'), arBtn=$('arBtn'), exporter=new GLTFExporter();
+let expJob=0, arUrl=null, arState='stale';
+const IOS=document.createElement('a').relList?.supports?.('ar')||/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const ANDROID=/android/i.test(navigator.userAgent);
+function setAr(st){ arState=st; arBtn.disabled=st==='busy';
+  arBtn.textContent=st==='ready'?'✓ آماده است — بزنید':st==='busy'?'در حال آماده‌سازی…':'📱 نمایش در خانه شما'; }
+function scheduleExport(){ expJob++; if(arState!=='busy') setAr('stale'); else setAr('stale'); }
+async function exportGLB(max){ const r=root.clone(); const sc=new THREE.Scene(); sc.add(r); return exporter.parseAsync(sc,{binary:true,maxTextureSize:max}); }
+async function doExport(){ const my=++expJob; setAr('busy');
+  try{ const glb=await exportGLB(ANDROID?1024:1024); if(my!==expJob) return;
+    const next=URL.createObjectURL(new Blob([glb],{type:'model/gltf-binary'}));
+    mv.addEventListener('load',()=>{ if(my===expJob) setAr('ready'); },{once:true}); mv.src=next;
+    if(arUrl){ const o=arUrl; setTimeout(()=>URL.revokeObjectURL(o),5000); } arUrl=next;
+  }catch(e){ console.error(e); setAr('stale'); } }
+/* اندروید: رنگ پیش‌فرض در هر عرض فایل آماده دارد → AR گوگل با اندازه دقیق */
+function staticAR(){ return JSON.stringify({finish:S.finish,top:S.top,trim:S.trim,shelf:S.shelf})===DEF ? `ar/console-${Math.round(+S.width*100)}.glb` : null; }
+function sceneViewer(file){ const u=new URL(file,location.href).href, back=location.href.split('#')[0];
+  location.href='intent://arvr.google.com/scene-viewer/1.0?file='+encodeURIComponent(u)+'&mode=ar_only&resizable=false&title='+encodeURIComponent('کنسول ورونا')+
+    '#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url='+encodeURIComponent(back)+';end;'; }
+arBtn.addEventListener('click',()=>{
+  if(ANDROID&&!window.isSecureContext) return alert('در اندروید، نمایش در خانه فقط روی https کار می‌کند.');
+  if(ANDROID&&arState!=='ready'){ const f=staticAR(); if(f) return sceneViewer(f); }
+  if(arState==='ready'){ if(mv.canActivateAR) mv.activateAR(); else alert(ANDROID?'این گوشی AR را پشتیبانی نمی‌کند یا «Google Play Services for AR» نصب نیست.':'این دستگاه AR را پشتیبانی نمی‌کند.'); }
+  else if(arState==='stale') doExport(); });
+customElements.whenDefined('model-viewer').then(()=>{
+  mv.addEventListener('ar-status',e=>{ if(e.detail.status==='failed') alert('AR روی این دستگاه اجرا نشد.'); });
+  if(!(IOS||ANDROID)){ arBtn.hidden=true; $('noAr').hidden=false; } });
+
+// فقط روی همین کامپیوتر: ساخت فایل‌های آماده AR اندروید برای رنگ پیش‌فرض (?genar)
+if(QS.has('genar')&&location.hostname==='localhost') window.__genAR=async()=>{ const out=[];
+  for(const w of ['1.2','1.4','1.6']){ Object.assign(S,JSON.parse(DEF),{width:w}); await refresh(true);
+    const glb=await exportGLB(1024); const r=await fetch(`ar/console-${Math.round(+w*100)}.glb`,{method:'PUT',body:glb}); out.push(w+': '+(glb.byteLength/1048576).toFixed(2)+'MB '+r.status); }
+  return out; };
+window.__shot=(w=1600,h=1030)=>{ renderer.setPixelRatio(1); renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.render(scene,camera); return cv.toDataURL('image/png'); };
+
+busy.classList.add('on'); ui(); refresh(true);
+</script>
+</body>
+</html>
