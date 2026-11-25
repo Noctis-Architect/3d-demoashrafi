@@ -659,21 +659,23 @@ function armGeo(aw,D,y0,y1,style){
   g.translate(0,0,-depth/2); g.rotateY(-Math.PI/2);
   return mergeVertices(boxUV(toCreasedNormals(g,0.75)));
 }
+/* بدنه دسته: جعبه گردگوشه تمیز (همان سازنده کوسن، بدون قیطان)؛ بدون زائده در گوشه‌ها */
+function armBox(aw,D,y0,y1,x,r=0.04){ const c=seatCushion(aw,y1-y0,D-0.004,Math.min(r,aw/2-0.004),0,0.003,{mat:M.back,pipe:false}); c.position.set(x,(y0+y1)/2,0); return c; }
 function buildMilan(t){
   const n=+t, g=new THREE.Group(), aw=MIL_ARM[S.arm], sw=t==='1'?0.68:0.62, inner=n*sw, W=inner+2*aw, D=S.depth==='deep'?1.0:0.9;
   const legH={tapered:0.15,metal:0.15,sled:0.1,hidden:0.045}[S.legs], deck=0.33, cushH=0.13, seatTop=deck+cushH, pipe=S.piping!=='none';
   const tight=S.back==='tight', backT=tight?0.13:0.16, zB=-D/2+backT, armTop=S.arm==='round'?0.63:0.61;
   // سکوی زیر نشیمن و قاب پشتی (پارچه بدنه)
   g.add(mesh(slabY(rrect(new THREE.Shape(),aw?W-aw:W-0.01,D-0.02,0.03),legH,deck,0.022),M.back));
-  g.add(mesh(slabY(rrect(new THREE.Shape(),W-0.01,backT,0.035),legH,tight?0.8:0.76,0.035),M.back,0,0,-D/2+backT/2+0.002));
+  g.add(mesh(slabY(rrect(new THREE.Shape(),W-0.01,backT,0.05),legH,tight?0.8:0.76,0.025),M.back,0,0,-D/2+backT/2+0.002));
   // دسته‌ها
   if(aw) for(const s of [-1,1]){ const x=s*(W/2-aw/2);
     if(S.arm==='round'){ // دسته لوله‌ای: بدنه صاف + استوانه بالا با پنل جلو و قیطان دورش
       const R=aw/2, yc=armTop-R;
-      g.add(mesh(armGeo(aw,D,legH,yc+0.03,'square'),M.back,x,0,0));
+      g.add(armBox(aw,D,legH,yc+0.03,x));
       g.add(mesh(sweep([V3(0,yc,-D/2+backT),V3(0,yc,0),V3(0,yc,D/2+0.012)],[R],{radial:36,seg:24,e:1}),M.back,x,0,0));
       if(pipe) g.add(mesh(new THREE.TorusGeometry(R+0.004,0.0055,8,56),M.welt,x,yc,D/2+0.013)); }
-    else g.add(mesh(armGeo(aw,D,legH,armTop,S.arm),M.back,x,0,0)); }
+    else g.add(armBox(aw,D,legH,armTop,x,S.arm==='slim'?0.028:0.04)); }
   // کوسن‌های نشیمن (قیطان بالا و پایین، کمی پف وسط و برآمدگی جلو)
   const zF=D/2+0.012, cd=zF-zB, cw=S.seat==='bench'?[inner]:Array(n).fill(sw);
   let x=-inner/2; for(const w of cw){ const c=seatCushion(w-0.004,cushH,cd,0.04,0.022,0.012,{mat:M.seat,pipe,both:true}); c.position.set(x+w/2,deck+cushH/2-0.004,(zF+zB)/2); g.add(c); x+=w; }
