@@ -128,13 +128,30 @@ export function productPage(P){
     if(reset||!framed){ framed=true; const a=0.55, el=0.3; camera.position.set(Math.sin(a)*Math.cos(el)*dist,ty+Math.sin(el)*dist,Math.cos(a)*Math.cos(el)*dist); }
     controls.update(); }
   new ResizeObserver(()=>{ const w=stage.clientWidth,h=stage.clientHeight; renderer.setSize(w,h,false); camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix(); frame(!touched); req(); }).observe(stage);
-  renderer.setAnimationLoop(()=>{ if(controls.update()) dirty=true; if(dirty){ dirty=false; renderer.render(scene,camera); } });
+  /* درها و کشوها: هر قطعه با userData.open={type:'drawer',dist} یا {type:'door',angle} با کلیک باز/بسته می‌شود */
+  const moving=new Set(); let lastT=performance.now();
+  function animParts(dt){ for(const o of moving){ const u=o.userData, k=Math.min(1,dt*7); u.t+=(u.target-u.t)*k; if(Math.abs(u.target-u.t)<0.002){ u.t=u.target; moving.delete(o); }
+      const e=u.t*u.t*(3-2*u.t);
+      if(u.open.type==='drawer') o.position.z=u.base+e*u.open.dist; else o.rotation.y=e*u.open.angle; }
+    if(moving.size||dt<0) { renderer.shadowMap.needsUpdate=true; dirty=true; } }
+  function toggle(o){ const u=o.userData; u.t??=0; u.base??=o.position.z; u.target=u.target?0:1; moving.add(o); }
+  renderer.setAnimationLoop(()=>{ const now=performance.now(), dt=Math.min(0.05,(now-lastT)/1000); lastT=now;
+    if(moving.size) animParts(dt); if(controls.update()) dirty=true; if(dirty){ dirty=false; renderer.render(scene,camera); } });
+  const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+  function partAt(e){ const r=cv.getBoundingClientRect(); ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1); ray.setFromCamera(ndc,camera);
+    for(const h of ray.intersectObjects(root.children,true)){ let o=h.object; while(o&&o!==root){ if(o.userData.open) return o; o=o.parent; } return null; } return null; }
+  let down=null;
+  cv.addEventListener('pointerdown',e=>{ down={x:e.clientX,y:e.clientY,t:performance.now()}; });
+  cv.addEventListener('pointerup',e=>{ if(!down) return; const d=down; down=null;
+    if(Math.hypot(e.clientX-d.x,e.clientY-d.y)<6&&performance.now()-d.t<500){ const o=partAt(e); if(o){ toggle(o); controls.autoRotate=false; $('rotBtn').setAttribute('aria-pressed','false'); } } });
+  cv.addEventListener('pointermove',e=>{ if(e.pointerType!=='mouse'||e.buttons) return; cv.style.cursor=partAt(e)?'pointer':''; });
 
   /* ---- مدل: هندسه هر حالت یک بار ساخته می‌شود؛ تغییر رنگ فقط ماده را عوض می‌کند ---- */
   const BUILT={}, MATS={}; let shown=null, cur={};
   function show(resetCam=false){ const key=P.geoKey(S);
     const g=BUILT[key]??=(()=>{ const g=P.build(S); g.traverse(o=>{ if(o.isMesh){ o.userData.slot=o.material.name; o.castShadow=o.receiveShadow=true; } }); return g; })();
     if(shown!==g){ if(shown) root.remove(shown); root.add(g); shown=g; }
+    if(P.hint) $('hint').textContent=P.hint;
     g.traverse(o=>{ if(o.isMesh&&cur[o.userData.slot]) o.material=cur[o.userData.slot]; });
     renderer.shadowMap.needsUpdate=true; if(resetCam) frame(); req(); ui(); scheduleExport(); }
   let mjob=0;
@@ -197,7 +214,10 @@ export function productPage(P){
     for(const v of P.arVariants||[]){ Object.assign(S,P.defaults,v); await refresh(true);
       const glb=await exportGLB(1024), f=P.arFile(S); const r=await fetch(f,{method:'PUT',body:glb}); out.push(f+': '+(glb.byteLength/1048576).toFixed(2)+'MB '+r.status); }
     return out; };
-  window.__shot=(w=1800,h=1160)=>{ renderer.setPixelRatio(1); renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); frame(); renderer.render(scene,camera); return cv.toDataURL('image/png'); };
+  if(location.hostname==='localhost') window.__toggleAll=()=>{ let n=0; shown.traverse(o=>{ if(o.userData.open){ toggle(o); n++; } }); return n; };
+  window.__shot=(w=1800,h=1160,az)=>{ renderer.setPixelRatio(1); renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); frame();
+    if(az){ const d=camera.position.clone().sub(controls.target); d.setFromSphericalCoords(d.length(),az[0],az[1]); camera.position.copy(controls.target).add(d); controls.update(); }
+    renderer.shadowMap.needsUpdate=true; renderer.render(scene,camera); return cv.toDataURL('image/png'); };
 
   busy.classList.add('on'); ui();
   refresh(true).then(()=>{ const idle=window.requestIdleCallback||(f=>setTimeout(f,800)); if(P.prewarm) idle(()=>P.prewarm(kit)); });

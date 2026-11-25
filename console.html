@@ -41,7 +41,7 @@
 
 <script type="module">
 import { productPage, THREE, slot, kit } from './assets/product.js';
-import { FINISHES, TOPS, TRIMS, TOPNAME, veronaQuick, veronaMaterials, veronaKey, veronaPrewarm, addLegs, panel, medallion, bead, skirt, topSlab, box } from './assets/verona.js';
+import { FINISHES, TOPS, TRIMS, HANDLES, TOPNAME, veronaQuick, veronaMaterials, veronaKey, veronaPrewarm, addLegs, panel, medallion, bead, skirt, topSlab, box, drawer } from './assets/verona.js';
 import { mesh, slabY, rrect } from './assets/geo.js';
 
 const H=0.80, D=0.40;
@@ -51,24 +51,31 @@ productPage({
   options:[
     {key:'finish',q:'f',label:'رنگ چوب',type:'swatch',items:FINISHES},
     {key:'top',q:'t',label:'رویه',type:'seg',items:TOPS},
-    {key:'trim',q:'g',label:'یراق و نوار تزئینی',type:'seg',items:TRIMS},
+    {key:'handle',q:'h',label:'دستگیره کشو',type:'seg',items:HANDLES},
+    {key:'trim',q:'g',label:'رنگ یراق و نوار تزئینی',type:'seg',items:TRIMS},
     {key:'width',q:'w',label:'عرض',type:'seg',reframe:1,items:[{v:'1.2',label:'۱۲۰',sub:'سانت'},{v:'1.4',label:'۱۴۰',sub:'سانت'},{v:'1.6',label:'۱۶۰',sub:'سانت'}]},
     {key:'shelf',q:'s',label:'طبقه پایین',type:'seg',items:[{v:'1',label:'دارد'},{v:'0',label:'ندارد'}]},
   ],
-  defaults:{finish:'#0c0c0d',top:'carrara',trim:'gold',width:'1.4',shelf:'1'},
+  defaults:{finish:'#0c0c0d',top:'carrara',trim:'gold',handle:'knob',width:'1.4',shelf:'1'},
+  hint:'بکشید تا بچرخد · روی کشو بزنید تا باز شود',
   dims:S=>[+S.width,D,H],
-  geoKey:S=>S.width+S.shelf,
+  geoKey:S=>S.width+S.shelf+S.handle,
   matKey:veronaKey, quick:veronaQuick, materials:S=>veronaMaterials(S,kit), prewarm:veronaPrewarm,
-  summary:(S,L)=>`کنسول ورونا، عرض ${Number(S.width*100).toLocaleString('fa-IR')} سانت، چوب ${L('finish')}، رویه ${TOPNAME[S.top]}، یراق ${L('trim')}، ${S.shelf==='1'?'با':'بدون'} طبقه پایین`,
-  arDefault:S=>S.finish==='#0c0c0d'&&S.top==='carrara'&&S.trim==='gold'&&S.shelf==='1',
+  summary:(S,L)=>`کنسول ورونا، عرض ${Number(S.width*100).toLocaleString('fa-IR')} سانت، چوب ${L('finish')}، رویه ${TOPNAME[S.top]}، دستگیره ${L('handle')}، یراق ${L('trim')}، ${S.shelf==='1'?'با':'بدون'} طبقه پایین`,
+  arDefault:S=>S.finish==='#0c0c0d'&&S.top==='carrara'&&S.trim==='gold'&&S.shelf==='1'&&S.handle==='knob',
   arFile:S=>`ar/console-${Math.round(S.width*100)}.glb`,
   arVariants:[{width:'1.2'},{width:'1.4'},{width:'1.6'}],
   build(S){
     const W=+S.width, g=new THREE.Group(), cw=W-0.07, cd=D-0.08, fz=cd/2;
     const molY0=topSlab(g,W,D,H), apY0=molY0-0.12;
-    box(g,cw,cd,apY0,molY0+0.002);
-    const med=0.17, dw=(cw-0.13-med)/2, dh=0.082, dy=apY0+0.06;
-    for(const s of [-1,1]) panel(g,dw,dh,s*(med/2+dw/2),dy,fz);
+    // بدنه واقعی زیر رویه: کف، پشت، بغل‌ها و ستون وسط (پشت مدالیون)؛ دو کشو با جعبه
+    const t=0.015, med=0.17, dw=(cw-0.13-med)/2, dh=0.082, dy=apY0+0.06;
+    box(g,cw,cd,apY0,apY0+t); box(g,cw,t,apY0,molY0+0.002,0,-cd/2+t/2);
+    for(const s of [-1,1]) box(g,0.065,cd,apY0,molY0+0.002,s*(cw/2-0.0325));
+    box(g,med,cd-0.01,apY0,molY0+0.002,0,-0.005);
+    // نوار جلوی بالا و پایین کشوها (لای کشو و رویه باز نماند)
+    box(g,cw,t,dy+dh/2+0.003,molY0+0.002,0,fz-t/2); box(g,cw,t,apY0,dy-dh/2-0.003,0,fz-t/2);
+    for(const s of [-1,1]) drawer(g,dw,dh,s*(med/2+dw/2),dy,fz,cd-0.05,S.handle);
     medallion(g,0,dy,fz);
     bead(g,cw-0.06,0,apY0+0.008,fz+0.002);
     skirt(g,cw-0.14,0,apY0+0.001,fz-0.006);
