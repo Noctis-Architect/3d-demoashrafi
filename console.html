@@ -3,88 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>کنسول ورونا C210 — طراحی سه‌بعدی | مبل اشرافی</title>
-<meta name="description" content="کنسول کلاسیک ورونا را سه‌بعدی بچرخانید، رنگ چوب و رویه مرمر را انتخاب کنید و در اندازه واقعی در خانه ببینید.">
+<title>کنسول کلاسیک کنده‌کاری — طراحی سه‌بعدی | مبل اشرافی</title>
+<meta name="description" content="کنسول کلاسیک با رویه موج‌دار، پایه‌های کابریول با برگ کنگری کنده‌کاری‌شده و دامنه منبت؛ سه‌بعدی بچرخانید و رنگ را انتخاب کنید.">
 <meta name="theme-color" content="#f7f4ef">
 <link rel="stylesheet" href="assets/site.css">
 <link rel="stylesheet" href="assets/product.css">
+<link rel="modulepreload" href="assets/models/console.js">
 <script type="module" src="lib/model-viewer.min.js"></script>
 </head>
 <body data-page="products">
 <script src="assets/layout.js"></script>
 
 <main class="wrap">
-  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">کنسول ورونا</span></div>
+  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">کنسول کلاسیک کنده‌کاری</span></div>
   <div class="pd" id="pd"></div>
 
   <section class="info">
-    <div><h3>ساخت و جنس</h3><p>بدنه چوب راش خشک‌شده با رنگ مات (پلی‌یورتان) یا روکش طبیعی، رویه چوبی یا سنگ مرمر طبیعی ۲ سانتی. یراق برنجی با آبکاری طلایی یا نقره‌ای.</p></div>
+    <div><h3>ساخت و جنس</h3><p>رویه موج‌دار با لبه پروفیل، سه کشو با قاب برجسته، دامنه قوس‌دار با صدف منبت وسط، چهار پایه کابریول با برگ کنگری کنده‌کاری‌شده بالا و پایین.</p></div>
     <div><h3>ابعاد</h3>
       <table class="specs">
         <tr><td>عرض</td><td data-spec="w"></td></tr>
         <tr><td>عمق</td><td data-spec="d"></td></tr>
         <tr><td>ارتفاع</td><td data-spec="h"></td></tr>
-        <tr><td>کشو</td><td>۲ عدد، ریل ساچمه‌ای</td></tr>
       </table></div>
-    <div><h3>هم‌خانواده</h3><p>کنسول ورونا با <a href="tv.html">میز تلویزیون ورونا</a> و <a href="naria.html">مبل ناریا</a> یک ست کامل ورودی و پذیرایی می‌سازد. رنگ چوب همه را یکی انتخاب کنید.</p></div>
-  </section>
-
-  <section class="other">
-    <a href="tv.html">
-      <img src="assets/tv.webp" alt="میز تلویزیون ورونا" loading="lazy">
-      <div><small>هم‌خانواده این کنسول</small><h3>میز تلویزیون ورونا</h3><small>دو در · طبقه باز · کشوهای پایین</small></div>
-      <span class="btn btn-light btn-sm">طراحی میز</span>
-    </a>
+    <div><h3>دقت مدل</h3><p>فرم و کنده‌کاری‌ها عیناً همان مدل سه‌بعدی اصلی است؛ فقط رنگ و بافت را شما انتخاب می‌کنید. رنگ اول هر گزینه، رنگ اصلی خود محصول است.</p></div>
   </section>
 </main>
 <script>siteFooter()</script>
 
 <script type="module">
-import { productPage, THREE, slot, kit } from './assets/product.js';
-import { FINISHES, TOPS, TRIMS, HANDLES, TOPNAME, veronaQuick, veronaMaterials, veronaKey, veronaPrewarm, addLegs, panel, medallion, bead, skirt, topSlab, box, drawer } from './assets/verona.js';
-import { mesh, slabY, rrect } from './assets/geo.js';
-
-const H=0.80, D=0.40;
-productPage({
-  id:'console', name:'کنسول ورونا', code:'console-C210', arTitle:'کنسول ورونا',
-  sub:'کنسول کلاسیک با پایه‌های خراطی شیاردار، دو کشو و مدالیون وسط. هر ترکیب را بسازید و در خانه ببینید.',
-  options:[
-    {key:'finish',q:'f',label:'رنگ چوب',type:'swatch',items:FINISHES},
-    {key:'top',q:'t',label:'رویه',type:'seg',items:TOPS},
-    {key:'handle',q:'h',label:'دستگیره کشو',type:'seg',items:HANDLES},
-    {key:'trim',q:'g',label:'رنگ یراق و نوار تزئینی',type:'seg',items:TRIMS},
-    {key:'width',q:'w',label:'عرض',type:'seg',reframe:1,items:[{v:'1.2',label:'۱۲۰',sub:'سانت'},{v:'1.4',label:'۱۴۰',sub:'سانت'},{v:'1.6',label:'۱۶۰',sub:'سانت'}]},
-    {key:'shelf',q:'s',label:'طبقه پایین',type:'seg',items:[{v:'1',label:'دارد'},{v:'0',label:'ندارد'}]},
+import M from './assets/models/console.js';
+import { scanPage, SURF } from './assets/scan.js';
+scanPage(M,{
+  name:'کنسول کلاسیک کنده‌کاری', code:'console-V138',
+  sub:'کنسول با پایه‌های کابریول کنده‌کاری‌شده و دامنه منبت. رنگ و براقی را انتخاب کنید.',
+  parts:[
+    {slot:'paint',q:'c',label:'رنگ',items:[{v:'#9aad8e',label:'سبز مریم‌گلی (رنگ اصلی)'},{v:'#efe9df',label:'سفید صدفی'},{v:'#0c0c0d',label:'مشکی'},{v:'#2f3b4c',label:'سرمه‌ای'},{v:'#3a2417',label:'گردویی'},{v:'#c9a45c',label:'طلایی'}],
+     surf:(h,S,M)=>h==='#c9a45c'?SURF.metal(h):SURF.paint(h,M,{sheenFinish:S.fin})},
   ],
-  defaults:{finish:'#0c0c0d',top:'carrara',trim:'gold',handle:'knob',width:'1.4',shelf:'1'},
-  hint:'بکشید تا بچرخد · روی کشو بزنید تا باز شود',
-  dims:S=>[+S.width,D,H],
-  geoKey:S=>S.width+S.shelf+S.handle,
-  matKey:veronaKey, quick:veronaQuick, materials:S=>veronaMaterials(S,kit), prewarm:veronaPrewarm,
-  summary:(S,L)=>`کنسول ورونا، عرض ${Number(S.width*100).toLocaleString('fa-IR')} سانت، چوب ${L('finish')}، رویه ${TOPNAME[S.top]}، دستگیره ${L('handle')}، یراق ${L('trim')}، ${S.shelf==='1'?'با':'بدون'} طبقه پایین`,
-  arDefault:S=>S.finish==='#0c0c0d'&&S.top==='carrara'&&S.trim==='gold'&&S.shelf==='1'&&S.handle==='knob',
-  arFile:S=>`ar/console-${Math.round(S.width*100)}.glb`,
-  arVariants:[{width:'1.2'},{width:'1.4'},{width:'1.6'}],
-  build(S){
-    const W=+S.width, g=new THREE.Group(), cw=W-0.07, cd=D-0.08, fz=cd/2;
-    const molY0=topSlab(g,W,D,H), apY0=molY0-0.12;
-    // بدنه واقعی زیر رویه: کف، پشت، بغل‌ها و ستون وسط (پشت مدالیون)؛ دو کشو با جعبه
-    const t=0.015, med=0.17, dw=(cw-0.13-med)/2, dh=0.082, dy=apY0+0.06;
-    box(g,cw,cd,apY0,apY0+t); box(g,cw,t,apY0,molY0+0.002,0,-cd/2+t/2);
-    for(const s of [-1,1]) box(g,0.065,cd,apY0,molY0+0.002,s*(cw/2-0.0325));
-    box(g,med,cd-0.01,apY0,molY0+0.002,0,-0.005);
-    // نوار جلوی بالا و پایین کشوها (لای کشو و رویه باز نماند)
-    box(g,cw,t,dy+dh/2-0.01,molY0+0.002,0,fz-t/2-0.008); box(g,cw,t,apY0,dy-dh/2+0.01,0,fz-t/2-0.008);   // پشت لبه جلوی کشو، بی‌شکاف
-    for(const s of [-1,1]) drawer(g,dw,dh,s*(med/2+dw/2),dy,fz,cd-0.05,S.handle);
-    // پنل ثابت وسط، هم‌سطح جلوی کشوها؛ مدالیون روی آن
-    panel(g,med-0.004,dh,0,dy,fz-0.002,{handle:'none'}); medallion(g,0,dy,fz+0.016);
-    // تیرک پشت لای کشوها (کنار ستون وسط و بغل‌ها) تا از لای در، داخل و ریل دیده نشود
-    for(const x of [med/2+0.006,cw/2-0.065-0.006]) for(const s of [-1,1]) box(g,0.012,0.08,apY0,molY0+0.002,s*x,fz-0.04);
-    bead(g,cw-0.06,0,apY0+0.008,fz+0.002);
-    skirt(g,cw-0.14,0,apY0+0.001,fz-0.006);
-    const lx=cw/2-0.03, lz=cd/2-0.03; addLegs(g,apY0,[-lx,lx],[-lz,lz]);
-    if(S.shelf==='1'){ g.add(mesh(slabY(rrect(new THREE.Shape(),cw-0.02,cd-0.01,0.01),0.12,0.14,0.006),slot.wood)); bead(g,2*lx-0.06,0,0.13,cd/2-0.003,0.0035); }
-    return g; },
+  extra:[{key:'fin',q:'g',label:'سطح',type:'seg',items:[{v:'satin',label:'مات'},{v:'gloss',label:'براق'}]}],
 });
 </script>
 </body>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>کاناپه چستر رویال — طراحی سه‌بعدی | مبل اشرافی</title>
+<meta name="description" content="کاناپه چستر کلاسیک با دسته‌های لوله‌ای کاپیتونی، کلاف کنده‌کاری و پایه‌های کابریول؛ سه‌بعدی بچرخانید و رنگ چرم و کلاف را انتخاب کنید.">
+<meta name="theme-color" content="#f7f4ef">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/product.css">
+<link rel="modulepreload" href="assets/models/chester.js">
+<script type="module" src="lib/model-viewer.min.js"></script>
+</head>
+<body data-page="products">
+<script src="assets/layout.js"></script>
+
+<main class="wrap">
+  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">کاناپه چستر رویال</span></div>
+  <div class="pd" id="pd"></div>
+
+  <section class="info">
+    <div><h3>ساخت و جنس</h3><p>رویه چرم براق با دوخت کاپیتونی روی پشتی و دسته‌های لوله‌ای، کلاف و پایه‌های کابریول کنده‌کاری‌شده، چهار کوسن مخمل.</p></div>
+    <div><h3>ابعاد</h3>
+      <table class="specs">
+        <tr><td>عرض</td><td data-spec="w"></td></tr>
+        <tr><td>عمق</td><td data-spec="d"></td></tr>
+        <tr><td>ارتفاع</td><td data-spec="h"></td></tr>
+      </table></div>
+    <div><h3>دقت مدل</h3><p>فرم و کنده‌کاری‌ها عیناً همان مدل سه‌بعدی اصلی است؛ فقط رنگ و بافت را شما انتخاب می‌کنید. رنگ اول هر گزینه، رنگ اصلی خود محصول است.</p></div>
+  </section>
+</main>
+<script>siteFooter()</script>
+
+<script type="module">
+import M from './assets/models/chester.js';
+import { scanPage, SURF } from './assets/scan.js';
+scanPage(M,{
+  name:'کاناپه چستر رویال', code:'sofa-C224',
+  sub:'کاناپه سه‌نفره چستر با پشتی و دسته کاپیتونی و کلاف کنده‌کاری. رنگ چرم، کلاف و کوسن‌ها را انتخاب کنید.',
+  parts:[
+    {slot:'leather',q:'c',label:'چرم رویه',items:[{v:'#17202b',label:'سرمه‌ای براق (رنگ اصلی)'},{v:'#0e0e0f',label:'مشکی'},{v:'#4a2418',label:'قهوه‌ای کنیاکی'},{v:'#5b1a1c',label:'زرشکی'},{v:'#24402f',label:'سبز انگلیسی'},{v:'#8b6a4f',label:'عسلی'}],
+     quickRough:0.45, surf:(h,S,M)=>SURF.leather(h,M)},
+    {slot:'frame',q:'f',label:'کلاف و پایه‌ها',items:[{v:'#646972',label:'نقره‌ای دودی (رنگ اصلی)'},{v:'#c9a45c',label:'طلایی'},{v:'#0c0c0d',label:'مشکی براق'},{v:'#efe9df',label:'سفید صدفی'},{v:'#3a2417',label:'گردویی'}],
+     surf:(h,S,M)=>h==='#c9a45c'?SURF.metal(h):SURF.wood(h,M)},
+    {slot:'pillows',q:'p',label:'کوسن‌ها',items:[{v:'#282733',label:'مخمل بادمجانی (رنگ اصلی)'},{v:'#7a1c13',label:'زرشکی'},{v:'#80591a',label:'خردلی'},{v:'#1b2a40',label:'سرمه‌ای'},{v:'#d9cfc0',label:'شیری'}],
+     surf:(h,S,M)=>SURF.velvet(h,M)},
+  ],
+});
+</script>
+</body>
+</html>

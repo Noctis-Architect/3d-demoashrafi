@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>نیمکت رکوکو کنده‌کاری — طراحی سه‌بعدی | مبل اشرافی</title>
+<meta name="description" content="نیمکت شزلون سبک رکوکو با پشتی مشبک کنده‌کاری‌شده، پایه‌های کابریول و تشک چرم؛ سه‌بعدی بچرخانید و رنگ چوب و تشک را انتخاب کنید.">
+<meta name="theme-color" content="#f7f4ef">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/product.css">
+<link rel="modulepreload" href="assets/models/chaise.js">
+<script type="module" src="lib/model-viewer.min.js"></script>
+</head>
+<body data-page="products">
+<script src="assets/layout.js"></script>
+
+<main class="wrap">
+  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">نیمکت رکوکو کنده‌کاری</span></div>
+  <div class="pd" id="pd"></div>
+
+  <section class="info">
+    <div><h3>ساخت و جنس</h3><p>کلاف تمام کنده‌کاری با پشتی مشبک طوماری، مدالیون بیضی وسط، دامنه کنده‌کاری‌شده و چهار پایه کابریول. تشک یکپارچه چرم یا مخمل.</p></div>
+    <div><h3>ابعاد</h3>
+      <table class="specs">
+        <tr><td>عرض</td><td data-spec="w"></td></tr>
+        <tr><td>عمق</td><td data-spec="d"></td></tr>
+        <tr><td>ارتفاع</td><td data-spec="h"></td></tr>
+      </table></div>
+    <div><h3>دقت مدل</h3><p>فرم و کنده‌کاری‌ها عیناً همان مدل سه‌بعدی اصلی است؛ فقط رنگ و بافت را شما انتخاب می‌کنید. رنگ اول هر گزینه، رنگ اصلی خود محصول است.</p></div>
+  </section>
+</main>
+<script>siteFooter()</script>
+
+<script type="module">
+import M from './assets/models/chaise.js';
+import { scanPage, SURF } from './assets/scan.js';
+scanPage(M,{
+  name:'نیمکت رکوکو کنده‌کاری', code:'bench-R160',
+  sub:'نیمکت شزلون با پشتی مشبک تمام کنده‌کاری و پایه‌های کابریول. رنگ چوب، رنگ و جنس تشک را انتخاب کنید.',
+  parts:[
+    {slot:'wood',q:'w',label:'رنگ چوب',items:[{v:'#1a1915',label:'مشکی براق (رنگ اصلی)'},{v:'#3a2417',label:'گردویی'},{v:'#52200f',label:'گردویی قرمز'},{v:'#efe9df',label:'سفید صدفی'},{v:'#c9a45c',label:'طلایی'}],
+     quickRough:0.35, surf:(h,S,M)=>h==='#c9a45c'?SURF.metal(h):SURF.wood(h,M)},
+    {slot:'seat',q:'s',label:'رنگ تشک',items:[{v:'#a42b22',label:'قرمز (رنگ اصلی)'},{v:'#17202b',label:'سرمه‌ای'},{v:'#80591a',label:'خردلی'},{v:'#24402f',label:'سبز'},{v:'#e3dbd0',label:'شیری'}],
+     quickRough:0.45, surf:(h,S,M)=>S.mat==='v'?SURF.velvet(h,M):SURF.leather(h,M)},
+  ],
+  extra:[{key:'mat',q:'m',label:'جنس تشک',type:'seg',items:[{v:'l',label:'چرم'},{v:'v',label:'مخمل'}]}],
+});
+</script>
+</body>
+</html>

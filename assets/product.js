@@ -107,7 +107,7 @@ export function productPage(P){
     color*=np/pk; float g=1.-1./(ds*(pk-np)+1.); return mix(color,vec3(np),g); }`);
   const stage=$('stage'), cv=$('cv'), busy=$('busy');
   const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true,preserveDrawingBuffer:QS.has('shot')});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,MOBILE?1.5:2)); renderer.toneMapping=THREE.CustomToneMapping;
+  renderer.setPixelRatio(Math.min(devicePixelRatio,MOBILE?1.5:2)); renderer.toneMapping=THREE.CustomToneMapping; renderer.toneMappingExposure=P.exposure??1;
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate=false;
   const scene=new THREE.Scene(), pmrem=new THREE.PMREMGenerator(renderer);
   const HALF=renderer.capabilities.isWebGL2?(renderer.extensions.has('EXT_color_buffer_float')||renderer.extensions.has('EXT_color_buffer_half_float')):renderer.extensions.has('OES_texture_half_float');

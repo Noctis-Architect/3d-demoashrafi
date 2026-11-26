@@ -4,6 +4,7 @@
 # نسخه قدیمی و بافت‌هایی که صفحه استفاده نمی‌کند
 a671.html
 tex/*
+!tex/scan/
 !tex/cherry_veneer_*
 !tex/floral_jacquard_*
 !tex/terlenka_*
@@ -14,3 +15,5 @@ tex/*
 !tex/poly_wool_herringbone_diff_1k.jpg
 !tex/poly_wool_herringbone_nor_gl_1k.jpg
 private/
+# فایل‌های GLB منبع (بزرگ؛ مدل‌ها به کد تبدیل شده‌اند: assets/models)
+3d/
