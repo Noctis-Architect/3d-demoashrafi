@@ -14,7 +14,9 @@ const slots = meta.slots.map(s => ({ ...s, pos: take(Float32Array, s.nv * 3), no
 // one uniform quantisation box for the whole model (keeps normals valid, no non-uniform scale)
 const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
 for (const s of slots) for (let i = 0; i < s.nv; i++) for (let k = 0; k < 3; k++) { const v = s.pos[i * 3 + k]; if (v < mn[k]) mn[k] = v; if (v > mx[k]) mx[k] = v; }
-const ctr = mn.map((v, k) => (v + mx[k]) / 2), half = Math.max(...mx.map((v, k) => (v - mn[k]) / 2));
+let ctr = mn.map((v, k) => (v + mx[k]) / 2), half = Math.max(...mx.map((v, k) => (v - mn[k]) / 2));
+// BOX="cx,cy,cz,half": همان جعبه کوانتش مدل اصلی (برای قطعه‌ای که روی مدل اصلی می‌نشیند، مثل گل منبت کنسول)
+if (process.env.BOX) { const b = process.env.BOX.split(',').map(Number); ctr = b.slice(0, 3); half = b[3]; }
 
 const STRIDE = 16, res = [];
 let total = 0;
@@ -35,7 +37,7 @@ for (const s of slots) {
   const ev = MeshoptEncoder.encodeVertexBuffer(vb, nv, STRIDE);
   const ei = MeshoptEncoder.encodeIndexBuffer(new Uint8Array(idx.buffer), idx.length, 4);
   total += ev.length + ei.length;
-  res.push({ slot: s.slot, color: s.color, nv, ni: idx.length, vb: Buffer.from(ev).toString('base64'), ib: Buffer.from(ei).toString('base64') });
+  res.push({ slot: s.slot, color: s.color, rn: (process.env.RN || '').split(',').includes(s.slot), nv, ni: idx.length, vb: Buffer.from(ev).toString('base64'), ib: Buffer.from(ei).toString('base64') });
   console.log(s.slot, 'verts', nv, 'tris', idx.length / 3, 'vb', (ev.length / 1048576).toFixed(2) + 'MB', 'ib', (ei.length / 1048576).toFixed(2) + 'MB');
 }
 const js = `/* ${id}: هندسه دقیق مدل سه‌بعدی (همان فرم و کنده‌کاری فایل اصلی)، فشرده با meshopt.
@@ -46,7 +48,7 @@ export default {
   center: ${JSON.stringify(ctr.map(v => +v.toFixed(6)))}, half: ${+half.toFixed(6)},
   normalMap: ${JSON.stringify(nmap)},
   slots: [
-${res.map(r => `    { slot: ${JSON.stringify(r.slot)}, color: ${JSON.stringify(r.color)}, nv: ${r.nv}, ni: ${r.ni},\n      vb: '${r.vb}',\n      ib: '${r.ib}' }`).join(',\n')}
+${res.map(r => `    { slot: ${JSON.stringify(r.slot)}, color: ${JSON.stringify(r.color)},${r.rn ? ' rn: 1,' : ''} nv: ${r.nv}, ni: ${r.ni},\n      vb: '${r.vb}',\n      ib: '${r.ib}' }`).join(',\n')}
   ]
 };
 `;

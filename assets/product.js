@@ -5,6 +5,7 @@ import { OrbitControls } from '../lib/three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from '../lib/three/addons/environments/RoomEnvironment.js';
 import { GLTFExporter } from '../lib/three/addons/exporters/GLTFExporter.js';
 import { loadImg, tex, stain, neutral, MOBILE } from './geo.js';
+import { fastPick } from './pick.js';
 
 export { THREE };
 const fa=n=>Number(n).toLocaleString('fa-IR');
@@ -106,18 +107,56 @@ export function productPage(P){
     float pk=max(color.r,max(color.g,color.b)); if(pk<sc) return color; float d=1.-sc; float np=1.-d*d/(pk+d-sc);
     color*=np/pk; float g=1.-1./(ds*(pk-np)+1.); return mix(color,vec3(np),g); }`);
   const stage=$('stage'), cv=$('cv'), busy=$('busy');
-  const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true,preserveDrawingBuffer:QS.has('shot')});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,MOBILE?1.5:2)); renderer.toneMapping=THREE.CustomToneMapping; renderer.toneMappingExposure=P.exposure??1;
+  /* لبه‌نرم‌کن: MSAA خود بوم خاموش است (با مثلث‌های ریز اسکن، هر پیکسل چند بار سایه‌زنی می‌شد و ۲ تا ۳ برابر کند بود).
+     در حرکت: رندر ساده + FXAA؛ وقتی تصویر می‌ایستد: یک فریم با MSAA چهارتایی در رندرتارگت (همان کیفیت قبلی). */
+  const CA={alpha:true,antialias:false,depth:true,stencil:true,premultipliedAlpha:true,preserveDrawingBuffer:QS.has('shot'),powerPreference:'high-performance'};
+  const ctx=cv.getContext('webgl2',CA)||cv.getContext('webgl',CA);
+  if(ctx){ const gca=ctx.getContextAttributes.bind(ctx); ctx.getContextAttributes=()=>({...gca(),antialias:true}); }   // AR (WebXR) همچنان لبه‌نرم داشته باشد
+  const renderer=new THREE.WebGLRenderer({canvas:cv,context:ctx||undefined,antialias:false,alpha:true,preserveDrawingBuffer:QS.has('shot')});
+  /* وضوح پویا: وقتی تصویر در حرکت است و فریم‌ها کُند می‌شوند وضوح کم می‌شود؛ هر وقت ایستاد یک فریم با وضوح کامل کشیده می‌شود */
+  const PRMAX=Math.min(devicePixelRatio,MOBILE?1.5:2), PRMIN=Math.min(PRMAX,MOBILE?0.75:1);
+  let prMove=PRMAX, ftAvg=16, prT=0, lastDraw=0, sharp=true;
+  renderer.setPixelRatio(PRMAX); renderer.toneMapping=THREE.CustomToneMapping; renderer.toneMappingExposure=P.exposure??1;
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate=false;
   const scene=new THREE.Scene(), pmrem=new THREE.PMREMGenerator(renderer);
   const HALF=renderer.capabilities.isWebGL2?(renderer.extensions.has('EXT_color_buffer_float')||renderer.extensions.has('EXT_color_buffer_half_float')):renderer.extensions.has('OES_texture_half_float');
   if(HALF) scene.environment=pmrem.fromScene(new RoomEnvironment(renderer),0.04).texture;
   else { scene.add(new THREE.HemisphereLight(0xfffaf2,0x9a9086,2.6)); scene.add(new THREE.AmbientLight(0xffffff,0.9)); }
+  /* خروجی نهایی: رندرتارگت sRGB (۸ بیتی، دقت کافی) → تون‌مپ + تبدیل رنگ + FXAA اختیاری روی یک مستطیل تمام‌صفحه */
+  const RTOK=renderer.capabilities.isWebGL2, AAS=RTOK?Math.min(4,renderer.capabilities.maxSamples):0;
+  const mkRT=samples=>{ const t=new THREE.WebGLRenderTarget(1,1,{samples,type:THREE.UnsignedByteType}); t.texture.colorSpace=THREE.SRGBColorSpace; return t; };
+  const stillRT=RTOK?mkRT(AAS):null, moveRT=RTOK?mkRT(0):null;
+  const postMat=new THREE.ShaderMaterial({uniforms:{tDiffuse:{value:null},rp:{value:new THREE.Vector2()},fx:{value:0}},depthTest:false,depthWrite:false,blending:THREE.NoBlending,
+    vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }',
+    fragmentShader:`uniform sampler2D tDiffuse; uniform vec2 rp; uniform float fx; varying vec2 vUv;
+      vec4 S(vec2 uv){ vec4 c=texture2D(tDiffuse,uv); if(c.a<=0.) return vec4(0.); c.rgb/=c.a;   // پیش‌ضرب آلفا برداشته می‌شود تا لبه‌ها هاله نگیرند
+        #ifdef TONE_MAPPING
+        c.rgb=toneMapping(c.rgb);
+        #endif
+        c=linearToOutputTexel(c); c.rgb*=c.a; return c; }
+      void main(){ vec4 M=S(vUv); if(fx<.5){ gl_FragColor=M; return; }
+        vec4 NW=S(vUv+vec2(-1.,-1.)*rp), NE=S(vUv+vec2(1.,-1.)*rp), SW=S(vUv+vec2(-1.,1.)*rp), SE=S(vUv+vec2(1.,1.)*rp);
+        vec3 L=vec3(.299,.587,.114); float lNW=dot(NW.rgb,L), lNE=dot(NE.rgb,L), lSW=dot(SW.rgb,L), lSE=dot(SE.rgb,L), lM=dot(M.rgb,L);
+        float lMin=min(lM,min(min(lNW,lNE),min(lSW,lSE))), lMax=max(lM,max(max(lNW,lNE),max(lSW,lSE)));
+        vec2 dir=vec2(-((lNW+lNE)-(lSW+lSE)),((lNW+lSW)-(lNE+lSE)));
+        float red=max((lNW+lNE+lSW+lSE)*(.25/8.),1./128.), rcp=1./(min(abs(dir.x),abs(dir.y))+red);
+        dir=clamp(dir*rcp,vec2(-8.),vec2(8.))*rp;
+        vec4 A=.5*(S(vUv+dir*(1./3.-.5))+S(vUv+dir*(2./3.-.5))), B=A*.5+.25*(S(vUv-dir*.5)+S(vUv+dir*.5));
+        float lB=dot(B.rgb,L); gl_FragColor=(lB<lMin||lB>lMax)?A:B; }`});
+  const postQ=new THREE.Mesh(new THREE.PlaneGeometry(2,2),postMat); postQ.frustumCulled=false;
+  const postScene=new THREE.Scene(), postCam=new THREE.OrthographicCamera(); postScene.add(postQ);
+  const dbs=new THREE.Vector2();
+  /* still=true: فریم ایستا با MSAA؛ false: فریم حرکت با FXAA */
+  function draw(still){ if(!RTOK||renderer.xr.isPresenting){ renderer.render(scene,camera); return; }
+    const rt=still?stillRT:moveRT; renderer.getDrawingBufferSize(dbs); if(rt.width!==dbs.x||rt.height!==dbs.y) rt.setSize(dbs.x,dbs.y);
+    renderer.setRenderTarget(rt); renderer.render(scene,camera); renderer.setRenderTarget(null);
+    postMat.uniforms.tDiffuse.value=rt.texture; postMat.uniforms.rp.value.set(1/dbs.x,1/dbs.y); postMat.uniforms.fx.value=still?0:1;
+    renderer.render(postScene,postCam); }
   const camera=new THREE.PerspectiveCamera(30,1,0.05,40);
   const controls=new OrbitControls(camera,cv); controls.enableDamping=true; controls.dampingFactor=0.08; controls.enablePan=false;
   controls.maxPolarAngle=1.5; controls.minDistance=0.6; controls.autoRotate=!QS.has('shot'); controls.autoRotateSpeed=0.7;
   const sun=new THREE.DirectionalLight(0xffffff,1.1); sun.position.set(1.2,3.2,2.0); sun.castShadow=true; sun.shadow.mapSize.set(MOBILE?1024:2048,MOBILE?1024:2048);
-  const sc=sun.shadow.camera; sc.left=sc.bottom=-1.8; sc.right=sc.top=1.8; sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.01; sun.shadow.radius=5; scene.add(sun);
+  const sc=sun.shadow.camera; sc.left=sc.bottom=-1.8; sc.right=sc.top=1.8; sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.03; sun.shadow.radius=5; scene.add(sun);
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.ShadowMaterial({opacity:0.2})); ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
   const root=new THREE.Group(); scene.add(root);
   let dirty=true; const req=()=>{ dirty=true; };
@@ -159,9 +198,23 @@ export function productPage(P){
       swingStep(o,dt); }
     if(act.size){ renderer.shadowMap.needsUpdate=true; dirty=true; } }
   function toggle(o){ const u=o.userData; u.p??=0; u.base??=o.position.z; u.target=u.target?0:1; moving.add(o); }
+  function setPR(p){ if(renderer.getPixelRatio()!==p) renderer.setPixelRatio(p); }
   renderer.setAnimationLoop((time,xrFrame)=>{ const now=performance.now(), dt=Math.min(0.05,(now-lastT)/1000); lastT=now;
     if(moving.size||swinging.size) animParts(dt);
-    if(xrFrame&&xr){ xrTick(xrFrame); renderer.render(scene,camera); return; } if(controls.update()) dirty=true; if(dirty){ dirty=false; renderer.render(scene,camera); } });
+    if(xrFrame&&xr){ xrTick(xrFrame); renderer.render(scene,camera); return; }
+    if(!onScreen) return;   // صحنه دیده نمی‌شود (صفحه پایین رفته): نه چرخش، نه رندر
+    if(controls.update()) dirty=true;
+    if(dirty){ dirty=false;
+      const gap=now-lastDraw; lastDraw=now;
+      if(gap<100){ // حرکت پیوسته: زمان فریم را می‌سنجیم و وضوح حرکت را تنظیم می‌کنیم
+        ftAvg=ftAvg*0.9+gap*0.1;
+        if(now>prT&&ftAvg>24&&prMove>PRMIN){ prMove=Math.max(PRMIN,prMove-0.25); ftAvg=16; prT=now+500; }
+        else if(now>prT&&ftAvg<17.5&&prMove<PRMAX){ prMove=Math.min(PRMAX,prMove+0.25); prT=now+3000; }
+        setPR(prMove); }
+      sharp=false; draw(false); }
+    else if(!sharp&&now-lastDraw>250){ sharp=true; setPR(PRMAX); draw(true); } });
+  let onScreen=true;
+  new IntersectionObserver(([e])=>{ onScreen=e.isIntersecting; if(onScreen){ lastT=performance.now(); req(); } }).observe(stage);
   const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
   function partAt(e){ const r=cv.getBoundingClientRect(); ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1); ray.setFromCamera(ndc,camera); return partHit(); }
   function partHit(){
@@ -169,15 +222,35 @@ export function productPage(P){
   let down=null;
   /* نگه‌داشتن انگشت روی صحنه نباید منو یا انتخاب متن بیاورد */
   stage.addEventListener('contextmenu',e=>e.preventDefault()); stage.addEventListener('selectstart',e=>e.preventDefault());
+  /* قطعه‌های کشیدنی (مثلاً کوسن): userData.drag={axis:'x',min,max} → با کشیدن در طول همان محور جابه‌جا می‌شوند */
+  let drag=null; const dPlane=new THREE.Plane(), dHit=new THREE.Vector3();
+  function dragAt(e){ const r=cv.getBoundingClientRect(); ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1); ray.setFromCamera(ndc,camera);
+    for(const h of ray.intersectObjects(root.children,true)){ let o=h.object; while(o&&o!==root){ if(o.userData.drag) return {o,p:h.point}; o=o.parent; } return null; } return null; }
+  cv.addEventListener('pointerdown',e=>{ const d=dragAt(e); if(!d) return;
+    drag={o:d.o,start:d.o.parent.worldToLocal(d.p.clone()),x0:d.o.position.x,d0:d.o.userData.drag.depth?.(d.o)??0}; controls.enabled=false; controls.autoRotate=false; $('rotBtn').setAttribute('aria-pressed','false');
+    // axis 'xz': آزاد روی صفحه افقی (طول مبل + جلو/عقب روی نشیمن)؛ وگرنه فقط در طول x
+    dPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0,drag.o.userData.drag.axis==='xz'?1:0,drag.o.userData.drag.axis==='xz'?0:1).transformDirection(drag.o.parent.matrixWorld),d.p); cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove',e=>{ if(!drag) return; const r=cv.getBoundingClientRect(); ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1); ray.setFromCamera(ndc,camera);
+    if(!ray.ray.intersectPlane(dPlane,dHit)) return; const l=drag.o.parent.worldToLocal(dHit.clone()), D=drag.o.userData.drag;
+    drag.o.position.x=Math.max(D.min,Math.min(D.max,drag.x0+l.x-drag.start.x));
+    if(D.axis==='xz') D.setDepth?.(drag.o,drag.d0+l.z-drag.start.z); D.follow?.(drag.o); renderer.shadowMap.needsUpdate=true; req(); });
+  const endDrag=()=>{ if(drag){ drag=null; controls.enabled=true; scheduleExport(); } };
+  cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
+  /* نشانگر موس روی قطعه‌های کشیدنی/بازشو: حداکثر یک پرتو در هر فریم، و فقط وقتی دکمه موس پایین نیست */
+  let hoverE=null;
+  cv.addEventListener('pointermove',e=>{ if(e.pointerType!=='mouse'||e.buttons||drag) return;
+    if(!hoverE) requestAnimationFrame(()=>{ const ev=hoverE; hoverE=null; const r=cv.getBoundingClientRect(); ndc.set((ev.clientX-r.left)/r.width*2-1,-(ev.clientY-r.top)/r.height*2+1); ray.setFromCamera(ndc,camera);
+      let cur=''; const h=ray.intersectObjects(root.children,true)[0]; for(let o=h?.object;o&&o!==root;o=o.parent){ if(o.userData.drag){ cur='grab'; break; } if(o.userData.open){ cur='pointer'; break; } }
+      cv.style.cursor=cur; });
+    hoverE=e; });
   cv.addEventListener('pointerdown',e=>{ down={x:e.clientX,y:e.clientY,t:performance.now()}; });
   cv.addEventListener('pointerup',e=>{ if(!down) return; const d=down; down=null;
     if(Math.hypot(e.clientX-d.x,e.clientY-d.y)<6&&performance.now()-d.t<500){ const o=partAt(e); if(o){ toggle(o); controls.autoRotate=false; $('rotBtn').setAttribute('aria-pressed','false'); } } });
-  cv.addEventListener('pointermove',e=>{ if(e.pointerType!=='mouse'||e.buttons) return; cv.style.cursor=partAt(e)?'pointer':''; });
 
   /* ---- مدل: هندسه هر حالت یک بار ساخته می‌شود؛ تغییر رنگ فقط ماده را عوض می‌کند ---- */
   const BUILT={}, MATS={}; let shown=null, cur={};
   function show(resetCam=false){ const key=P.geoKey(S);
-    const g=BUILT[key]??=(()=>{ const g=P.build(S); g.traverse(o=>{ if(o.isMesh){ o.userData.slot=o.material.name; o.castShadow=o.receiveShadow=true; } }); return g; })();
+    const g=BUILT[key]??=(()=>{ const g=P.build(S); g.traverse(o=>{ if(o.isMesh){ o.userData.slot=o.material.name; o.castShadow=o.receiveShadow=true; } }); fastPick(g); return g; })();
     if(shown!==g){ if(shown) root.remove(shown); root.add(g); shown=g; }
     if(P.hint) $('hint').textContent=P.hint;
     g.traverse(o=>{ if(o.isMesh&&cur[o.userData.slot]) o.material=cur[o.userData.slot]; });
@@ -219,8 +292,12 @@ export function productPage(P){
     arBtn.textContent=st==='ready'?'✓ آماده است — بزنید':st==='busy'?'در حال آماده‌سازی…':'📱 نمایش در خانه شما'; }
   function scheduleExport(){ expJob++; setAr('stale'); }
   async function exportGLB(max=1024){ const r=root.clone(); const s=new THREE.Scene(); s.add(r); return exporter.parseAsync(s,{binary:true,maxTextureSize:max}); }
+  /* model-viewer (حدود ۹۰۰ کیلوبایت) فقط وقتی AR خواسته شد بار می‌شود */
+  let mvP=null;
+  const loadMV=()=>mvP??=import('../lib/model-viewer.min.js').then(()=>customElements.whenDefined('model-viewer')).then(()=>{
+    mv.addEventListener('ar-status',e=>{ if(e.detail.status==='failed') alert('AR روی این دستگاه اجرا نشد. راهنما: ar.html'); }); });
   async function doExport(){ const my=++expJob; setAr('busy');
-    try{ const glb=await exportGLB(); if(my!==expJob) return;
+    try{ const [glb]=await Promise.all([exportGLB(),loadMV()]); if(my!==expJob) return;
       const next=URL.createObjectURL(new Blob([glb],{type:'model/gltf-binary'}));
       mv.addEventListener('load',()=>{ if(my===expJob) setAr('ready'); },{once:true}); mv.src=next;
       if(arUrl){ const o=arUrl; setTimeout(()=>URL.revokeObjectURL(o),5000); } arUrl=next;
@@ -275,12 +352,10 @@ export function productPage(P){
     if(ANDROID&&arState!=='ready'&&P.arDefault?.(S)) return sceneViewer(P.arFile(S));
     if(arState==='ready'){ if(mv.canActivateAR) mv.activateAR(); else alert(ANDROID?'این گوشی AR را پشتیبانی نمی‌کند یا «Google Play Services for AR» نصب نیست.':'این دستگاه AR را پشتیبانی نمی‌کند.'); }
     else if(arState==='stale') doExport(); });
-  customElements.whenDefined('model-viewer').then(()=>{
-    mv.addEventListener('ar-status',e=>{ if(e.detail.status==='failed') alert('AR روی این دستگاه اجرا نشد. راهنما: ar.html'); });
-    if(!(IOS||ANDROID)){ arBtn.hidden=true; $('noAr').hidden=false; } });
+  if(!(IOS||ANDROID)){ arBtn.hidden=true; $('noAr').hidden=false; }
 
   /* فقط روی همین کامپیوتر: ساخت فایل‌های آماده AR اندروید (?genar) و عکس محصول (?shot) */
-  if(QS.has('genar')&&location.hostname==='localhost') window.__genAR=async()=>{ const out=[];
+  if(QS.has('genar')&&location.hostname==='localhost') window.__genAR=async()=>{ const out=[]; await loadMV();
     for(const v of P.arVariants||[]){ Object.assign(S,P.defaults,v); await refresh(true);
       const glb=await exportGLB(1024), f=P.arFile(S); const r=await fetch(f,{method:'PUT',body:glb}); out.push(f+': '+(glb.byteLength/1048576).toFixed(2)+'MB '+r.status);
       // USDZ برای Quick Look آیفون (با مبدل خود model-viewer)
@@ -290,12 +365,13 @@ export function productPage(P){
     return out; };
   if(location.hostname==='localhost') window.__openAll=(p=1)=>{ shown.traverse(o=>{ if(o.userData.open){ const u=o.userData; u.base??=o.position.z; u.p=p; u.target=p?1:0; pose(o); } }); renderer.shadowMap.needsUpdate=true; dirty=true; };
   if(location.hostname==='localhost') window.__ringProbe=()=>{ const r=[]; shown.traverse(o=>{ if(o.userData.swing) r.push(+o.userData.swing.phi.toFixed(3)); }); return r.slice(0,2); };
+  if(location.hostname==="localhost") Object.assign(window,{__root:root,__r:renderer,__cam:camera,__ctl:controls,__draw:draw});
   if(location.hostname==='localhost') window.__toggleAll=()=>{ let n=0; shown.traverse(o=>{ if(o.userData.open){ toggle(o); n++; } }); return n; };
   if(location.hostname==='localhost') window.__view=(pos,tgt,w=1600,h=1000,fov=30)=>{ renderer.setPixelRatio(1); renderer.setSize(w,h,false); camera.aspect=w/h; camera.fov=fov; camera.updateProjectionMatrix();
-    camera.position.set(...pos); controls.target.set(...tgt); controls.update(); renderer.shadowMap.needsUpdate=true; renderer.render(scene,camera); return cv.toDataURL('image/png'); };
+    camera.position.set(...pos); controls.target.set(...tgt); controls.update(); renderer.shadowMap.needsUpdate=true; draw(true); return cv.toDataURL('image/png'); };
   window.__shot=(w=1800,h=1160,az)=>{ renderer.setPixelRatio(1); renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); frame();
     if(az){ const d=camera.position.clone().sub(controls.target); d.setFromSphericalCoords(d.length(),az[0],az[1]); camera.position.copy(controls.target).add(d); controls.update(); }
-    renderer.shadowMap.needsUpdate=true; renderer.render(scene,camera); return cv.toDataURL('image/png'); };
+    renderer.shadowMap.needsUpdate=true; draw(true); return cv.toDataURL('image/png'); };
 
   busy.classList.add('on'); ui();
   refresh(true).then(()=>{ const idle=window.requestIdleCallback||(f=>setTimeout(f,800)); if(P.prewarm) idle(()=>P.prewarm(kit)); });

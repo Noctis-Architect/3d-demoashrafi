@@ -1,6 +1,6 @@
 /* ساخت مدل از هندسه دقیق اسکن (assets/models/*.js) + مواد خودمان.
-   فرم، برجستگی و کنده‌کاری‌ها عیناً همان فایل سه‌بعدی اصلی است؛ رنگ پیش‌فرض هر بخش از رنگ خود مدل گرفته شده
-   و بافت (پارچه، چرم، چوب، رنگ) روی آن می‌نشیند. */
+   فرم، برجستگی و کنده‌کاری‌ها عیناً همان فایل سه‌بعدی اصلی است؛ رنگ پیش‌فرض هر بخش از رنگ خود مدل گرفته شده.
+   رویه پارچه/چرم در تبدیل صاف شده (چین و ناهمواری اسکن حذف) تا جنس‌های مختلف پارچه روی آن دیده شود. */
 import { THREE, slot, kit, productPage } from './product.js';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.mjs';
 import { loadImg, tex, neutral } from './geo.js';
@@ -8,50 +8,68 @@ import { loadImg, tex, neutral } from './geo.js';
 await MeshoptDecoder.ready;
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 
-/* سایه‌روشن اسکن (فرورفتگی کنده‌کاری‌ها، چین پارچه) به صورت رنگ رأس.
+/* سایه‌روشن اسکن (فرورفتگی کنده‌کاری‌ها) به صورت رنگ رأس.
    K: سقف روشنایی؛ رنگ ماده به همان نسبت جبران می‌شود تا رنگ میانگین دقیقاً رنگ پیش‌فرض باشد. */
 export const SHADE_K=0.8;
-export function buildScan(M,{shadeGamma=1}={}){
+const GEOC={};
+function scanGeo(M,s){ return GEOC[M.id+s.slot]??=(()=>{
+  const vb=new Uint8Array(s.nv*16); MeshoptDecoder.decodeVertexBuffer(vb,s.nv,16,b64(s.vb));
+  const ib=new Uint32Array(s.ni); MeshoptDecoder.decodeIndexBuffer(new Uint8Array(ib.buffer),s.ni,4,b64(s.ib));
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.InterleavedBufferAttribute(new THREE.InterleavedBuffer(new Int16Array(vb.buffer),8),3,0,true));
+  geo.setAttribute('normal',new THREE.InterleavedBufferAttribute(new THREE.InterleavedBuffer(new Int8Array(vb.buffer),16),3,8,true));
+  geo.setAttribute('uv',new THREE.InterleavedBufferAttribute(new THREE.InterleavedBuffer(new Uint16Array(vb.buffer),8),2,6,true));
+  const col=new Uint8Array(s.nv*3);
+  for(let i=0;i<s.nv;i++){ const v=Math.min(255,Math.round(vb[i*16+6]/127.5*SHADE_K*255)); col[i*3]=col[i*3+1]=col[i*3+2]=v; }
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3,true));
+  geo.setIndex(new THREE.BufferAttribute(ib,1));
+  // rn: نرمال با دقت کامل در مرورگر (روی سطوح صاف پارچه، نرمال ۸ بیتی فایل نوار و خط‌های هم‌تراز می‌سازد)
+  if(s.rn){ geo.deleteAttribute('normal'); geo.computeVertexNormals(); }
+  geo.computeBoundingBox(); geo.computeBoundingSphere(); return geo; })(); }
+/* map: نام بخش مدل ← نام جایگاه ماده (مثلاً هر سه کشو ← front) */
+export function buildScan(M,map={}){
   const g=new THREE.Group(); g.name=M.id;
-  for(const s of M.slots){
-    const vb=new Uint8Array(s.nv*16); MeshoptDecoder.decodeVertexBuffer(vb,s.nv,16,b64(s.vb));
-    const ib=new Uint32Array(s.ni); MeshoptDecoder.decodeIndexBuffer(new Uint8Array(ib.buffer),s.ni,4,b64(s.ib));
-    const geo=new THREE.BufferGeometry();
-    geo.setAttribute('position',new THREE.InterleavedBufferAttribute(new THREE.InterleavedBuffer(new Int16Array(vb.buffer),8),3,0,true));
-    geo.setAttribute('normal',new THREE.InterleavedBufferAttribute(new THREE.InterleavedBuffer(new Int8Array(vb.buffer),16),3,8,true));
-    geo.setAttribute('uv',new THREE.InterleavedBufferAttribute(new THREE.InterleavedBuffer(new Uint16Array(vb.buffer),8),2,6,true));
-    const col=new Uint8Array(s.nv*3);
-    for(let i=0;i<s.nv;i++){ const v=Math.min(255,Math.round(Math.pow(vb[i*16+6]/127.5,shadeGamma)*SHADE_K*255)); col[i*3]=col[i*3+1]=col[i*3+2]=v; }
-    geo.setAttribute('color',new THREE.BufferAttribute(col,3,true));
-    geo.setIndex(new THREE.BufferAttribute(ib,1));
-    geo.computeBoundingBox(); geo.computeBoundingSphere();
-    const m=new THREE.Mesh(geo,slot[s.slot]); m.name=s.slot;
-    m.scale.setScalar(M.half); m.position.fromArray(M.center); g.add(m);
-  }
+  for(const s of M.slots){ const m=new THREE.Mesh(scanGeo(M,s),slot[map[s.slot]||s.slot]); m.name=s.slot;
+    m.scale.setScalar(M.half); m.position.fromArray(M.center); g.add(m); }
   return g;
 }
 
 /* ---------- مواد ---------- */
 const C={};
-const lin=hex=>new THREE.Color(hex);                       // three رنگ hex را خطی نگه می‌دارد
-/* بافت سه‌جهته (triplanar) در فضای خود مدل: نقش پارچه/چوب بدون درز روی هر سطحی، مستقل از UV اسکن */
-function triplanar(mat,tile,half){
-  mat.onBeforeCompile=sh=>{ sh.uniforms.triK={value:half/tile};
-    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vTriP; varying vec3 vTriN;')
-      .replace('#include <begin_vertex>','#include <begin_vertex>\nvTriP=position; vTriN=normal;');
-    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform float triK; varying vec3 vTriP; varying vec3 vTriN;')
-      .replace('#include <map_fragment>',`#ifdef USE_MAP
+const lin=hex=>new THREE.Color(hex);
+/* بافت سه‌جهته در فضای خود مدل (بدون درز، مستقل از UV اسکن).
+   vert: رگه چوب روی سطوح ایستاده عمودی (پایه‌ها)؛ وگرنه افقی (رویه کشو، دامنه). روی سطح افقی همیشه در طول. */
+function triplanar(mat,tile,half,vert=false,ntile=tile){
+  // رنگ و (اگر باشد) نرمال‌مپ پارچه با تصویر سه‌جهته در فضای مدل: بدون درز و مستقل از UV اسکن
+  const triN=!!mat.normalMap && !mat.userData.uvNormal;
+  mat.onBeforeCompile=sh=>{ sh.uniforms.triK={value:half/tile}; sh.uniforms.triKN={value:half/ntile};
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vTriP; varying vec3 vTriN; varying vec3 vNM0; varying vec3 vNM1; varying vec3 vNM2;')
+      .replace('#include <begin_vertex>','#include <begin_vertex>\nvTriP=position; vTriN=normal; vNM0=normalMatrix[0]; vNM1=normalMatrix[1]; vNM2=normalMatrix[2];');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform float triK; uniform float triKN; varying vec3 vTriP; varying vec3 vTriN; varying vec3 vNM0; varying vec3 vNM1; varying vec3 vNM2;')
+      .replace('#include <map_fragment>',`float triL=1.0;
+#ifdef USE_MAP
   vec3 tb=pow(abs(normalize(vTriN)),vec3(4.0)); tb/=tb.x+tb.y+tb.z; vec3 tp=vTriP*triK;
-  diffuseColor*=texture2D(map,tp.zy)*tb.x+texture2D(map,tp.xz)*tb.y+texture2D(map,tp.xy)*tb.z;
-#endif`); };
-  mat.customProgramCacheKey=()=>'tri'+tile+half;
+  vec4 triS=texture2D(map,${vert?'tp.yz':'tp.zy'})*tb.x+texture2D(map,tp.xz)*tb.y+texture2D(map,${vert?'tp.yx':'tp.xy'})*tb.z;
+  diffuseColor*=triS; triL=triS.g*${(1/GL).toFixed(4)};
+#endif`);
+    // پارچه تیره: بافت روی پرز (sheen) هم اثر می‌گذارد — روی مشکی، نخ و پرز فقط از درخشش پرز دیده می‌شود
+    if(mat.sheen>0) sh.fragmentShader=sh.fragmentShader.replace('#include <lights_physical_fragment>','#include <lights_physical_fragment>\n#ifdef USE_SHEEN\n  material.sheenColor*=clamp(pow(triL,2.2),0.0,3.0);\n#endif');
+    if(triN) sh.fragmentShader=sh.fragmentShader.replace('#include <normal_fragment_maps>',`{
+  vec3 n0=normalize(vTriN); vec3 tw=pow(abs(n0),vec3(4.0)); tw/=tw.x+tw.y+tw.z; vec3 q=vTriP*triKN;
+  vec3 tX=texture2D(normalMap,q.zy).xyz*2.0-1.0, tY=texture2D(normalMap,q.xz).xyz*2.0-1.0, tZ=texture2D(normalMap,q.xy).xyz*2.0-1.0;
+  tX.xy*=normalScale; tY.xy*=normalScale; tZ.xy*=normalScale;
+  // UDN: برآمدگی هر تصویر روی دو محور مماس همان صفحه
+  vec3 nObj=normalize(n0+vec3(0.0,tX.y,tX.x)*tw.x+vec3(tY.x,0.0,tY.y)*tw.y+vec3(tZ.x,tZ.y,0.0)*tw.z);
+  normal=normalize(mat3(vNM0,vNM1,vNM2)*nObj)*faceDirection; }`); };
+  mat.customProgramCacheKey=()=>'tri'+tile+half+vert+(triN?'n'+ntile:'');
   return mat;
 }
-/* نرمال‌مپ خود اسکن: ریزبرجستگی کنده‌کاری و بافت سطح، روی UV اصلی */
+/* نرمال‌مپ خود اسکن: ریزبرجستگی کنده‌کاری، روی UV اصلی (فقط برای چوب) */
 export function scanNormal(url){ return C['n'+url]??=new Promise((res,rej)=>new THREE.TextureLoader().load(url,t=>{
   t.flipY=false; t.colorSpace=THREE.NoColorSpace; t.anisotropy=8; res(t); },undefined,rej)); }
 
-const GREY=200, GL=Math.pow(GREY/255,2.2);                 // روشنایی میانگین بافت خاکستری‌شده (خطی)
+const GREY=200, GL=Math.pow(GREY/255,2.2);
+async function norTex(id){ const k='n'+id; if(C[k]) return C[k]; const img=await loadImg(`tex/${id}_nor_gl_1k.jpg`); return C[k]??=tex(img,false,1); }
 async function greyTex(id,contrast=1){ const k='g'+id+contrast; if(C[k]) return C[k];
   const img=await loadImg(`tex/${id}_diff_1k.jpg`); return C[k]??=tex(neutral(img,GREY,contrast),true,1); }
 
@@ -67,41 +85,103 @@ function leatherTex(){ return C.leather??=(()=>{ const N=kit.MOBILE?512:1024, c=
   x.putImageData(d,0,0); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; })(); }
 
 const P=THREE.MeshPhysicalMaterial;
-function base(hex,extra){ return new P({color:lin(hex).multiplyScalar(1/(SHADE_K*GL)),vertexColors:true,...extra}); }
-/* انواع سطح؛ همه با رنگ دلخواه و نرمال‌مپ اسکن */
+function base(hex,extra){ return new P({color:lin(hex).multiplyScalar(1/(SHADE_K*GL)),vertexColors:true,side:THREE.DoubleSide,shadowSide:THREE.DoubleSide,...extra}); }
+const sheenOf=(hex,k)=>lin(hex).lerp(new THREE.Color('#fff'),k);
+
+/* جنس‌های پارچه (برای گزینه «جنس پارچه») */
+export const FABRICS={
+  linen:      {label:'کتان',      id:'rough_linen',           tile:0.20, contrast:1.1, sheen:0.25, rough:0.95},
+  boucle:     {label:'بوکله',     id:'wool_boucle',           tile:0.24, contrast:1.2, sheen:0.2,  rough:1},
+  chenille:   {label:'شنیل',      id:'terlenka',              tile:0.14, contrast:1.35, sheen:0.6, rough:0.88},
+  herringbone:{label:'جناغی',     id:'poly_wool_herringbone', tile:0.16, contrast:1.1, sheen:0.15, rough:0.95},
+  velvet:     {label:'مخمل',      id:'velour_velvet',         tile:0.18, contrast:0.8, sheen:1,    rough:0.85},
+  leather:    {label:'چرم',       leather:true},
+};
+/* مثل عکس محصول: شنیل با راه‌های نامنظم افقی (اسلاب) برای رویه، و نقش لانه‌زنبوری ریز برای کوسن‌ها — هر دو با کد ساخته می‌شوند */
+FABRICS.slub={label:'شنیل راه‌راه (مثل عکس)',id:'terlenka',nid:'terlenka',proc:'slub',tile:0.3,ntile:0.06,ns:2.4,sheen:1,rough:1,spec:0.12};
+FABRICS.hex={label:'لانه‌زنبوری (مثل عکس)',id:'terlenka',hex:true,tile:0.2,contrast:0.9,sheen:0.4,rough:0.88};
+FABRICS.dots={label:'نقش‌دار',id:'terlenka',tile:0.2,contrast:0.9,sheen:0.35,rough:0.9,dots:true};
+export const fabricItems=keys=>keys.map(k=>({v:k,label:FABRICS[k].label}));
+/* بافت روی UV متری (برای قطعه‌های ساخته‌شده با کد): پراکنده + نرمال‌مپ واقعی پارچه */
+async function uvTex(id,contrast,tile,kind){ const k='uv'+id+contrast+tile+kind; if(C[k]) return C[k];
+  const img=await loadImg(`tex/${id}_${kind==='n'?'nor_gl':'diff'}_1k.jpg`);
+  const t=kind==='n'?tex(img,false,tile):tex(neutral(img,GREY,contrast),true,tile); return C[k]=t; }
+/* شنیل اسلاب: رشته‌های کوتاه و بلند افقی روشن‌تر/تیره‌تر روی زمینه پرزدار؛ تکرارشونده بدون درز */
+function slubTex(){ return C.slub??=(()=>{ const N=1024, c=document.createElement('canvas'); c.width=c.height=N; const x=c.getContext('2d');
+  let sd=11; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
+  const d=x.createImageData(N,N), a=d.data;   // پرز ریز
+  for(let i=0;i<N*N;i++){ const v=GREY-8+(rnd()-0.5)*22; a[i*4]=a[i*4+1]=a[i*4+2]=v; a[i*4+3]=255; }
+  x.putImageData(d,0,0);
+  const streak=(px,py,len,th,v,al)=>{ for(const ox of [0,-N,N]) for(const oy of [0,-N,N]){ x.strokeStyle=`rgba(${v},${v},${v},${al})`; x.lineWidth=th; x.lineCap='round';
+      x.beginPath(); x.moveTo(px+ox,py+oy); x.bezierCurveTo(px+ox+len*0.33,py+oy+(rnd()-0.5)*3,px+ox+len*0.66,py+oy+(rnd()-0.5)*3,px+ox+len,py+oy+(rnd()-0.5)*2); x.stroke(); } };
+  for(let i=0;i<700;i++){ const dark=rnd()<0.5; streak(rnd()*N,rnd()*N,30+rnd()*rnd()*200,2.5+rnd()*3,dark?Math.round(GREY-45-rnd()*25):Math.round(GREY+18+rnd()*18),0.22+rnd()*0.3); }
+  for(let i=0;i<3200;i++){ const dark=rnd()<0.35; streak(rnd()*N,rnd()*N,6+rnd()*26,3+rnd()*4,dark?Math.round(GREY-40-rnd()*20):Math.round(GREY+28+rnd()*20),0.3+rnd()*0.35); }   // نخ‌های ضخیم کوتاه (اسلاب و نوپ)
+  x.filter='blur(1.6px)'; x.drawImage(c,0,0); x.filter='none';   // نرم: نخ واقعی لبه تیز ندارد
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; })(); }
+/* لانه‌زنبوری ریز کوسن‌ها (مثل عکس): شش‌ضلعی‌های تیره با خط دور روشن‌تر */
+function hexTex(tile){ return C['hex'+tile]??=(()=>{ const N=512, c=document.createElement('canvas'); c.width=c.height=N; const x=c.getContext('2d');
+  x.fillStyle='rgb(150,150,150)'; x.fillRect(0,0,N,N); const r=N/30, w=Math.sqrt(3)*r;
+  for(let row=-1;row<=N/(1.5*r)+1;row++) for(let col=-1;col<=N/w+1;col++){ const cx=col*w+(row%2)*w/2, cy=row*1.5*r;
+    x.beginPath(); for(let k=0;k<6;k++){ const an=Math.PI/6+k*Math.PI/3; x.lineTo(cx+r*0.9*Math.cos(an),cy+r*0.9*Math.sin(an)); } x.closePath();
+    x.fillStyle='rgb(165,165,165)'; x.fill(); x.lineWidth=r*0.24; x.strokeStyle='rgb(225,225,225)'; x.stroke(); }
+  x.filter='blur(1.5px)'; x.drawImage(c,0,0); x.filter='none';
+  const d=x.getImageData(0,0,N,N), a=d.data; let sd=5; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
+  for(let i=0;i<a.length;i+=4){ const v=(rnd()-0.5)*30; a[i]+=v; a[i+1]+=v; a[i+2]+=v; } x.putImageData(d,0,0);   // پرز
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(1/tile,1/tile); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; })(); }
+/* نقش خال‌خالی کوسن (مثل عکس محصول): زمینه تیره با خال‌های روشن ریز در شبکه مورب */
+function dotsTex(tile){ return C['dots'+tile]??=(()=>{ const N=512, c=document.createElement('canvas'); c.width=c.height=N; const x=c.getContext('2d');
+  x.fillStyle='rgb(150,150,150)'; x.fillRect(0,0,N,N); const st=N/16;
+  for(let j=0;j<16;j++) for(let i=0;i<16;i++){ const cx=(i+(j%2)*0.5)*st, cy=j*st+st/2;
+    x.fillStyle='rgb(245,245,245)'; x.beginPath(); x.ellipse(cx,cy,st*0.2,st*0.16,0,0,Math.PI*2); x.fill(); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(1/tile,1/tile); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; })(); }
+
+/* انواع سطح؛ رنگ دلخواه. پارچه و چرم بدون سایه‌روشن اسکن (صاف و تمیز)، چوب با نرمال‌مپ اسکن برای ریزکاری کنده‌کاری */
 export const SURF={
-  async fabric(hex,M,{id='rough_linen',tile=0.22,sheen=0.7}={}){ const [map,nm]=await Promise.all([greyTex(id,1.1),scanNormal(M.normalMap)]);
-    const c=lin(hex); return triplanar(base(hex,{name:'fabric',map,normalMap:nm,roughness:0.95,sheen,sheenRoughness:0.45,sheenColor:c.clone().lerp(new THREE.Color('#fff'),0.3)}),tile,M.half); },
-  async velvet(hex,M){ const [map,nm]=await Promise.all([greyTex('velour_velvet',0.8),scanNormal(M.normalMap)]);
-    const c=lin(hex); return triplanar(base(hex,{name:'velvet',map,normalMap:nm,roughness:0.9,sheen:1,sheenRoughness:0.35,sheenColor:c.clone().lerp(new THREE.Color('#fff'),0.4)}),0.18,M.half); },
-  async leather(hex,M,{gloss=0.42}={}){ const nm=await scanNormal(M.normalMap);
-    return triplanar(base(hex,{name:'leather',map:leatherTex(),normalMap:nm,roughness:gloss,clearcoat:0.35,clearcoatRoughness:0.35,specularIntensity:0.7}),0.09,M.half); },
-  async wood(hex,M,{gloss=true}={}){ const [map,nm]=await Promise.all([greyTex('cherry_veneer',0.6),scanNormal(M.normalMap)]);
-    return triplanar(base(hex,{name:'wood',map,normalMap:nm,roughness:gloss?0.45:0.7,...(gloss?{clearcoat:1,clearcoatRoughness:0.08}:{})}),0.35,M.half); },
-  async paint(hex,M,{sheenFinish='satin'}={}){ const [map,nm]=await Promise.all([greyTex('cherry_veneer',0.25),scanNormal(M.normalMap)]);
-    return triplanar(base(hex,{name:'paint',map,normalMap:nm,roughness:sheenFinish==='gloss'?0.3:0.62,...(sheenFinish==='gloss'?{clearcoat:0.8,clearcoatRoughness:0.1}:{})}),0.4,M.half); },
-  metal(hex){ return new P({name:'metal',color:hex,metalness:1,roughness:0.3,vertexColors:true}); },
+  async upholstery(hex,M,kind='linen'){ const F=FABRICS[kind];
+    if(M.uv){ // قطعه با UV متری: بافت و نرمال‌مپ واقعی پارچه
+      if(F.leather) return base(hex,{name:'leather',map:(()=>{ const t=leatherTex().clone(); t.repeat.set(1/0.09,1/0.09); t.needsUpdate=true; return t; })(),roughness:0.6,specularIntensity:0.5,sheen:0.2,sheenColor:sheenOf(hex,0.2)});
+      const [map,nm]=await Promise.all([F.hex?hexTex(0.16):F.dots?dotsTex(0.22):F.proc==='slub'?(()=>{ const t=slubTex().clone(); t.repeat.set(1/F.tile,1/F.tile); t.needsUpdate=true; return t; })():uvTex(F.id,F.contrast,F.tile,'d'),uvTex(F.id,1,F.tile,'n')]);
+      return base(hex,{name:'fabric',map,normalMap:nm,normalScale:new THREE.Vector2(2,2),roughness:F.rough,sheen:F.sheen,sheenRoughness:0.45,sheenColor:sheenOf(hex,0.25)}); }
+    if(F.leather) return SURF.leather(hex,M);
+    const [map,nm]=await Promise.all([F.proc==='slub'?slubTex():greyTex(F.id,F.contrast),norTex(F.nid||F.id)]);
+    return triplanar(base(hex,{name:'fabric',map,normalMap:nm,normalScale:new THREE.Vector2(F.ns??1.4,F.ns??1.4),roughness:F.rough,specularIntensity:F.spec??0.3,sheen:F.sheen,sheenRoughness:0.6,sheenColor:sheenOf(hex,0.42)}),F.tile,M.half,false,F.ntile??F.tile); },
+  async leather(hex,M){ return triplanar(base(hex,{name:'leather',map:leatherTex(),roughness:0.6,specularIntensity:0.5,sheen:0.2,sheenRoughness:0.6,sheenColor:sheenOf(hex,0.2)}),0.09,M.half); },
+  /* چوب با رگه واقعی گردو. grain: شدت رگه (۱ = چوب رنگ‌شده، کم = رنگ روغنی روی چوب). finish: matte | satin | gloss */
+  async wood(hex,M,{grain=1,finish='satin',vert=true}={}){ const [map,nm]=await Promise.all([greyTex('natural_walnut_veneer',grain),M.normalMap?scanNormal(M.normalMap):null]);
+    const F={matte:{roughness:0.78},satin:{roughness:0.58,clearcoat:0.15,clearcoatRoughness:0.35},gloss:{roughness:0.42,clearcoat:0.5,clearcoatRoughness:0.15}}[finish];
+    return triplanar(base(hex,{name:'wood',userData:{uvNormal:true},map,...(nm?{normalMap:nm,normalScale:new THREE.Vector2(0.8,0.8)}:{}),specularIntensity:0.45,...F}),0.32,M.half,vert); },
+  metal(hex,rough=0.38){ return C['m'+hex+rough]??=new P({name:'metal',color:hex,metalness:1,roughness:rough,side:THREE.DoubleSide,shadowSide:THREE.DoubleSide}); },
+  inner(){ return C.inner??=greyTex('natural_walnut_veneer',0.6).then(map=>{ const t=map.clone(); t.repeat.set(1/0.3,1/0.3); t.needsUpdate=true;
+    return new P({name:'inner',color:lin('#c9a27a').multiplyScalar(1/GL),map:t,roughness:0.85}); }); },
+  /* داخل بدنه پشت کشوها؛ با رنگ دلخواه (همان رنگ بدنه، تیره‌تر چون نور کمتری می‌گیرد) */
+  cavity(hex='#2a1d14',dim=1){ return C['cav'+hex+dim]??=new P({name:'cavity',color:lin(hex).multiplyScalar(dim),roughness:0.9,side:THREE.BackSide}); },
 };
 /* ماده ساده و فوری تا بافت‌ها برسند */
 export function quickMat(hex,rough=0.7){ return new P({color:lin(hex).multiplyScalar(1/SHADE_K),roughness:rough,vertexColors:true}); }
 
+/* قطعه‌های ساخته‌شده با کد رنگ رأس ندارند؛ مواد ما vertexColors دارند → سفید یکنواخت (همان ضریب K) */
+const VC=new WeakSet();
+function withShade(g){ g.traverse(o=>{ const geo=o.geometry; if(!o.isMesh||!geo||geo.attributes.color||VC.has(geo)) return;
+  const n=geo.attributes.position.count; geo.setAttribute('color',new THREE.BufferAttribute(new Uint8Array(n*3).fill(Math.round(SHADE_K*255)),3,true)); VC.add(geo); }); }
+
 /* ---------- صفحه محصول اسکن‌شده ----------
-   D.parts: هر بخش مدل (اسلات) با گزینه‌های رنگ؛ اولین رنگ = رنگ اصلی خود مدل.
-   D.extra: گزینه‌های دیگر (مثلاً جنس تشک یا براقی). */
+   D.parts: بخش‌های رنگ‌پذیر {slot,q,label,items,surf(hex,S,M)}؛ اولین رنگ = رنگ اصلی خود مدل.
+   D.extra: گزینه‌های دیگر. D.slotMap/D.post/D.geoKey/D.moreMats برای قطعه‌های اضافه (کشو، دستگیره). */
 export function scanPage(M,D){
   const extra=D.extra||[];
   const options=[...D.parts.map(p=>({key:p.slot,q:p.q,label:p.label,type:'swatch',items:p.items})),...extra];
   const defaults={}; for(const o of options) defaults[o.key]=o.items[0].v;
+  const partMats=async S=>Object.fromEntries(await Promise.all(D.parts.flatMap(p=>[p.slot,...(p.also||[])].map(async sl=>[sl,await p.surf(S[p.slot],S,M,sl)]))));
   productPage({
     id:M.id, name:D.name, code:D.code, arTitle:D.name, sub:D.sub, options, defaults, exposure:D.exposure??0.6,
-    hint:'بکشید تا بچرخد · دو انگشت برای زوم و دیدن ریزکاری‌ها',
-    dims:()=>[M.dims[0],M.dims[2],M.dims[1]],
-    geoKey:()=>'scan',
+    hint:D.hint||'بکشید تا بچرخد · دو انگشت برای زوم و دیدن ریزکاری‌ها',
+    dims:S=>D.dims?D.dims(S):[M.dims[0],M.dims[2],M.dims[1]],
+    geoKey:S=>D.geoKey?D.geoKey(S):'scan',
     matKey:S=>options.map(o=>S[o.key]).join('|'),
-    quick:S=>Object.fromEntries(D.parts.map(p=>[p.slot,quickMat(S[p.slot],p.quickRough??0.7)])),
-    async materials(S){ return Object.fromEntries(await Promise.all(D.parts.map(async p=>[p.slot,await p.surf(S[p.slot],S,M)]))); },
+    quick:S=>({...Object.fromEntries(D.parts.flatMap(p=>[p.slot,...(p.also||[])].map(sl=>[sl,quickMat(S[p.slot],0.7)]))),...(D.quickMore?.(S)||{})}),
+    async materials(S){ return {...await partMats(S),...(D.moreMats?await D.moreMats(S):{})}; },
     summary:(S,L)=>[D.name,...options.map(o=>o.label+': '+L(o.key))].join('، '),
     arDefault:()=>false, arFile:()=>`ar/${M.id}.glb`, arVariants:[],
-    build:()=>buildScan(M,D.shade),
+    build:S=>{ const g=D.build?D.build(S):buildScan(M,D.slotMap); D.post?.(g,S,M); withShade(g); return g; },
   });
 }

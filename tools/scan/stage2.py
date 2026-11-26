@@ -5,7 +5,7 @@ S = '/tmp/scan-work/'
 CFG = {
   # front: direction in source space that becomes +Z ; length: real length of the long side (m)
   'sectional': dict(front='+x', length=2.60, slots=['fabric', 'legs', 'pillows']),
-  'chester':   dict(front='+x', length=2.24, slots=['leather', 'frame', 'pillows']),
+  'chester':   dict(front='+x', length=2.24, slots=['fabric', 'frame', 'pillows']),
   'chaise':    dict(front='+x', length=1.60, slots=['wood', 'seat']),
   'console':   dict(front='+x', length=1.38, slots=['paint']),
 }

@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="assets/site.css">
 <link rel="stylesheet" href="assets/product.css">
 <link rel="modulepreload" href="assets/models/chaise.js">
-<script type="module" src="lib/model-viewer.min.js"></script>
 </head>
 <body data-page="products">
 <script src="assets/layout.js"></script>
@@ -33,17 +32,20 @@
 
 <script type="module">
 import M from './assets/models/chaise.js';
-import { scanPage, SURF } from './assets/scan.js';
+import { scanPage, SURF, fabricItems } from './assets/scan.js';
 scanPage(M,{
   name:'نیمکت رکوکو کنده‌کاری', code:'bench-R160',
-  sub:'نیمکت شزلون با پشتی مشبک تمام کنده‌کاری و پایه‌های کابریول. رنگ چوب، رنگ و جنس تشک را انتخاب کنید.',
+  sub:'نیمکت شزلون با پشتی مشبک تمام کنده‌کاری و پایه‌های کابریول. رنگ چوب و جنس و رنگ تشک را انتخاب کنید.',
   parts:[
-    {slot:'wood',q:'w',label:'رنگ چوب',items:[{v:'#1a1915',label:'مشکی براق (رنگ اصلی)'},{v:'#3a2417',label:'گردویی'},{v:'#52200f',label:'گردویی قرمز'},{v:'#efe9df',label:'سفید صدفی'},{v:'#c9a45c',label:'طلایی'}],
-     quickRough:0.35, surf:(h,S,M)=>h==='#c9a45c'?SURF.metal(h):SURF.wood(h,M)},
+    {slot:'wood',q:'w',label:'رنگ چوب',items:[{v:'#141414',label:'مشکی براق (رنگ اصلی)'},{v:'#4a2e1c',label:'گردویی'},{v:'#6a2a14',label:'گردویی قرمز'},{v:'#efe9df',label:'سفید صدفی'},{v:'#c9a45c',label:'طلایی'}],
+     surf:(h,S,M)=>h==='#c9a45c'?SURF.metal(h):SURF.wood(h,M,{grain:h==='#141414'?0.3:h==='#efe9df'?0.5:1.1,finish:S.fin})},
     {slot:'seat',q:'s',label:'رنگ تشک',items:[{v:'#a42b22',label:'قرمز (رنگ اصلی)'},{v:'#17202b',label:'سرمه‌ای'},{v:'#80591a',label:'خردلی'},{v:'#24402f',label:'سبز'},{v:'#e3dbd0',label:'شیری'}],
-     quickRough:0.45, surf:(h,S,M)=>S.mat==='v'?SURF.velvet(h,M):SURF.leather(h,M)},
+     surf:(h,S,M)=>SURF.upholstery(h,M,S.mat)},
   ],
-  extra:[{key:'mat',q:'m',label:'جنس تشک',type:'seg',items:[{v:'l',label:'چرم'},{v:'v',label:'مخمل'}]}],
+  extra:[
+    {key:'mat',q:'m',label:'جنس تشک',type:'seg',items:fabricItems(['velvet','leather','chenille','linen','boucle'])},
+    {key:'fin',q:'g',label:'سطح چوب',type:'seg',items:[{v:'gloss',label:'براق (مثل عکس)'},{v:'satin',label:'نیمه‌مات'},{v:'matte',label:'مات'}]},
+  ],
 });
 </script>
 </body>

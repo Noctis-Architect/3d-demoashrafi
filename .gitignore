@@ -5,6 +5,9 @@
 a671.html
 tex/*
 !tex/scan/
+!tex/wool_boucle_diff_1k.jpg
+!tex/wool_boucle_nor_gl_1k.jpg
+!tex/natural_walnut_veneer_diff_1k.jpg
 !tex/cherry_veneer_*
 !tex/floral_jacquard_*
 !tex/terlenka_*
@@ -15,5 +18,6 @@ tex/*
 !tex/poly_wool_herringbone_diff_1k.jpg
 !tex/poly_wool_herringbone_nor_gl_1k.jpg
 private/
+__pycache__/
 # فایل‌های GLB منبع (بزرگ؛ مدل‌ها به کد تبدیل شده‌اند: assets/models)
 3d/

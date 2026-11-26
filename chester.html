@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="assets/site.css">
 <link rel="stylesheet" href="assets/product.css">
 <link rel="modulepreload" href="assets/models/chester.js">
-<script type="module" src="lib/model-viewer.min.js"></script>
 </head>
 <body data-page="products">
 <script src="assets/layout.js"></script>
@@ -19,7 +18,7 @@
   <div class="pd" id="pd"></div>
 
   <section class="info">
-    <div><h3>ساخت و جنس</h3><p>رویه چرم براق با دوخت کاپیتونی روی پشتی و دسته‌های لوله‌ای، کلاف و پایه‌های کابریول کنده‌کاری‌شده، چهار کوسن مخمل.</p></div>
+    <div><h3>ساخت و جنس</h3><p>رویه شنیل با دوخت کاپیتونی روی پشتی و دسته‌های لوله‌ای، کلاف و پایه‌های کابریول کنده‌کاری‌شده، چهار کوسن مخمل.</p></div>
     <div><h3>ابعاد</h3>
       <table class="specs">
         <tr><td>عرض</td><td data-spec="w"></td></tr>
@@ -33,18 +32,35 @@
 
 <script type="module">
 import M from './assets/models/chester.js';
-import { scanPage, SURF } from './assets/scan.js';
+import { scanPage, SURF, fabricItems } from './assets/scan.js';
+import { addPillows, PILLOW_COUNTS } from './assets/pillows.js';
+// بدنه، تشک، دسته‌ها و کلاف کنده‌کاری از فایل سه‌بعدی اصلی: سبک‌شده، زیر کوسن‌های اسکن بازسازی شده، نیمه چپِ تمیزتر قرینه شده (tools/scan/poisson_unpillow.py).
+// کوسن‌ها با کد: جابه‌جاشونده، تعداد دلخواه؛ حالت پیش‌فرض همان چهار کوسن و همان جای فایل.
+const PM={...M,half:1,uv:true};   // کوسن‌ها UV متری دارند
+// جلوی پشتی در ارتفاع کوسن‌ها (z بر حسب |x|، اندازه‌گیری از خود فایل)
+const BK=[-0.25,-0.247,-0.247,-0.252,-0.247,-0.246,-0.245,-0.241,-0.235,-0.228,-0.223,-0.218,-0.204,-0.195,-0.18,-0.156,-0.1];
+const backZ=x=>{ const t=Math.min(Math.abs(x),0.8)/0.05, i=Math.min(Math.floor(t),BK.length-2), f=t-i; return BK[i]+(BK[i+1]-BK[i])*f; };
+const seatFrontZ=x=>0.332+0.21*x*x;   // لبه جلوی نشیمن (قوس‌دار، از فایل)
 scanPage(M,{
   name:'کاناپه چستر رویال', code:'sofa-C224',
-  sub:'کاناپه سه‌نفره چستر با پشتی و دسته کاپیتونی و کلاف کنده‌کاری. رنگ چرم، کلاف و کوسن‌ها را انتخاب کنید.',
+  sub:'کاناپه سه‌نفره چستر با پشتی و دسته کاپیتونی و کلاف کنده‌کاری. جنس و رنگ رویه، رنگ کلاف، تعداد و رنگ کوسن‌ها را انتخاب کنید؛ کوسن‌ها را با کشیدن جابه‌جا کنید.',
+  hint:'کوسن‌ها را به هر طرف بکشید (روی نشیمن هم) · بکشید تا بچرخد',
   parts:[
-    {slot:'leather',q:'c',label:'چرم رویه',items:[{v:'#17202b',label:'سرمه‌ای براق (رنگ اصلی)'},{v:'#0e0e0f',label:'مشکی'},{v:'#4a2418',label:'قهوه‌ای کنیاکی'},{v:'#5b1a1c',label:'زرشکی'},{v:'#24402f',label:'سبز انگلیسی'},{v:'#8b6a4f',label:'عسلی'}],
-     quickRough:0.45, surf:(h,S,M)=>SURF.leather(h,M)},
-    {slot:'frame',q:'f',label:'کلاف و پایه‌ها',items:[{v:'#646972',label:'نقره‌ای دودی (رنگ اصلی)'},{v:'#c9a45c',label:'طلایی'},{v:'#0c0c0d',label:'مشکی براق'},{v:'#efe9df',label:'سفید صدفی'},{v:'#3a2417',label:'گردویی'}],
-     surf:(h,S,M)=>h==='#c9a45c'?SURF.metal(h):SURF.wood(h,M)},
-    {slot:'pillows',q:'p',label:'کوسن‌ها',items:[{v:'#282733',label:'مخمل بادمجانی (رنگ اصلی)'},{v:'#7a1c13',label:'زرشکی'},{v:'#80591a',label:'خردلی'},{v:'#1b2a40',label:'سرمه‌ای'},{v:'#d9cfc0',label:'شیری'}],
-     surf:(h,S,M)=>SURF.velvet(h,M)},
+    {slot:'fabric',also:['cushion'],q:'c',label:'رنگ رویه',items:[{v:'#15171c',label:'مشکی (مثل عکس)'},{v:'#17202b',label:'سرمه‌ای تیره (رنگ فایل)'},{v:'#4a2418',label:'قهوه‌ای کنیاکی'},{v:'#5b1a1c',label:'زرشکی'},{v:'#24402f',label:'سبز انگلیسی'},{v:'#8b6a4f',label:'عسلی'}],
+     surf:(h,S,M)=>SURF.upholstery(h,M,S.ft)},
+    {slot:'frame',q:'f',label:'کلاف و پایه‌ها',items:[{v:'#141414',label:'مشکی براق (مثل عکس)'},{v:'#646972',label:'نقره‌ای دودی'},{v:'#c9a45c',label:'طلایی'},{v:'#efe9df',label:'سفید صدفی'},{v:'#4a2e1c',label:'گردویی'}],
+     surf:(h,S,M)=>h==='#c9a45c'?SURF.metal(h):SURF.wood(h,M,{grain:h==='#4a2e1c'?1.1:0.3,finish:'gloss'})},
+    {slot:'pillows',q:'p',label:'رنگ کوسن‌ها',items:[{v:'#3a2c2c',label:'قهوه‌ای خال‌دار (مثل عکس)'},{v:'#2d2b37',label:'بادمجانی'},{v:'#7a1c13',label:'زرشکی'},{v:'#80591a',label:'خردلی'},{v:'#1b2a40',label:'سرمه‌ای'},{v:'#d9cfc0',label:'شیری'}],
+     surf:(h,S)=>SURF.upholstery(h,PM,S.pt)},
   ],
+  extra:[
+    {key:'ft',q:'ft',label:'جنس رویه',type:'seg',items:fabricItems(['slub','chenille','velvet','leather','linen'])},
+    {key:'pc',q:'pc',label:'کوسن‌ها',type:'seg',items:PILLOW_COUNTS},
+    {key:'pt',q:'pt',label:'جنس کوسن‌ها',type:'seg',items:fabricItems(['hex','dots','herringbone','velvet','leather'])},
+  ],
+  geoKey:S=>S.pc,
+  post:(g,S)=>addPillows(g,S.pc,{xmin:-0.75,xmax:0.75,back:backZ,seat:0.43,size:0.44,h:0.42,lean:0.3,off:0.09,inner:0.01,seatFront:seatFrontZ,
+    xs:{2:[-0.6,0.6],4:[-0.75,-0.42,0.445,0.75],6:[-0.75,-0.45,-0.15,0.15,0.45,0.75]}}),
 });
 </script>
 </body>

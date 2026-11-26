@@ -8,8 +8,7 @@
 <meta name="theme-color" content="#f7f4ef">
 <link rel="stylesheet" href="assets/site.css">
 <link rel="stylesheet" href="assets/product.css">
-<link rel="modulepreload" href="assets/models/sectional.js">
-<script type="module" src="lib/model-viewer.min.js"></script>
+
 </head>
 <body data-page="products">
 <script src="assets/layout.js"></script>
@@ -19,7 +18,7 @@
   <div class="pd" id="pd"></div>
 
   <section class="info">
-    <div><h3>ساخت و جنس</h3><p>بدنه پارچه‌ای با کوسن‌های پشتی پر، شزلون یکسره و چهار کوسن تزئینی نقش‌دار. پایه‌های چوب گردو.</p></div>
+    <div><h3>ساخت و جنس</h3><p>بدنه پارچه‌ای ماژولار با تشک و کوسن پشتی قیطان‌دار، شزلون یکسره و کوسن‌های تزئینی جابه‌جاشونده. پایه‌های مخروطی چوب گردو.</p></div>
     <div><h3>ابعاد</h3>
       <table class="specs">
         <tr><td>عرض</td><td data-spec="w"></td></tr>
@@ -32,19 +31,40 @@
 <script>siteFooter()</script>
 
 <script type="module">
-import M from './assets/models/sectional.js';
-import { scanPage, SURF } from './assets/scan.js';
+import { THREE } from './assets/product.js';
+import { scanPage, SURF, fabricItems } from './assets/scan.js';
+import { addPillows, PILLOW_COUNTS } from './assets/pillows.js';
+import { buildSectional, layoutWidth, DIM, setLeg } from './assets/sectional.js';
+import LegM from './assets/models/sectional-leg.js';
+import { buildScan } from './assets/scan.js';
+setLeg(buildScan(LegM).children[0]);   // پایه عیناً از فایل سه‌بعدی اصلی
+const M={id:'sectional',half:1,uv:true,slots:[]};   // تمام با کد (مبل بدون کنده‌کاری)
+const L=S=>({chaise:S.ch==='1',seats:+S.seats});
+const FAB=[{v:'#857f73',label:'طوسی گرم (رنگ اصلی)'},{v:'#c9bfae',label:'کرم'},{v:'#5d6470',label:'طوسی آبی'},{v:'#4a5442',label:'سبز زیتونی'},{v:'#2c2c2e',label:'ذغالی'},{v:'#8a5a44',label:'دارچینی'}];
 scanPage(M,{
   name:'مبل ال راحتی ساحل', code:'sofa-L260',
-  sub:'مبل ال سه‌نفره با شزلون یکسره و کوسن‌های تزئینی. رنگ پارچه بدنه، کوسن‌ها و پایه را انتخاب کنید.',
+  sub:'مبل ال ماژولار: سمت شزلون، تعداد نشیمن، جنس و رنگ پارچه، کوسن‌ها و پایه را انتخاب کنید. کوسن‌ها را با کشیدن جابه‌جا کنید.',
+  hint:'کوسن‌ها را بکشید تا جابه‌جا شوند · بکشید تا بچرخد',
   parts:[
-    {slot:'fabric',q:'f',label:'پارچه بدنه',items:[{v:'#857f73',label:'طوسی گرم (رنگ اصلی)'},{v:'#c9bfae',label:'کرم'},{v:'#5d6470',label:'طوسی آبی'},{v:'#4a5442',label:'سبز زیتونی'},{v:'#2c2c2e',label:'ذغالی'},{v:'#8a5a44',label:'دارچینی'}],
-     surf:(h,S,M)=>SURF.fabric(h,M,{id:'rough_linen',tile:0.2,sheen:0.25})},
-    {slot:'pillows',q:'p',label:'کوسن‌های تزئینی',items:[{v:'#a69a8a',label:'بژ نقش‌دار (رنگ اصلی)'},{v:'#c8a96b',label:'خردلی'},{v:'#7a2e2a',label:'زرشکی'},{v:'#2f3b4c',label:'سرمه‌ای'},{v:'#e6e0d6',label:'شیری'}],
-     surf:(h,S,M)=>SURF.fabric(h,M,{id:'poly_wool_herringbone',tile:0.16,sheen:0.15})},
-    {slot:'legs',q:'l',label:'پایه‌ها',items:[{v:'#2e2115',label:'گردویی تیره (رنگ اصلی)'},{v:'#0c0c0d',label:'مشکی'},{v:'#9a6038',label:'فندقی'},{v:'#c9a45c',label:'طلایی'}],
-     surf:(h,S,M)=>h==='#c9a45c'?SURF.metal(h):SURF.wood(h,M,{gloss:false})},
+    {slot:'fabric',also:['cushion','welt'],q:'f',label:'رنگ پارچه',items:FAB,surf:(h,S,M)=>SURF.upholstery(h,M,S.ft)},
+    {slot:'pillows',q:'p',label:'رنگ کوسن‌های تزئینی',items:[{v:'#a69a8a',label:'بژ (رنگ اصلی)'},{v:'#c8a96b',label:'خردلی'},{v:'#7a2e2a',label:'زرشکی'},{v:'#2f3b4c',label:'سرمه‌ای'},{v:'#e6e0d6',label:'شیری'}],
+     surf:(h,S,M)=>SURF.upholstery(h,M,S.pt)},
+    {slot:'legs',q:'l',label:'پایه‌ها',items:[{v:'#2e2115',label:'گردویی تیره (رنگ اصلی)'},{v:'#0c0c0d',label:'مشکی'},{v:'#8a5a36',label:'فندقی'},{v:'#c9a45c',label:'طلایی'}],
+     surf:h=>h==='#c9a45c'?SURF.metal(h):SURF.wood(h,LegM,{grain:1.1,finish:'matte'})},
   ],
+  extra:[
+    {key:'ch',q:'ch',label:'شزلون',type:'seg',items:[{v:'1',label:'دارد'},{v:'0',label:'ندارد (مبل راست)'}]},
+    {key:'side',q:'sd',label:'سمت شزلون',type:'seg',items:[{v:'L',label:'چپ'},{v:'R',label:'راست'}]},
+    {key:'seats',q:'n',label:'نشیمن کنار شزلون',type:'seg',items:[{v:'2',label:'دو نفره'},{v:'3',label:'سه نفره'},{v:'1',label:'یک نفره'}]},
+    {key:'pc',q:'pc',label:'کوسن‌های تزئینی',type:'seg',items:PILLOW_COUNTS},
+    {key:'ft',q:'ft',label:'جنس پارچه',type:'seg',items:fabricItems(['linen','boucle','chenille','velvet','leather'])},
+    {key:'pt',q:'pt',label:'جنس کوسن‌ها',type:'seg',items:fabricItems(['herringbone','linen','velvet','boucle'])},
+  ],
+  dims:S=>{ const l=L(S); return [layoutWidth(l),(l.chaise?DIM.zChaise:DIM.zFront)-DIM.zBack,0.865]; },
+  geoKey:S=>S.ch+S.side+S.seats+S.pc,
+  build:S=>{ const g=buildSectional(L(S)); g.position.z=-((L(S).chaise?DIM.zChaise:DIM.zFront)+DIM.zBack)/2; const o=new THREE.Group(); o.add(g); return o; },
+  post:(o,S)=>{ const g=o.children[0], [a,b]=g.userData.pillowRange; addPillows(g,S.pc,{xmin:a,xmax:b,back:-0.69,seat:DIM.seatTop});
+    if(S.side==='R') o.scale.x=-1; },
 });
 </script>
 </body>

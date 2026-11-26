@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="assets/site.css">
 <link rel="stylesheet" href="assets/product.css">
 <link rel="modulepreload" href="assets/models/console.js">
-<script type="module" src="lib/model-viewer.min.js"></script>
+<link rel="modulepreload" href="assets/models/console-medallion.js">
 </head>
 <body data-page="products">
 <script src="assets/layout.js"></script>
@@ -19,7 +19,7 @@
   <div class="pd" id="pd"></div>
 
   <section class="info">
-    <div><h3>ساخت و جنس</h3><p>رویه موج‌دار با لبه پروفیل، سه کشو با قاب برجسته، دامنه قوس‌دار با صدف منبت وسط، چهار پایه کابریول با برگ کنگری کنده‌کاری‌شده بالا و پایین.</p></div>
+    <div><h3>ساخت و جنس</h3><p>رویه موج‌دار با لبه پروفیل، دو کشوی کناری با لبه پایین قوس‌دار و یک کشوی کوچک وسط (داخل کشوها هم‌رنگ بدنه)، دامنه قوس‌دار با گل منبت وسط، چهار پایه کابریول با برگ کنگری کنده‌کاری‌شده و طلاکاری روی برجستگی‌ها.</p></div>
     <div><h3>ابعاد</h3>
       <table class="specs">
         <tr><td>عرض</td><td data-spec="w"></td></tr>
@@ -33,15 +33,38 @@
 
 <script type="module">
 import M from './assets/models/console.js';
-import { scanPage, SURF } from './assets/scan.js';
+import Med from './assets/models/console-medallion.js';
+import { scanPage, SURF, quickMat, buildScan } from './assets/scan.js';
+import { HANDLES, TRIMS } from './assets/hardware.js';
+import { buildConsoleBody, gildAttr, gildMat, trimCarve } from './assets/console.js';
+const PM={id:'console-code',half:1};   // قطعه‌های ساخته‌شده با کد (متری، بدون نرمال‌مپ اسکن)
+// g: شدت رگه چوب؛ رنگ‌های رنگ‌شده (پلی‌اورتان) تقریباً بدون رگه، فقط سایه خیلی محو چوب زیر رنگ
+const FIN=[{v:'#9aad8e',label:'سبز مریم‌گلی (رنگ اصلی)',g:0.05},{v:'#efe9df',label:'سفید صدفی',g:0.05},{v:'#1b1b1c',label:'مشکی',g:0.07},{v:'#2f3b4c',label:'سرمه‌ای',g:0.06},
+  {v:'#5a3a22',label:'گردویی',g:1.1},{v:'#8a5a36',label:'فندقی',g:1.1},{v:'#c79a6b',label:'راش طبیعی',g:1.1}];
+const gr=h=>FIN.find(f=>f.v===h).g;
+const GILD=[{v:'#d6b673',label:'طلاکاری (مثل عکس)'},{v:'#c4c6c8',label:'نقره‌کاری'},{v:'none',label:'بدون'}];
 scanPage(M,{
   name:'کنسول کلاسیک کنده‌کاری', code:'console-V138',
-  sub:'کنسول با پایه‌های کابریول کنده‌کاری‌شده و دامنه منبت. رنگ و براقی را انتخاب کنید.',
+  sub:'کنسول با سه کشوی بازشو و پایه‌های کابریول کنده‌کاری‌شده. رنگ چوب، سطح، مدل و رنگ دستگیره را انتخاب کنید؛ روی کشوها بزنید تا باز شوند.',
+  hint:'روی کشوها بزنید تا باز شوند · بکشید تا بچرخد',
   parts:[
-    {slot:'paint',q:'c',label:'رنگ',items:[{v:'#9aad8e',label:'سبز مریم‌گلی (رنگ اصلی)'},{v:'#efe9df',label:'سفید صدفی'},{v:'#0c0c0d',label:'مشکی'},{v:'#2f3b4c',label:'سرمه‌ای'},{v:'#3a2417',label:'گردویی'},{v:'#c9a45c',label:'طلایی'}],
-     surf:(h,S,M)=>h==='#c9a45c'?SURF.metal(h):SURF.paint(h,M,{sheenFinish:S.fin})},
+    // carve = پایه‌ها و کنده‌کاری‌های فایل اصلی؛ front/top = بدنه ساخته‌شده با کد
+    {slot:'carve',also:['front','top'],q:'c',label:'رنگ چوب',items:FIN,
+     surf:async(h,S,M,sl)=>sl==='carve'?(m=>S.gild==='none'?m:gildMat(m,S.gild))(await SURF.wood(h,M,{grain:gr(h),finish:S.fin,vert:true})):SURF.wood(h,PM,{grain:gr(h),finish:S.fin,vert:false})},
   ],
-  extra:[{key:'fin',q:'g',label:'سطح',type:'seg',items:[{v:'satin',label:'مات'},{v:'gloss',label:'براق'}]}],
+  extra:[
+    {key:'gild',q:'a',label:'کنده‌کاری‌ها',type:'seg',items:GILD},
+    {key:'fin',q:'g',label:'سطح',type:'seg',items:[{v:'satin',label:'نیمه‌مات'},{v:'matte',label:'مات'},{v:'gloss',label:'براق'}]},
+    {key:'handle',q:'h',label:'دستگیره',type:'seg',items:HANDLES},
+    {key:'trim',q:'t',label:'رنگ دستگیره',type:'swatch',items:TRIMS},
+  ],
+  geoKey:S=>S.handle,
+  post:(g,S)=>{ buildConsoleBody(g,S.handle); g.traverse(o=>{ if(o.name==='carve'){ trimCarve(o); gildAttr(o.geometry); } });
+    // گل منبت زیر کشوی وسط: کامل از فایل اصلی، نیمه چپ قرینه شده روی راست
+    const med=buildScan(Med).children[0]; med.name='medallion'; gildAttr(med.geometry); g.add(med); },
+  // داخل کشوها و بدنه = همان رنگ و سطح بدنه
+  quickMore:S=>({trim:SURF.metal(S.trim),inner:quickMat(S.carve,0.7),cavity:SURF.cavity(S.carve,0.45)}),
+  moreMats:async S=>({trim:SURF.metal(S.trim),inner:await SURF.wood(S.carve,PM,{grain:gr(S.carve),finish:S.fin,vert:false}),cavity:SURF.cavity(S.carve,0.45)}),
 });
 </script>
 </body>
