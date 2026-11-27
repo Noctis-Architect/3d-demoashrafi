@@ -21,3 +21,8 @@
 5. ساخت کد: `node encode.mjs /tmp/scan-work/s2/<id> ../../assets/models/<id>.js <id> tex/scan/<id>_normal.webp`
    و نرمال‌مپ: `/tmp/scan-work/s1/<id>_normal.png` → `tex/scan/<id>_normal.webp` (۲۰۴۸، webp کیفیت ۹۲)
 6. صفحه محصول: مثل `chaise.html` با `scanPage` از `assets/scan.js`.
+
+### نیمکت (chaise): اصلاح‌های موضعی روی خود فایل مدل
+- برآمدگی نوک‌تیز وسط تاج (از قرینه‌سازی): `node tools/scan/flatten_crest.mjs assets/models/chaise.js wood 0.022 0.80 0.5`
+- نوار پشت زیر نشیمن ساده و صاف مثل عکس: `node tools/scan/flatten_back_apron.mjs assets/models/chaise.js wood 0.6 0.41 0.455 -0.2945`
+  (هر دو فقط رأس‌های همان ناحیه را جابه‌جا می‌کنند؛ بقیه مدل و تقارن چپ/راست دست نمی‌خورد)
