@@ -16,7 +16,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('name'); ap.add_argument('--depth', type=int, default=10); ap.add_argument('--tris', type=int, default=160000)
 ap.add_argument('--smooth', type=int, default=0); ap.add_argument('--mirror', default='')
 ap.add_argument('--iron', action='append', default=[]); ap.add_argument('--iron-steps', type=int, default=300)
-ap.add_argument('--rail', type=float, default=0); ap.add_argument('--post-in', type=float, default=0); ap.add_argument('--hem', type=float, default=0.04); ap.add_argument('--crease', type=float, default=0); ap.add_argument('--box', type=float, default=0); ap.add_argument('--box-k', type=float, default=0.4); ap.add_argument('--hem-push', type=float, default=0.007); ap.add_argument('--cushion', default=''); ap.add_argument('--cushion-top', default='0.456,0.06'); ap.add_argument('--erode', type=int, default=0); ap.add_argument('--erode-post', type=int, default=0); ap.add_argument('--wood-holes', type=int, default=80); ap.add_argument('--post-top', type=float, default=0.56); ap.add_argument('--post', default='9,9')
+ap.add_argument('--rail', type=float, default=0); ap.add_argument('--post-in', type=float, default=0); ap.add_argument('--hem', type=float, default=0.04); ap.add_argument('--tuck', type=float, default=0); ap.add_argument('--tuck-band', type=float, default=0.12); ap.add_argument('--wood-from', default=''); ap.add_argument('--fill', type=float, default=0.2); ap.add_argument('--crease', type=float, default=0); ap.add_argument('--box', type=float, default=0); ap.add_argument('--box-k', type=float, default=0.4); ap.add_argument('--hem-push', type=float, default=0.007); ap.add_argument('--cushion', default=''); ap.add_argument('--cushion-top', default='0.456,0.06'); ap.add_argument('--erode', type=int, default=0); ap.add_argument('--erode-post', type=int, default=0); ap.add_argument('--wood-holes', type=int, default=80); ap.add_argument('--post-top', type=float, default=0.56); ap.add_argument('--post', default='9,9')
 ap.add_argument('--pw', type=float, default=4); ap.add_argument('--chan', type=float, default=0); ap.add_argument('--iso', type=float, default=0.08); ap.add_argument('--sharp', type=float, default=4); ap.add_argument('--relief', type=float, default=0); ap.add_argument('--relief-len', type=float, default=0.05); ap.add_argument('--flat', type=float, default=0); ap.add_argument('--center', default='0,0.15'); ap.add_argument('--push', type=float, default=0.012); ap.add_argument('--shade-blur', type=int, default=60)
 A = ap.parse_args(); name = A.name; POSTX, POSTZ = (float(v) for v in A.post.split(','))
 S = '/tmp/scan-work/s2/'; RAD = 0.02; KEEP = 0.02; ZONE = 0.12
@@ -94,6 +94,14 @@ F, Pl = by['fabric'], by['pillows']
 if A.mirror: F, Pl = mirror_pts(F, A.mirror), mirror_pts(Pl, A.mirror)
 
 # ---------- wood: rail band + arm-front posts only; no specks ----------
+if A.wood_from:   # wood (for seams / dropping fabric points on wood) from another labelling, e.g. seg2's clean split
+    _m = json.load(open(A.wood_from + '.json')); _b = open(A.wood_from + '.bin', 'rb').read(); _o = 0
+    for _s in _m['slots']:
+        _nv, _ni = _s['nv'], _s['ni']; _d = {}
+        for _k, _dt, _n in (('pos', np.float32, _nv * 3), ('nor', np.float32, _nv * 3), ('uv', np.float32, _nv * 2), ('shade', np.uint8, _nv), ('idx', np.uint32, _ni)):
+            _d[_k] = np.frombuffer(_b, _dt, _n, _o).copy(); _o += _d[_k].nbytes
+        if _s['slot'] == 'frame':
+            by['frame'] = dict(meta=_s, pos=_d['pos'].reshape(-1, 3), nor=_d['nor'].reshape(-1, 3), uv=_d['uv'].reshape(-1, 2), shade=_d['shade'], idx=_d['idx'].reshape(-1, 3))
 Wd = mirror_mesh(by['frame'], A.mirror) if A.mirror else by['frame']
 cw = Wd['pos'][Wd['idx']].mean(1)
 postw = (np.abs(cw[:, 0]) > POSTX) & (cw[:, 2] > POSTZ)
@@ -125,7 +133,7 @@ ms = ml.MeshSet(); ms.add_mesh(ml.Mesh(vertex_matrix=pts, v_normals_matrix=nrm))
 ms.generate_surface_reconstruction_screened_poisson(depth=A.depth, preclean=True, pointweight=A.pw, samplespernode=1.5)
 P = ms.current_mesh(); V = P.vertex_matrix(); Fc = P.face_matrix(); c = V[Fc].mean(1)
 d_scan = cKDTree(pts_all).query(c)[0]; d_pil = tp.query(c)[0]
-ok = (d_scan < KEEP) | ((d_pil < ZONE) & (d_scan < 0.2))
+ok = (d_scan < KEEP) | ((d_pil < ZONE) & (d_scan < A.fill))
 if A.rail: ok &= c[:, 1] > A.rail - 0.04          # rough cut; exact plane clip after decimation
 tw = cKDTree(Wd['pos'][np.unique(Wd['idx'][WOOD_KW].ravel())])
 ms2 = ml.MeshSet(); ms2.add_mesh(ml.Mesh(vertex_matrix=V, face_matrix=Fc[ok]))
@@ -341,7 +349,14 @@ if A.cushion:
         t_ = np.clip(d0 / rad, 0, 1); f_ = np.sin(np.pi * t_) ** 2 * (1 - t_) + (t_ < 0.5) * 0 ; f_ = np.sin(np.pi * t_) * (1 - t_) * 1.5
         N0 = smooth_attr(vnormals(P0, I0).astype(np.float64), I0, len(P0), 6); N0 /= np.maximum(np.linalg.norm(N0, axis=1, keepdims=True), 1e-9)
         P0 -= (N0 * (depth * f_)[:, None]).astype(np.float32)   # smoothed normals: tiny cut slivers can't spike
-    SEAMF = {'fabric': lambda P: np.clip(1 - tcb.query(P)[0] / 0.02, 0, 1), 'cushion': lambda P: np.clip(1 - cKDTree(cus_P[cb]).query(P)[0] / 0.025, 0, 1)}
+    # back edge (cushion against the backrest): a real tuck — deeper roll on the cushion, the back's base pulled in
+    bk = cb & (cus_P[:, 2] < zb(cus_P[:, 0]) + A.tuck_band); tbk = cKDTree(cus_P[bk])
+    for P0, I0, rad, depth in ((cus_P, cus_I, 0.04, A.tuck), (body_P, body_I, 0.03, A.tuck * 0.7)):
+        d0 = tbk.query(P0)[0]; t_ = np.clip(d0 / rad, 0, 1); f_ = np.sin(np.pi * t_) * (1 - t_) * 1.5
+        N0 = smooth_attr(vnormals(P0, I0).astype(np.float64), I0, len(P0), 6); N0 /= np.maximum(np.linalg.norm(N0, axis=1, keepdims=True), 1e-9)
+        P0 -= (N0 * (depth * f_)[:, None]).astype(np.float32)
+    SEAMF = {'fabric': lambda P: np.maximum(np.clip(1 - tcb.query(P)[0] / 0.02, 0, 1), 1.6 * np.clip(1 - tbk.query(P)[0] / 0.035, 0, 1)),
+             'cushion': lambda P: np.maximum(np.clip(1 - cKDTree(cus_P[cb]).query(P)[0] / 0.025, 0, 1), 1.6 * np.clip(1 - tbk.query(P)[0] / 0.04, 0, 1))}
 
 # ---------- seams: push the fabric in next to the wood; shading ----------
 fabs = []
@@ -360,7 +375,7 @@ for slot_name, V2, F2 in pieces:
     shade[tp.query(V2)[0] < ZONE] = np.median(F['shade'][keep])   # under the pillows the scan colour was pillow-shadowed
     shade = smooth_attr(shade, F2, len(V2), A.shade_blur)
     shade = shade * (1 - 0.2 * smooth_attr(wgt.astype(np.float32), F2, len(V2), 10))
-    if A.cushion: shade = shade * (1 - 0.3 * smooth_attr(SEAMF[slot_name](V2).astype(np.float32), F2, len(V2), 4))
+    if A.cushion: shade = shade * np.clip(1 - 0.3 * smooth_attr(SEAMF[slot_name](V2).astype(np.float32), F2, len(V2), 4), 0.35, 1)
     fabs.append(dict(meta=dict(F['meta'], slot=slot_name, nv=len(V2), ni=F2.size), pos=V2, nor=N2, uv=F['uv'][j], shade=np.clip(shade, 0, 255).astype(np.uint8), idx=F2))
     print(slot_name, 'tris', len(F2))
 

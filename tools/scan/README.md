@@ -16,7 +16,8 @@
    --chan/--flat: صاف‌کردن در جهت کانال‌های کاپیتونی / سطوح تخت (متر). --rail: ارتفاع لبه بالای ریل چوبی (درز صاف).
    --post: محدوده ستون‌های کنده‌کاری جلوی دسته (|x|,z) که دست‌نخورده می‌مانند. بررسی: رندر با پس‌زمینه سرخابی و حذف پشت‌رو (هر سوراخ دیده می‌شود).
 4c. کلاف دقیقاً از خود فایل (فقط نیمه چپ قرینه، برش صاف روی خط ریل): `python3 frame_from_scan.py /tmp/scan-work/s2/<id>_np /tmp/scan-work/s2/<id>_newlab left 0.249 0.94,0.40`
-   چستر: پارچه با `poisson_unpillow.py ... --rail 0.25 --hem 0.012 --hem-push 0.006 --push 0.004`، سپس encode با `RN=fabric,cushion`.
+   چستر: پارچه از برچسب‌های قدیمی + چوب برچسب جدید: `poisson_unpillow.py chester --wood-from /tmp/scan-work/s2/chester_newlab ... --crease 30 --box 0.05 --box-k 0.35 --tuck 0.025 --rail 0.25 --hem 0.012 --hem-push 0.006 --push 0.004`،
+   سپس `frame_from_scan.py ... left 0.249 0.94,0.40` و encode با `RN=fabric,cushion`.
 5. ساخت کد: `node encode.mjs /tmp/scan-work/s2/<id> ../../assets/models/<id>.js <id> tex/scan/<id>_normal.webp`
    و نرمال‌مپ: `/tmp/scan-work/s1/<id>_normal.png` → `tex/scan/<id>_normal.webp` (۲۰۴۸، webp کیفیت ۹۲)
 6. صفحه محصول: مثل `chaise.html` با `scanPage` از `assets/scan.js`.

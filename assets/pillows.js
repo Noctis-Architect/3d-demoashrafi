@@ -48,19 +48,44 @@ export const PILLOW_COUNTS=[{v:'4',label:'۴ کوسن'},{v:'2',label:'۲ کوس�
    xs: جای پیش‌فرض کوسن‌ها (اختیاری). کوسن‌ها با کشیدن جابه‌جا می‌شوند و روی قوس پشتی می‌مانند. */
 /* off: فاصله مرکز کوسن از جلوی پشتی؛ inner: جلوتر آمدن کوسن‌های وسط نسبت به کوسن‌های دو سر.
    seatFront (اختیاری، عدد یا تابع x): z لبه جلوی نشیمن → کوسن آزادانه روی نشیمن هم کشیده می‌شود و هرچه جلوتر بیاید خوابیده‌تر می‌شود. */
-export function addPillows(g,count,{xmin=-0.9,xmax=0.9,back=-0.62,seat=0.47,size=0.46,h=null,xs=null,lean=0.42,off=0.09,inner=0.07,seatFront=null,shape='soft'}={}){
+/* solids (اختیاری): {back:[مش‌ها], seat:[مش‌ها]} — سطح واقعی مبل (اسکن). یک بار با پرتو اندازه گرفته می‌شود و در جدول می‌ماند:
+   کوسن روی بالای تشک می‌نشیند، به خود پشتی تکیه می‌دهد و از دسته‌ها رد نمی‌شود (بدون کندی هنگام کشیدن). */
+export function addPillows(g,count,{xmin=-0.9,xmax=0.9,back=-0.62,seat=0.47,size=0.46,h=null,xs=null,lean=0.42,off=0.09,inner=0.07,seatFront=null,shape='soft',solids=null}={}){
   const H=h||size;
   const n=+count; if(!n) return;
   const B=typeof back==='function'?back:()=>back;
   xs=xs?.[n]||{2:[xmin,xmax],4:[xmin,xmin+0.4,xmax-0.4,xmax],6:[xmin,xmin+0.4,-0.22,0.22,xmax-0.4,xmax]}[n];
   const SF=seatFront==null?null:typeof seatFront==='function'?seatFront:()=>seatFront, T=H*0.42;
   const zBack=p=>B(p.position.x)+off+p.userData.front, zFront=p=>SF(p.position.x)-H/2-0.02;
-  const place=(p)=>{ const x=p.position.x, d=(B(x+0.01)-B(x-0.01))/0.02, yaw=-Math.atan(d), u=p.userData, t=u.t||0, e=t*t*(3-2*t);
+  const TH=H*(shape==='square'?0.34:0.42);
+  let S2=null;
+  if(solids){ g.updateMatrixWorld(true); const rc=new THREE.Raycaster(), o=new THREE.Vector3(), dv=new THREE.Vector3();
+    const cast=(ox,oy,oz,dx,dy,dz,list)=>{ g.localToWorld(o.set(ox,oy,oz)); dv.set(dx,dy,dz).transformDirection(g.matrixWorld); rc.set(o,dv); rc.far=3; const hh=rc.intersectObjects(list,false)[0]; return hh?g.worldToLocal(hh.point.clone()):null; };
+    const NXt=111, X0=-1.1, DX=0.02, NZt=26, Z0=-0.45, DZ=0.04, yP=seat+0.2;
+    const bk=new Float32Array(NXt), st=new Float32Array(NXt*NZt);
+    for(let i=0;i<NXt;i++){ const x=X0+i*DX, hb=cast(x,yP,1.6,0,0,-1,solids.back); bk[i]=hb?hb.z:back;
+      for(let j=0;j<NZt;j++){ const hs=cast(x,1.5,Z0+j*DZ,0,-1,0,solids.seat); st[i*NZt+j]=hs?hs.y:seat; } }
+    const armR=cast(0,seat+0.12,-0.05,1,0,0,solids.back), armL=cast(0,seat+0.12,-0.05,-1,0,0,solids.back);
+    const lin=(A,u)=>{ const i=Math.max(0,Math.min(A.length-2,Math.floor(u))), f=Math.max(0,Math.min(1,u-i)); return A[i]+(A[i+1]-A[i])*f; };
+    S2={ back:x=>lin(bk,(x-X0)/DX), seat:(x,z)=>{ const u=Math.max(0,Math.min(NXt-1.001,(x-X0)/DX)), w=Math.max(0,Math.min(NZt-1.001,(z-Z0)/DZ)), i=u|0, j=w|0, a=u-i, b=w-j;
+        const v=(ii,jj)=>st[ii*NZt+jj]; return (v(i,j)*(1-a)+v(i+1,j)*a)*(1-b)+(v(i,j+1)*(1-a)+v(i+1,j+1)*a)*b; },
+      armL:armL?armL.x:-9, armR:armR?armR.x:9 }; }
+  const place=(p)=>{ const u=p.userData, t=u.t||0, e=t*t*(3-2*t);
+    if(S2){ // روی سطح واقعی: تکیه به پشتی، نشسته روی تشک، داخل دسته‌ها
+      for(let it=0;it<2;it++){ const x=p.position.x, yaw=-Math.atan((S2.back(x+0.02)-S2.back(x-0.02))/0.04)+u.yaw*(1-e);
+        const half=0.5*(size*Math.abs(Math.cos(yaw))+TH*Math.abs(Math.sin(yaw)))+0.01;
+        p.position.x=Math.max(S2.armL+half,Math.min(S2.armR-half,x)); }
+      const x=p.position.x, yaw=-Math.atan((S2.back(x+0.02)-S2.back(x-0.02))/0.04), lb=lean+(1.5-lean)*e;
+      const zUp=S2.back(x)+TH*0.5*Math.cos(lb)+H*0.5*Math.sin(lb)*0.55-0.012+u.front;
+      const zc=SF?zUp+(SF(x)-H/2-0.03-zUp)*t:zUp, ys=S2.seat(x,zc);
+      p.position.z=zc; p.position.y=ys+(H*0.5*Math.cos(lb)+TH*0.5*Math.sin(lb))-0.015;
+      p.rotation.set(-lb,yaw+u.yaw*(1-e),u.roll*(1-e),'YXZ'); return; }
+    const x=p.position.x, d=(B(x+0.01)-B(x-0.01))/0.02, yaw=-Math.atan(d);
     p.position.z=SF?zBack(p)+(zFront(p)-zBack(p))*t:B(x)+off+u.front;
     p.position.y=seat+(H/2-0.02)*(1-e)+(T/2+0.04)*e;
     p.rotation.set(-(lean+(1.5-lean)*e),yaw+u.yaw*(1-e),u.roll*(1-e),'YXZ'); };
   // جلو/عقب: t=0 تکیه به پشتی، t=1 خوابیده لبه جلوی نشیمن
-  const depth=p=>p.position.z, setDepth=(p,z)=>{ const a=zBack(p), b=zFront(p); p.userData.t=Math.max(0,Math.min(1,(z-a)/Math.max(0.01,b-a))); };
+  const depth=p=>p.position.z, setDepth=(p,z)=>{ const a=S2?S2.back(p.position.x)+TH*0.5:zBack(p), b=zFront(p); p.userData.t=Math.max(0,Math.min(1,(z-a)/Math.max(0.01,b-a))); };
   // کوسن‌ها از هم رد نمی‌شوند: کوسن کشیده‌شده کنار کوسن دیگر می‌ایستد (روی پشتی کمی هم‌پوشانی مثل عکس مجاز است)
   const GX=size*0.66, GZ=0.22, lo=xmin-0.03, hi=xmax+0.03;
   const hits=p=>(p.parent?.children||[]).filter(o=>o!==p&&o.name==='pillow'&&Math.abs(o.position.x-p.position.x)<GX&&Math.abs(o.position.z-p.position.z)<GZ);
@@ -69,9 +94,9 @@ export function addPillows(g,count,{xmin=-0.9,xmax=0.9,back=-0.62,seat=0.47,size
       let nx=o.position.x+sgn*GX; if(nx<lo||nx>hi) nx=o.position.x-sgn*GX; p.position.x=Math.max(lo,Math.min(hi,nx)); place(p); }
     if(hits(p).length&&u.lastX!=null){ p.position.x=u.lastX; u.t=u.lastT; place(p); }
     u.lastX=p.position.x; u.lastT=u.t; };
-  xs.forEach(x=>{ const p=pillowMesh(size,H,H*(shape==='square'?0.34:0.42),shape); p.name='pillow';
+  xs.forEach(x=>{ const p=pillowMesh(size,H,TH,shape); p.name='pillow';
     const end=Math.abs(x)>Math.max(Math.abs(xmin),Math.abs(xmax))-0.05;
-    p.userData.front=end?0:inner; p.userData.yaw=end?-Math.sign(x)*0.35:Math.sign(x)*0.12; p.userData.roll=end?Math.sign(x)*0.06:-Math.sign(x)*0.04;
+    p.userData.front=end?0:inner; p.userData.yaw=end?-Math.sign(x)*(S2?0.55:0.35):Math.sign(x)*0.12; p.userData.roll=end?Math.sign(x)*0.06:-Math.sign(x)*0.04;
     p.position.x=x; place(p);
     p.userData.drag=SF?{axis:'xz',min:lo,max:hi,follow,depth,setDepth}:{axis:'x',min:lo,max:hi,follow};
     g.add(p); });
