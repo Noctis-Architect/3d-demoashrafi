@@ -16,7 +16,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('name'); ap.add_argument('--depth', type=int, default=10); ap.add_argument('--tris', type=int, default=160000)
 ap.add_argument('--smooth', type=int, default=0); ap.add_argument('--mirror', default='')
 ap.add_argument('--iron', action='append', default=[]); ap.add_argument('--iron-steps', type=int, default=300)
-ap.add_argument('--rail', type=float, default=0); ap.add_argument('--post-in', type=float, default=0); ap.add_argument('--cushion', default=''); ap.add_argument('--cushion-top', default='0.456,0.06'); ap.add_argument('--erode', type=int, default=0); ap.add_argument('--erode-post', type=int, default=0); ap.add_argument('--wood-holes', type=int, default=80); ap.add_argument('--post-top', type=float, default=0.56); ap.add_argument('--post', default='9,9')
+ap.add_argument('--rail', type=float, default=0); ap.add_argument('--post-in', type=float, default=0); ap.add_argument('--hem', type=float, default=0.04); ap.add_argument('--hem-push', type=float, default=0.007); ap.add_argument('--cushion', default=''); ap.add_argument('--cushion-top', default='0.456,0.06'); ap.add_argument('--erode', type=int, default=0); ap.add_argument('--erode-post', type=int, default=0); ap.add_argument('--wood-holes', type=int, default=80); ap.add_argument('--post-top', type=float, default=0.56); ap.add_argument('--post', default='9,9')
 ap.add_argument('--pw', type=float, default=4); ap.add_argument('--chan', type=float, default=0); ap.add_argument('--iso', type=float, default=0.08); ap.add_argument('--sharp', type=float, default=4); ap.add_argument('--relief', type=float, default=0); ap.add_argument('--relief-len', type=float, default=0.05); ap.add_argument('--flat', type=float, default=0); ap.add_argument('--center', default='0,0.15'); ap.add_argument('--push', type=float, default=0.012); ap.add_argument('--shade-blur', type=int, default=60)
 A = ap.parse_args(); name = A.name; POSTX, POSTZ = (float(v) for v in A.post.split(','))
 S = '/tmp/scan-work/s2/'; RAD = 0.02; KEEP = 0.02; ZONE = 0.12
@@ -170,7 +170,7 @@ Wd = submesh(Wd, Iw); print('wood tris', len(Iw))
 tw = cKDTree(Wd['pos'])
 ms2.meshing_decimation_quadric_edge_collapse(targetfacenum=A.tris, preservenormal=True, preserveboundary=True, optimalplacement=True, planarquadric=True)
 R = ms2.current_mesh(); V2 = R.vertex_matrix().astype(np.float32); F2 = R.face_matrix().astype(np.uint32)
-if A.rail: V2, F2, _ = clip(V2, F2, [], A.rail - 0.04, False)   # hem: straight edge just under the rail top
+if A.rail: V2, F2, _ = clip(V2, F2, [], A.rail - A.hem, False)   # hem: straight edge just under the rail top
 N2 = vnormals(V2, F2)
 _, j = cKDTree(F['pos']).query(V2)
 if (np.einsum('ij,ij->i', N2, F['nor'][j]) < 0).mean() > 0.5: F2 = F2[:, [0, 2, 1]].copy(); N2 = -N2
@@ -323,7 +323,7 @@ for slot_name, V2, F2 in pieces:
     hem = np.clip((A.rail + 0.005 - V2[:, 1]) / 0.015, 0, 1) * (dw < 0.06) if A.rail else 0 * wgt   # hem hangs just behind the rail
     postv = (np.abs(V2[:, 0]) > POSTX - 0.04) & (V2[:, 2] > POSTZ - 0.06) & (V2[:, 1] > A.rail)   # fabric right beside the carved posts sits fully behind them
     pz = np.clip(1 - np.maximum(POSTX - 0.04 - np.abs(V2[:, 0]), 0) / 0.06, 0, 1) * (V2[:, 2] > POSTZ - 0.1) * (V2[:, 1] > A.rail)   # no pushback at the posts: flush, never see-through
-    V2 = (V2 - N2 * (A.push * wgt * (1 - hem) * (1 - pz) + 0.007 * hem)[:, None]).astype(np.float32)
+    V2 = (V2 - N2 * (A.push * wgt * (1 - hem) * (1 - pz) + A.hem_push * hem)[:, None]).astype(np.float32)
     N2 = vnormals(V2, F2)
     # blurred scan AO (no wrinkle streaks) + soft crevices at the wood and the cushion seam
     _, j = cKDTree(F['pos']).query(V2)

@@ -40,6 +40,9 @@ shade = np.clip(shade, 0, 1.4)
 
 # triangle slot = majority of vertex labels
 tl = lab[idx]; tri = np.where(tl[:, 1] == tl[:, 2], tl[:, 1], tl[:, 0])
+import os
+if os.path.exists(S + 's1/' + name + '_flab.npy'):   # per-triangle labels from seg2.py (clean seams)
+    tri = np.load(S + 's1/' + name + '_flab.npy')[keep]
 out = dict(name=name, dims=np.round(pos.max(0) - pos.min(0), 4).tolist(), slots=[])
 blobs = []
 for k, sl in enumerate(C['slots']):
