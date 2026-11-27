@@ -20,6 +20,15 @@ if side:
     p, nr = d['pos'][used], d['nor'][used]
     d = dict(pos=np.r_[p, p * [-1, 1, 1]].astype(np.float32), nor=np.r_[nr, nr * [-1, 1, 1]].astype(np.float32),
              uv=np.r_[d['uv'][used], d['uv'][used]], shade=np.r_[d['shade'][used], d['shade'][used]], idx=np.r_[I, I[:, [0, 2, 1]] + n].astype(np.uint32))
+RAIL = float(sys.argv[4]) if len(sys.argv) > 4 else 0
+if RAIL:   # cut the scanned frame exactly on the rail line (outside the arm-front posts): straight edge, no zigzag
+    sys.path.insert(0, __file__.rsplit('/', 1)[0]); import importlib.util
+    src = open(__file__.rsplit('/', 1)[0] + '/poisson_wood.py').read(); ns = {'np': np}
+    exec(src[src.index('def clip('):src.index('for s, d in slots:')], ns)
+    POSTX, POSTZ = (float(v) for v in (sys.argv[5].split(',') if len(sys.argv) > 5 else ('9', '9')))
+    cc = d['pos'][d['idx']].mean(1); post = (np.abs(cc[:, 0]) > POSTX) & (cc[:, 2] > POSTZ)
+    P2, I2, (n2, u2, s2) = ns['clip'](d['pos'], d['idx'], [d['nor'], d['uv'], d['shade'].astype(np.float64)[:, None]], RAIL, True, skip=post)
+    d = dict(pos=P2, nor=n2.astype(np.float32), uv=u2.astype(np.float32), shade=np.clip(s2[:, 0], 0, 255).astype(np.uint8), idx=I2)
 fr = (dict(s, nv=len(d['pos']), ni=d['idx'].size), d)
 out = [(s_, d_) for s_, d_ in B if s_['slot'] != 'frame'] + [fr]
 with open(body + '.bin', 'wb') as f:

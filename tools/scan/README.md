@@ -15,7 +15,7 @@
    → خروجی `s2/<id>_np` (برای مرحله ۵ همین را بدهید). سپس سبک‌سازی: `lite.mjs` با frame=0.65 fabric=0.75.
    --chan/--flat: صاف‌کردن در جهت کانال‌های کاپیتونی / سطوح تخت (متر). --rail: ارتفاع لبه بالای ریل چوبی (درز صاف).
    --post: محدوده ستون‌های کنده‌کاری جلوی دسته (|x|,z) که دست‌نخورده می‌مانند. بررسی: رندر با پس‌زمینه سرخابی و حذف پشت‌رو (هر سوراخ دیده می‌شود).
-4c. کلاف دقیقاً از خود فایل (فقط نیمه چپ قرینه): `python3 frame_from_scan.py /tmp/scan-work/s2/<id>_np /tmp/scan-work/s2/<id>_newlab left`
+4c. کلاف دقیقاً از خود فایل (فقط نیمه چپ قرینه، برش صاف روی خط ریل): `python3 frame_from_scan.py /tmp/scan-work/s2/<id>_np /tmp/scan-work/s2/<id>_newlab left 0.249 0.94,0.40`
    چستر: پارچه با `poisson_unpillow.py ... --rail 0.25 --hem 0.012 --hem-push 0.006 --push 0.004`، سپس encode با `RN=fabric,cushion`.
 5. ساخت کد: `node encode.mjs /tmp/scan-work/s2/<id> ../../assets/models/<id>.js <id> tex/scan/<id>_normal.webp`
    و نرمال‌مپ: `/tmp/scan-work/s1/<id>_normal.png` → `tex/scan/<id>_normal.webp` (۲۰۴۸، webp کیفیت ۹۲)

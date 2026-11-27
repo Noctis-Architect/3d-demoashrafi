@@ -23,17 +23,17 @@ export function pillowGeo(W=0.46,H=0.46,T=0.2,{ex=2.6,pw=0.42}={}){ const key=[W
 
 /* کوسن تزئینی واقعی (مثل عکس محصول): دو رویه دوخته با قیطان دور درز، گوشه‌های کشیده و کم‌پشت، چین ریز گوشه‌ها، UV متری */
 const PG={};
-/* shape 'square': مربعی‌تر مثل کوسن‌های چستر در عکس — گوشه پرتر، رویه صاف‌تر، لبه تیزتر، بدون چین گوشه */
+/* shape 'square': مثل کوسن‌های چستر در عکس و فایل سه‌بعدی — دور مربعی با گوشه‌های نوک‌تیز، وسط پف‌دار و لبه‌ها تا درز نازک (نه مکعبی) */
 export function pillowMesh(w=0.45,h=0.45,t=0.17,shape='soft'){ const key=[w,h,t,shape].join(); const SQ=shape==='square';
-  const G=PG[key]??=(()=>{ const n=44, ex=SQ?16:7;
+  const G=PG[key]??=(()=>{ const n=44, ex=SQ?11:7;
     const rho=f=>Math.pow(Math.pow(Math.abs(Math.cos(f)),ex)+Math.pow(Math.abs(Math.sin(f)),ex),-1/ex);
-    const outline=(f,r)=>{ const c=Math.cos(f), s_=Math.sin(f), q=r*rho(f), pinch=(SQ?0.018:0.05)*r*r*(1-Math.pow(Math.abs(c*s_)*2,0.5));
+    const outline=(f,r)=>{ const c=Math.cos(f), s_=Math.sin(f), q=r*rho(f), pinch=(SQ?0.06:0.05)*r*r*(1-Math.pow(Math.abs(c*s_)*2,0.5));
       return [q*c*w/2*(1-pinch), q*s_*h/2*(1-pinch)]; };
     const pos=[],uv=[],idx=[];
     for(const sd of [1,-1]){ const base=pos.length/3;
       for(let i=0;i<=n;i++) for(let j=0;j<=n;j++){ const u=-1+2*j/n, v=-1+2*i/n, r=Math.max(Math.abs(u),Math.abs(v)), f=Math.atan2(v,u);
         const [x,y]=outline(f,r), cs=Math.abs(Math.cos(f)*Math.sin(f))*2;
-        let th=SQ?Math.pow(Math.max(0,1-Math.pow(r,7)),0.42)*(1-0.12*cs*cs*r*r):Math.pow(Math.max(0,1-Math.pow(r,3.2)),0.62)*(1-0.32*cs*cs*r*r);
+        let th=SQ?Math.pow(Math.max(0,1-Math.pow(r,2.6)),0.55)*(1-0.22*cs*cs*r*r):Math.pow(Math.max(0,1-Math.pow(r,3.2)),0.62)*(1-0.32*cs*cs*r*r);
         th*=1+0.07*(-y/(h/2)); if(!SQ) th+=0.025*cs*cs*Math.pow(r,4)*Math.sin(22*(Math.abs(u)-Math.abs(v)))*(1-r);
         pos.push(x,y,sd*t/2*th*(sd>0?1:0.9)); uv.push(x+0.5,y+0.5); }
       for(let i=0;i<n;i++) for(let j=0;j<n;j++){ const p=base+i*(n+1)+j,q=p+n+1; sd>0?idx.push(p,p+1,q,p+1,q+1,q):idx.push(p,q,p+1,p+1,q,q+1); } }
@@ -69,7 +69,7 @@ export function addPillows(g,count,{xmin=-0.9,xmax=0.9,back=-0.62,seat=0.47,size
       let nx=o.position.x+sgn*GX; if(nx<lo||nx>hi) nx=o.position.x-sgn*GX; p.position.x=Math.max(lo,Math.min(hi,nx)); place(p); }
     if(hits(p).length&&u.lastX!=null){ p.position.x=u.lastX; u.t=u.lastT; place(p); }
     u.lastX=p.position.x; u.lastT=u.t; };
-  xs.forEach(x=>{ const p=pillowMesh(size,H,H*0.42,shape); p.name='pillow';
+  xs.forEach(x=>{ const p=pillowMesh(size,H,H*(shape==='square'?0.34:0.42),shape); p.name='pillow';
     const end=Math.abs(x)>Math.max(Math.abs(xmin),Math.abs(xmax))-0.05;
     p.userData.front=end?0:inner; p.userData.yaw=end?-Math.sign(x)*0.35:Math.sign(x)*0.12; p.userData.roll=end?Math.sign(x)*0.06:-Math.sign(x)*0.04;
     p.position.x=x; place(p);

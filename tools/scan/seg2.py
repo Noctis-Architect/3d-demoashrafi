@@ -59,6 +59,13 @@ for it in range(2):
         l = comps(f == k); cnt = np.bincount(l[f == k], minlength=l.max() + 1)
         small = (f == k) & (cnt[l] < CFG['mn']); f[small] = 1 - k
 f[~woodzone] = 0                                     # islands can't create wood on the upholstery
+f[fc[:, 1] < rail] = 1                               # the whole rail band is wood: straight top line, no fabric gaps on it
+# post edges: a few rounds of neighbour majority (straightens the triangle-level zigzag)
+post = (np.abs(fc[:, 0]) > px) & (fc[:, 2] > pz) & (fc[:, 1] >= rail)
+Au = sp.csr_matrix((np.ones(2 * len(a)), (np.r_[a, b], np.r_[b, a])), shape=(nf, nf))
+for _ in range(6):
+    votes = Au @ (f == 1).astype(float); tot = np.asarray(Au.sum(1)).ravel()
+    f = np.where(post, np.where(votes > tot / 2, 1, np.where(votes < tot / 2, 0, f)), f)
 f[pil] = 2
 np.save(S + name + '_flab.npy', f)
 print(name, 'faces wood %.3f fabric %.3f pillows %.3f' % ((f == 1).mean(), (f == 0).mean(), (f == 2).mean()))
