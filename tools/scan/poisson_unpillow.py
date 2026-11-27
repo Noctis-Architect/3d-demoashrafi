@@ -16,7 +16,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('name'); ap.add_argument('--depth', type=int, default=10); ap.add_argument('--tris', type=int, default=160000)
 ap.add_argument('--smooth', type=int, default=0); ap.add_argument('--mirror', default='')
 ap.add_argument('--iron', action='append', default=[]); ap.add_argument('--iron-steps', type=int, default=300)
-ap.add_argument('--rail', type=float, default=0); ap.add_argument('--post-in', type=float, default=0); ap.add_argument('--hem', type=float, default=0.04); ap.add_argument('--hem-push', type=float, default=0.007); ap.add_argument('--cushion', default=''); ap.add_argument('--cushion-top', default='0.456,0.06'); ap.add_argument('--erode', type=int, default=0); ap.add_argument('--erode-post', type=int, default=0); ap.add_argument('--wood-holes', type=int, default=80); ap.add_argument('--post-top', type=float, default=0.56); ap.add_argument('--post', default='9,9')
+ap.add_argument('--rail', type=float, default=0); ap.add_argument('--post-in', type=float, default=0); ap.add_argument('--hem', type=float, default=0.04); ap.add_argument('--crease', type=float, default=0); ap.add_argument('--box', type=float, default=0); ap.add_argument('--box-k', type=float, default=0.4); ap.add_argument('--hem-push', type=float, default=0.007); ap.add_argument('--cushion', default=''); ap.add_argument('--cushion-top', default='0.456,0.06'); ap.add_argument('--erode', type=int, default=0); ap.add_argument('--erode-post', type=int, default=0); ap.add_argument('--wood-holes', type=int, default=80); ap.add_argument('--post-top', type=float, default=0.56); ap.add_argument('--post', default='9,9')
 ap.add_argument('--pw', type=float, default=4); ap.add_argument('--chan', type=float, default=0); ap.add_argument('--iso', type=float, default=0.08); ap.add_argument('--sharp', type=float, default=4); ap.add_argument('--relief', type=float, default=0); ap.add_argument('--relief-len', type=float, default=0.05); ap.add_argument('--flat', type=float, default=0); ap.add_argument('--center', default='0,0.15'); ap.add_argument('--push', type=float, default=0.012); ap.add_argument('--shade-blur', type=int, default=60)
 A = ap.parse_args(); name = A.name; POSTX, POSTZ = (float(v) for v in A.post.split(','))
 S = '/tmp/scan-work/s2/'; RAD = 0.02; KEEP = 0.02; ZONE = 0.12
@@ -246,7 +246,15 @@ def iron_relief(V, Fi, lchan, lflat, lbase, gain):
         W = sp.csr_matrix((np.r_[w, w], (np.r_[i, j], np.r_[j, i])), shape=(n, n)); L = sp.diags(np.asarray(W.sum(1)).ravel()) - W
         Mv = np.ones(n); Mv[bnd] = 1e6; return spsolve((sp.diags(Mv) + L).tocsc(), Mv[:, None] * rhs if rhs.ndim > 1 else Mv * rhs)
     l2 = np.maximum(((V[j] - V[i]) ** 2).sum(1), 1e-10)
-    Vb = solve(lbase ** 2 / l2, V)
+    # crease-aware: little coupling across sharp edges (cushion edges, piping) so they stay crisp
+    N0 = vnormals(V.astype(np.float32), Fi).astype(np.float64)
+    N0 = smooth_attr(N0, Fi, n, 3); N0 /= np.maximum(np.linalg.norm(N0, axis=1, keepdims=True), 1e-9)
+    crease = ((1 + np.clip((N0[i] * N0[j]).sum(1), -1, 1)) / 2) ** A.crease
+    if A.cushion:   # only on the seat cushion (above its bottom seam); elsewhere the scan's small creases must still be ironed
+        yb_ = float(A.cushion.split(',')[0]); xin_ = float(A.cushion.split(',')[1])
+        inc = (np.abs(V[:, 0]) < xin_ + 0.02) & (V[:, 1] > yb_ + 0.01) & (V[:, 1] < 0.52) & (V[:, 2] > -0.2)
+        crease = np.where(inc[i] & inc[j], crease, 1.0)
+    Vb = solve(lbase ** 2 / l2 * crease, V)
     Nb = vnormals(Vb.astype(np.float32), Fi).astype(np.float64)
     d = ((V - Vb) * Nb).sum(1)
     cx, cz = (float(v) for v in A.center.split(','))
@@ -257,7 +265,7 @@ def iron_relief(V, Fi, lchan, lflat, lbase, gain):
     e = Vb[j] - Vb[i]; el = np.sqrt(np.maximum((e * e).sum(1), 1e-12))
     a = 0.5 * (np.abs((e * u[i]).sum(1)) + np.abs((e * u[j]).sum(1))) / el
     fz = 0.5 * (flat[i].astype(float) + flat[j])
-    w = (fz * lflat ** 2 + (1 - fz) * lchan ** 2 * (a ** A.sharp + ISO)) / l2
+    w = (fz * lflat ** 2 + (1 - fz) * lchan ** 2 * (a ** A.sharp + ISO)) / l2 * crease
     df = solve(w, d)
     g = 1 + (gain - 1) * smooth_attr((~flat).astype(np.float64), Fi, n, 15)
     return (Vb + (g * df)[:, None] * Nb).astype(np.float32)
@@ -300,6 +308,27 @@ if A.cushion:
     body_I = islands(body_I, len(body_P), 500); body_P, body_I = merge([(body_P, body_I)])
     cus_P, cus_I = merge([(cus_P, cus_I)])
     cus_I = islands(cus_I, len(cus_P), 500); cus_P, cus_I = merge([(cus_P, cus_I)])
+    if A.box:
+        # square up the cushion's front corners (photo: thick box cushion, small edge radius). In the cross-section
+        # u = depth behind the front face, v = distance from the top (or bottom) face; corner points move toward the corner.
+        R, k = A.box, A.box_k
+        bx = np.linspace(-xin, xin, 41); xi = np.clip(np.digitize(cus_P[:, 0], bx), 1, 40)
+        zf = np.array([cus_P[xi == b_, 2].max() if (xi == b_).any() else np.nan for b_ in range(1, 41)])
+        fr = cus_P[:, 2] > np.interp(cus_P[:, 0], (bx[:-1] + bx[1:]) / 2, zf) - 0.12
+        yt = np.array([cus_P[(xi == b_) & fr, 1].max() if ((xi == b_) & fr).any() else np.nan for b_ in range(1, 41)])
+        cx_ = (bx[:-1] + bx[1:]) / 2; ok_ = ~np.isnan(zf) & ~np.isnan(yt)
+        ZF = np.interp(cus_P[:, 0], cx_[ok_], zf[ok_]); YT = np.interp(cus_P[:, 0], cx_[ok_], yt[ok_])
+        u = ZF - cus_P[:, 2]; vt = YT - cus_P[:, 1]; vb = cus_P[:, 1] - yb
+        sm = lambda t: np.clip(t, 0, 1) ** 2 * (3 - 2 * np.clip(t, 0, 1))
+        Eb = np.sort(np.r_[cus_I[:, [0, 1]], cus_I[:, [1, 2]], cus_I[:, [2, 0]]], 1); ub, cb_ = np.unique(Eb, axis=0, return_counts=True)
+        bnd_v = np.unique(ub[cb_ == 1].ravel()); keepE = sm(cKDTree(cus_P[bnd_v]).query(cus_P)[0] / 0.015)   # seam verts stay -> no slit
+        for v_, sgn in ((vt, -1), (vb, 1)):
+            m_ = (u < R) & (v_ < R) & (u >= 0)
+            f_ = (1 - sm(np.maximum(u, v_) / R)) * m_ * keepE   # fade out at the corner zone's edge and at the seam
+            nu = u * (1 - (1 - k) * f_); nv = v_ * (1 - (1 - k) * f_)
+            cus_P[:, 2] = np.where(m_, ZF - nu, cus_P[:, 2])
+            cus_P[:, 1] = np.where(m_, (YT - nv) if sgn < 0 else (yb + nv), cus_P[:, 1])
+            u = ZF - cus_P[:, 2]; vt = YT - cus_P[:, 1]; vb = cus_P[:, 1] - yb
     pieces = [('fabric', body_P, body_I), ('cushion', cus_P, cus_I)]
     print('cushion tris', len(cus_I), 'body tris', len(body_I))
     # seam groove: the cushion edge rolls under, the body tucks in next to it

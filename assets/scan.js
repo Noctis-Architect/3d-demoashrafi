@@ -53,7 +53,7 @@ function triplanar(mat,tile,half,vert=false,ntile=tile){
   diffuseColor*=triS; triL=triS.g*${(1/GL).toFixed(4)};
 #endif`);
     // پارچه تیره: بافت روی پرز (sheen) هم اثر می‌گذارد — روی مشکی، نخ و پرز فقط از درخشش پرز دیده می‌شود
-    if(mat.sheen>0) sh.fragmentShader=sh.fragmentShader.replace('#include <lights_physical_fragment>','#include <lights_physical_fragment>\n#ifdef USE_SHEEN\n  material.sheenColor*=clamp(pow(triL,2.2),0.0,3.0);\n#endif');
+    if(mat.sheen>0) sh.fragmentShader=sh.fragmentShader.replace('#include <lights_physical_fragment>','#include <lights_physical_fragment>\n#ifdef USE_SHEEN\n  material.sheenColor*=clamp(pow(triL,3.0),0.0,3.5);\n#endif');
     if(triN) sh.fragmentShader=sh.fragmentShader.replace('#include <normal_fragment_maps>',`{
   vec3 n0=normalize(vTriN); vec3 tw=pow(abs(n0),vec3(4.0)); tw/=tw.x+tw.y+tw.z; vec3 q=vTriP*triKN;
   vec3 tX=texture2D(normalMap,q.zy).xyz*2.0-1.0, tY=texture2D(normalMap,q.xz).xyz*2.0-1.0, tZ=texture2D(normalMap,q.xy).xyz*2.0-1.0;
@@ -98,7 +98,7 @@ export const FABRICS={
   leather:    {label:'چرم',       leather:true},
 };
 /* مثل عکس محصول: شنیل با راه‌های نامنظم افقی (اسلاب) برای رویه، و نقش لانه‌زنبوری ریز برای کوسن‌ها — هر دو با کد ساخته می‌شوند */
-FABRICS.slub={label:'شنیل راه‌راه (مثل عکس)',id:'terlenka',nid:'terlenka',proc:'slub',tile:0.3,ntile:0.06,ns:2.4,sheen:1,rough:1,spec:0.12};
+FABRICS.slub={label:'شنیل راه‌راه (مثل عکس)',id:'terlenka',nid:'terlenka',proc:'slub',tile:0.3,ntile:0.06,ns:2.8,sheen:0.4,sr:0.85,sc:0.3,rough:1,spec:0.08};
 FABRICS.hex={label:'لانه‌زنبوری (مثل عکس)',id:'terlenka',hex:true,tile:0.2,contrast:0.9,sheen:0.4,rough:0.88};
 FABRICS.dots={label:'نقش‌دار',id:'terlenka',tile:0.2,contrast:0.9,sheen:0.35,rough:0.9,dots:true};
 export const fabricItems=keys=>keys.map(k=>({v:k,label:FABRICS[k].label}));
@@ -167,7 +167,7 @@ export const SURF={
       return base(hex,{name:'fabric',map,normalMap:nm,normalScale:new THREE.Vector2(2,2),roughness:F.rough,sheen:F.sheen,sheenRoughness:0.45,sheenColor:sheenOf(hex,0.25)}); }
     if(F.leather) return SURF.leather(hex,M);
     const [map,nm]=F.proc==='boucle'?[boucleTex().map,boucleTex().nor]:await Promise.all([F.proc==='slub'?slubTex():greyTex(F.id,F.contrast),norTex(F.nid||F.id)]);
-    return triplanar(base(hex,{name:'fabric',map,normalMap:nm,normalScale:new THREE.Vector2(F.ns??1.4,F.ns??1.4),roughness:F.rough,specularIntensity:F.spec??0.3,sheen:F.sheen,sheenRoughness:0.6,sheenColor:sheenOf(hex,0.42)}),F.tile,M.half,false,F.ntile??F.tile); },
+    return triplanar(base(hex,{name:'fabric',map,normalMap:nm,normalScale:new THREE.Vector2(F.ns??1.4,F.ns??1.4),roughness:F.rough,specularIntensity:F.spec??0.3,sheen:F.sheen,sheenRoughness:F.sr??0.6,sheenColor:sheenOf(hex,F.sc??0.42)}),F.tile,M.half,false,F.ntile??F.tile); },
   async leather(hex,M){ return triplanar(base(hex,{name:'leather',map:leatherTex(),roughness:0.6,specularIntensity:0.5,sheen:0.2,sheenRoughness:0.6,sheenColor:sheenOf(hex,0.2)}),0.09,M.half); },
   /* چوب با رگه واقعی گردو. grain: شدت رگه (۱ = چوب رنگ‌شده، کم = رنگ روغنی روی چوب). finish: matte | satin | gloss */
   async wood(hex,M,{grain=1,finish='satin',vert=true}={}){ const [map,nm]=await Promise.all([greyTex('natural_walnut_veneer',grain),M.normalMap?scanNormal(M.normalMap):null]);
