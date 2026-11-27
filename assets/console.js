@@ -122,18 +122,24 @@ function bodyGeo(){ if(GEO) return GEO; const G={apron:[],fronts:[]}, gp=C.gap;
   for(const D of DRAWERS) G.fronts.push(bentSlab(drawerOutline(D),C.front,xx=>zTop(xx)+D.proud));
   // حفره پشت هر دهانه: همان طرح دهانه رو به عقب (فقط از داخل دیده می‌شود)
   G.holes=DRAWERS.map(D=>tunnelGeo(drawerOutline(D,gp+0.0005),0.25,xx=>zTop(xx)-0.006));
+  // کشوی تزئینی: فقط یک پشت‌بند کم‌عمق پشت درز دهانه (داخلی در کار نیست)
+  G.shallow=DRAWERS.map(D=>tunnelGeo(drawerOutline(D,gp+0.0005),0.03,xx=>zTop(xx)-0.006));
   return GEO=G; }
-export function buildConsoleBody(g,handle){
+/* real=true: کشوهای بازشو با جعبه؛ false: کشوی تزئینی — فقط در کشو با دستگیره، ثابت و بدون جعبه و فضای داخلی */
+export function buildConsoleBody(g,handle,real=true){
   const W=slot.front, G=bodyGeo();
   for(const t of G.top) g.add(new THREE.Mesh(t,slot.top));
   for(const a of G.apron) g.add(new THREE.Mesh(a,W));
   // دامنه پشت
   g.add(mesh(box(2*C.xIn,C.apronTop-0.625,C.t),W,0,(C.apronTop+0.625)/2,C.back));
   // جای هر کشو داخل بدنه: بیرونش هم‌رنگ بدنه (از پشت/زیر تمیز دیده می‌شود)، داخلش تیره‌تر؛ جلویش باز است
-  for(const h of G.holes){ g.add(new THREE.Mesh(h,W)); g.add(new THREE.Mesh(h,slot.cavity)); }
+  for(const h of real?G.holes:G.shallow){ g.add(new THREE.Mesh(h,W)); g.add(new THREE.Mesh(h,slot.cavity)); }
   // کشوها: رویه + جعبه (جعبه داخل کوچک‌ترین ارتفاع دهانه جا می‌شود)
   DRAWERS.forEach((D,i)=>{ const d=new THREE.Group(), cx=(D.x0+D.x1)/2;
     d.add(new THREE.Mesh(G.fronts[i],W));
+    const hy=D.s?0.664:(C.mid.y0+C.mid.y1)/2, hx=D.s?D.s*0.345:0;
+    addHandle(d,handle,hx,hy,zTop(hx)+D.proud+0.0005,{span:D.x1-D.x0});
+    if(!real){ g.add(d); return; }
     const bx0=D.s<0?D.x0+0.065:D.x0+0.014, bx1=D.s>0?D.x1-0.065:D.x1-0.014, bw=bx1-bx0, bcx=(bx0+bx1)/2;
     let yb=0; for(let k=0;k<=20;k++) yb=Math.max(yb,D.bot(bx0+bw*k/20)); yb+=0.006;
     const yt=D.top-0.01, bh=yt-yb, dd=0.2;
@@ -148,8 +154,6 @@ export function buildConsoleBody(g,handle){
       f.rotateX(Math.PI/2); f.translate(0,yb+0.008,0); f.computeVertexNormals(); return f; })(),M));
     for(const s of [-1,1]){ const xs=bcx+s*(bw/2-tw/2), L=zb(xs)-zBk; d.add(mesh(box(tw,bh,L),M,xs,yb+bh/2,zBk+L/2)); }
     d.add(mesh(box(bw,bh,tw),M,bcx,yb+bh/2,zBk+tw/2));
-    const hy=D.s?0.664:(C.mid.y0+C.mid.y1)/2, hx=D.s?D.s*0.345:0;
-    addHandle(d,handle,hx,hy,zTop(hx)+D.proud+0.0005,{span:D.x1-D.x0});
     d.userData.open={type:'drawer',dist:0.18}; g.add(d); });
   return g; }
 

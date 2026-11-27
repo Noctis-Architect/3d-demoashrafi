@@ -19,7 +19,7 @@
   <div class="pd" id="pd"></div>
 
   <section class="info">
-    <div><h3>ساخت و جنس</h3><p>رویه موج‌دار با لبه پروفیل، دو کشوی کناری با لبه پایین قوس‌دار و یک کشوی کوچک وسط (داخل کشوها هم‌رنگ بدنه)، دامنه قوس‌دار با گل منبت وسط، چهار پایه کابریول با برگ کنگری کنده‌کاری‌شده و طلاکاری روی برجستگی‌ها.</p></div>
+    <div><h3>ساخت و جنس</h3><p>رویه موج‌دار با لبه پروفیل، دو کشوی کناری با لبه پایین قوس‌دار و یک کشوی کوچک وسط — به انتخاب شما تزئینی (فقط در کشو) یا بازشو با داخل هم‌رنگ بدنه، دامنه قوس‌دار با گل منبت وسط، چهار پایه کابریول با برگ کنگری کنده‌کاری‌شده و طلاکاری روی برجستگی‌ها.</p></div>
     <div><h3>ابعاد</h3>
       <table class="specs">
         <tr><td>عرض</td><td data-spec="w"></td></tr>
@@ -45,8 +45,8 @@ const gr=h=>FIN.find(f=>f.v===h).g;
 const GILD=[{v:'#d6b673',label:'طلاکاری (مثل عکس)'},{v:'#c4c6c8',label:'نقره‌کاری'},{v:'none',label:'بدون'}];
 scanPage(M,{
   name:'کنسول کلاسیک کنده‌کاری', code:'console-V138',
-  sub:'کنسول با سه کشوی بازشو و پایه‌های کابریول کنده‌کاری‌شده. رنگ چوب، سطح، مدل و رنگ دستگیره را انتخاب کنید؛ روی کشوها بزنید تا باز شوند.',
-  hint:'روی کشوها بزنید تا باز شوند · بکشید تا بچرخد',
+  sub:'کنسول با سه کشو (تزئینی یا بازشو) و پایه‌های کابریول کنده‌کاری‌شده. رنگ چوب، سطح، نوع کشو، مدل و رنگ دستگیره را انتخاب کنید.',
+  hint:'بکشید تا بچرخد · کشوهای بازشو با زدن باز می‌شوند',
   parts:[
     // carve = پایه‌ها و کنده‌کاری‌های فایل اصلی؛ front/top = بدنه ساخته‌شده با کد
     {slot:'carve',also:['front','top'],q:'c',label:'رنگ چوب',items:FIN,
@@ -55,11 +55,13 @@ scanPage(M,{
   extra:[
     {key:'gild',q:'a',label:'کنده‌کاری‌ها',type:'seg',items:GILD},
     {key:'fin',q:'g',label:'سطح',type:'seg',items:[{v:'satin',label:'نیمه‌مات'},{v:'matte',label:'مات'},{v:'gloss',label:'براق'}]},
+    // پیش‌فرض: کشوی تزئینی (فقط در کشو، بدون فضای داخلی)
+    {key:'drawers',q:'k',label:'کشوها',type:'seg',items:[{v:'deco',label:'تزئینی'},{v:'real',label:'بازشو'}]},
     {key:'handle',q:'h',label:'دستگیره',type:'seg',items:HANDLES},
     {key:'trim',q:'t',label:'رنگ دستگیره',type:'swatch',items:TRIMS},
   ],
-  geoKey:S=>S.handle,
-  post:(g,S)=>{ buildConsoleBody(g,S.handle); g.traverse(o=>{ if(o.name==='carve'){ trimCarve(o); gildAttr(o.geometry); } });
+  geoKey:S=>S.handle+'|'+S.drawers,
+  post:(g,S)=>{ buildConsoleBody(g,S.handle,S.drawers==='real'); g.traverse(o=>{ if(o.name==='carve'){ trimCarve(o); gildAttr(o.geometry); } });
     // گل منبت زیر کشوی وسط: کامل از فایل اصلی، نیمه چپ قرینه شده روی راست
     const med=buildScan(Med).children[0]; med.name='medallion'; gildAttr(med.geometry); g.add(med); },
   // داخل کشوها و بدنه = همان رنگ و سطح بدنه
