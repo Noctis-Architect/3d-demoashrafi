@@ -91,7 +91,7 @@ const sheenOf=(hex,k)=>lin(hex).lerp(new THREE.Color('#fff'),k);
 /* جنس‌های پارچه (برای گزینه «جنس پارچه») */
 export const FABRICS={
   linen:      {label:'کتان',      id:'rough_linen',           tile:0.20, contrast:1.1, sheen:0.25, rough:0.95},
-  boucle:     {label:'بوکله',     id:'wool_boucle',           tile:0.24, contrast:1.2, sheen:0.2,  rough:1},
+  boucle:     {label:'بوکله',     proc:'boucle',              tile:0.12, sheen:0.3,  rough:1, ns:1.3},   // فایل wool_boucle در واقع چهارخانه است؛ بوکله با کد ساخته می‌شود
   chenille:   {label:'شنیل',      id:'terlenka',              tile:0.14, contrast:1.35, sheen:0.6, rough:0.88},
   herringbone:{label:'جناغی',     id:'poly_wool_herringbone', tile:0.16, contrast:1.1, sheen:0.15, rough:0.95},
   velvet:     {label:'مخمل',      id:'velour_velvet',         tile:0.18, contrast:0.8, sheen:1,    rough:0.85},
@@ -128,6 +128,28 @@ function hexTex(tile){ return C['hex'+tile]??=(()=>{ const N=512, c=document.cre
   const d=x.getImageData(0,0,N,N), a=d.data; let sd=5; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
   for(let i=0;i<a.length;i+=4){ const v=(rnd()-0.5)*30; a[i]+=v; a[i+1]+=v; a[i+2]+=v; } x.putImageData(d,0,0);   // پرز
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(1/tile,1/tile); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; })(); }
+/* بوکله: نخ حلقه‌حلقه و گره‌دار، حلقه‌های ریز درهم (حدود ۳ میلی‌متر) با پرز؛ ارتفاع → رنگ و نرمال‌مپ، بدون درز */
+function boucleTex(){ return C.boucle??=(()=>{ const N=kit.MOBILE?512:1024, s=N/1024, c=document.createElement('canvas'); c.width=c.height=N; const x=c.getContext('2d');
+  let sd=29; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
+  x.fillStyle='rgb(96,96,96)'; x.fillRect(0,0,N,N);
+  const loop=(px,py,r,lw,v,al,a0,sp)=>{ for(const ox of [0,-N,N]) for(const oy of [0,-N,N]){ const X=px+ox, Y=py+oy; if(X<-60*s||Y<-60*s||X>N+60*s||Y>N+60*s) continue;
+    x.strokeStyle=`rgba(${v},${v},${v},${al})`; x.lineWidth=lw; x.beginPath(); x.ellipse(X,Y,r,r*(0.6+rnd()*0.4),rnd()*Math.PI,a0,a0+sp); x.stroke(); } };
+  x.lineCap='round';
+  for(let i=0;i<5200;i++){ const r=(9+rnd()*rnd()*20)*s; loop(rnd()*N,rnd()*N,r,(4+rnd()*5)*s,Math.round(120+rnd()*110),0.35+rnd()*0.4,rnd()*6.3,3+rnd()*3); }
+  for(let i=0;i<900;i++){ const r=(4+rnd()*6)*s; loop(rnd()*N,rnd()*N,r,(5+rnd()*4)*s,Math.round(200+rnd()*50),0.5+rnd()*0.4,0,6.3); }   // گره‌های کوچک برجسته
+  x.filter=`blur(${1.2*s}px)`; x.drawImage(c,0,0); x.filter='none';
+  const d=x.getImageData(0,0,N,N), a=d.data, h=new Float32Array(N*N);
+  for(let i=0;i<N*N;i++) h[i]=(a[i*4]+(rnd()-0.5)*14)/255;
+  // رنگ: روشنی ملایم دور مقدار میانی (رنگ اصلی را خود ماده می‌دهد)
+  for(let i=0;i<N*N;i++){ const v=GREY-34+h[i]*70; a[i*4]=a[i*4+1]=a[i*4+2]=Math.max(0,Math.min(255,v)); a[i*4+3]=255; }
+  x.putImageData(d,0,0);
+  const cn=document.createElement('canvas'); cn.width=cn.height=N; const xn=cn.getContext('2d'), dn=xn.createImageData(N,N), b=dn.data, H=(i,j)=>h[((j+N)%N)*N+((i+N)%N)], k=3.2;
+  for(let j=0;j<N;j++) for(let i=0;i<N;i++){ const nx=-(H(i+1,j)-H(i-1,j))*k, ny=(H(i,j+1)-H(i,j-1))*k, l=Math.hypot(nx,ny,1), o=(j*N+i)*4;
+    b[o]=(nx/l*0.5+0.5)*255; b[o+1]=(ny/l*0.5+0.5)*255; b[o+2]=(1/l*0.5+0.5)*255; b[o+3]=255; }
+  xn.putImageData(dn,0,0);
+  const mk=(cv,srgb)=>{ const t=new THREE.CanvasTexture(cv); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=srgb?THREE.SRGBColorSpace:THREE.NoColorSpace; t.anisotropy=8; return t; };
+  return {map:mk(c,true),nor:mk(cn,false)}; })(); }
+const tiled=(t,tile)=>{ const o=t.clone(); o.repeat.set(1/tile,1/tile); o.needsUpdate=true; return o; };
 /* نقش خال‌خالی کوسن (مثل عکس محصول): زمینه تیره با خال‌های روشن ریز در شبکه مورب */
 function dotsTex(tile){ return C['dots'+tile]??=(()=>{ const N=512, c=document.createElement('canvas'); c.width=c.height=N; const x=c.getContext('2d');
   x.fillStyle='rgb(150,150,150)'; x.fillRect(0,0,N,N); const st=N/16;
@@ -140,10 +162,11 @@ export const SURF={
   async upholstery(hex,M,kind='linen'){ const F=FABRICS[kind];
     if(M.uv){ // قطعه با UV متری: بافت و نرمال‌مپ واقعی پارچه
       if(F.leather) return base(hex,{name:'leather',map:(()=>{ const t=leatherTex().clone(); t.repeat.set(1/0.09,1/0.09); t.needsUpdate=true; return t; })(),roughness:0.6,specularIntensity:0.5,sheen:0.2,sheenColor:sheenOf(hex,0.2)});
+      if(F.proc==='boucle'){ const B=boucleTex(); return base(hex,{name:'fabric',map:tiled(B.map,F.tile),normalMap:tiled(B.nor,F.tile),normalScale:new THREE.Vector2(F.ns,F.ns),roughness:F.rough,sheen:F.sheen,sheenRoughness:0.5,sheenColor:sheenOf(hex,0.3)}); }
       const [map,nm]=await Promise.all([F.hex?hexTex(0.16):F.dots?dotsTex(0.22):F.proc==='slub'?(()=>{ const t=slubTex().clone(); t.repeat.set(1/F.tile,1/F.tile); t.needsUpdate=true; return t; })():uvTex(F.id,F.contrast,F.tile,'d'),uvTex(F.id,1,F.tile,'n')]);
       return base(hex,{name:'fabric',map,normalMap:nm,normalScale:new THREE.Vector2(2,2),roughness:F.rough,sheen:F.sheen,sheenRoughness:0.45,sheenColor:sheenOf(hex,0.25)}); }
     if(F.leather) return SURF.leather(hex,M);
-    const [map,nm]=await Promise.all([F.proc==='slub'?slubTex():greyTex(F.id,F.contrast),norTex(F.nid||F.id)]);
+    const [map,nm]=F.proc==='boucle'?[boucleTex().map,boucleTex().nor]:await Promise.all([F.proc==='slub'?slubTex():greyTex(F.id,F.contrast),norTex(F.nid||F.id)]);
     return triplanar(base(hex,{name:'fabric',map,normalMap:nm,normalScale:new THREE.Vector2(F.ns??1.4,F.ns??1.4),roughness:F.rough,specularIntensity:F.spec??0.3,sheen:F.sheen,sheenRoughness:0.6,sheenColor:sheenOf(hex,0.42)}),F.tile,M.half,false,F.ntile??F.tile); },
   async leather(hex,M){ return triplanar(base(hex,{name:'leather',map:leatherTex(),roughness:0.6,specularIntensity:0.5,sheen:0.2,sheenRoughness:0.6,sheenColor:sheenOf(hex,0.2)}),0.09,M.half); },
   /* چوب با رگه واقعی گردو. grain: شدت رگه (۱ = چوب رنگ‌شده، کم = رنگ روغنی روی چوب). finish: matte | satin | gloss */

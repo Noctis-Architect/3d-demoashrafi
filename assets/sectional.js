@@ -24,7 +24,7 @@ const G={};
 function upBox(w,h,d,{r=0.03,bulge=0.004,wr=0.0015,dents=[],seed=0,pipe=false,pr=0.0055}={}){
   const key=[w,h,d,r,bulge,wr,seed,pipe,JSON.stringify(dents)].map(v=>typeof v==='number'?v.toFixed(4):v).join();
   return G[key]??=(()=>{
-  const H=[w/2,h/2,d/2]; r=Math.min(r,...H.map(v=>v-0.002)); const I=H.map(v=>v-r);
+  const H=[w/2,h/2,d/2]; r=Math.min(r,...H.map(v=>v-0.002)); const I=H.map(v=>v-r); const spec={w,h,d,r,bulge,dents};
   // نمونه‌های هر محور: بخش صاف یکنواخت، بخش لبه با گام زاویه‌ای یکنواخت
   const nb=Math.max(3,Math.ceil(Math.PI/4*r/STEP));
   const axis=a=>{ const n=Math.max(1,Math.ceil(2*I[a]/STEP)), o=[];
@@ -58,7 +58,7 @@ function upBox(w,h,d,{r=0.03,bulge=0.004,wr=0.0015,dents=[],seed=0,pipe=false,pr
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx);
   smoothNormals(g);
-  const out={body:g};
+  const out={body:g,spec};
   if(pipe){ // قیطان روی خط ۴۵ درجه لبه بالا/پایین؛ همان جابه‌جایی رویه را می‌گیرد تا دقیقاً روی درز بنشیند
     const ring=[], M=Math.round(4*(I[0]+I[2])/0.008);
     const per=4*(I[0]+I[2]); for(let m=0;m<M;m++){ // دور مستطیل داخلی
@@ -84,7 +84,9 @@ function smoothNormals(g){ const p=g.attributes.position.array, ix=g.index.array
   for(let i=0;i<p.length/3;i++){ const o=id[i]*3, l=Math.hypot(n[o],n[o+1],n[o+2])||1; n[i*3]=n[o]/l; n[i*3+1]=n[o+1]/l; n[i*3+2]=n[o+2]/l; }
   g.setAttribute('normal',new THREE.BufferAttribute(n,3)); g.computeBoundingSphere(); }
 
-function part(G0,mat,x,y,z,rx=0){ const g=new THREE.Group(); g.add(new THREE.Mesh(G0.body,mat));
+/* هر قطعه رویه‌دار یک برخوردگیر (جعبه گرد با همان شکم و گودی) هم ثبت می‌کند تا کوسن‌های تزئینی واقعاً رویش بنشینند و در آن فرو نروند */
+let COL=[];
+function part(G0,mat,x,y,z,rx=0){ const g=new THREE.Group(); if(G0.spec) COL.push({...G0.spec,x,y,z,rx}); g.add(new THREE.Mesh(G0.body,mat));
   if(G0.pipe){ g.add(new THREE.Mesh(G0.pipe,slot.welt)); g.add(new THREE.Mesh(G0.lo,slot.welt)); }
   g.position.set(x,y,z); g.rotation.x=rx; return g; }
 /* سازگاری با صفحه‌های دیگر */
@@ -150,7 +152,7 @@ function bakeAO(g){
 /* layout: {chaise:true|false, seats:2|3}. شزلون/دسته چپ در x منفی؛ آینه برای راست. */
 export function layoutWidth(L){ return 2*DIM.armW+(L.chaise?DIM.chaiseW-DIM.armW:DIM.seatW)+L.seats*DIM.seatW; }
 export function buildSectional(L){
-  SEED=0; const g=new THREE.Group(), W=layoutWidth(L); let x=-W/2;
+  SEED=0; COL=[]; const g=new THREE.Group(), W=layoutWidth(L); let x=-W/2;
   const zs=DIM.zBack+DIM.backD+0.32;   // جای نشستن (فاصله از پشتی)
   // ماژول اول: شزلون (یا نشیمن) با دسته بیرونی
   const m1=L.chaise?DIM.chaiseW:DIM.armW+DIM.seatW, zEnd=L.chaise?DIM.zChaise:DIM.zFront;
@@ -166,6 +168,7 @@ export function buildSectional(L){
   seat(g,xs,xe-DIM.armW,DIM.zFront,Array.from({length:L.seats},(_,i)=>[xs+(i+0.5)*DIM.seatW,zs]));
   for(let i=0;i<L.seats;i++){ const a=xs+i*DIM.seatW, b=a+DIM.seatW; backCushion(g,a,b); }
   bakeAO(g);
+  g.userData.colliders=COL;
   g.userData.dims=[W,DIM.zChaise-DIM.zBack,0.865];
   g.userData.pillowRange=[-W/2+DIM.armW+0.27,W/2-DIM.armW-0.27];
   return g;

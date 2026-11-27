@@ -33,7 +33,7 @@
 <script type="module">
 import { THREE } from './assets/product.js';
 import { scanPage, SURF, fabricItems } from './assets/scan.js';
-import { addPillows, PILLOW_COUNTS } from './assets/pillows.js';
+import { addSoftPillows, PILLOW_COUNTS } from './assets/pillows.js';
 import { buildSectional, layoutWidth, DIM, setLeg } from './assets/sectional.js';
 import LegM from './assets/models/sectional-leg.js';
 import { buildScan } from './assets/scan.js';
@@ -63,7 +63,7 @@ scanPage(M,{
   dims:S=>{ const l=L(S); return [layoutWidth(l),(l.chaise?DIM.zChaise:DIM.zFront)-DIM.zBack,0.865]; },
   geoKey:S=>S.ch+S.side+S.seats+S.pc,
   build:S=>{ const g=buildSectional(L(S)); g.position.z=-((L(S).chaise?DIM.zChaise:DIM.zFront)+DIM.zBack)/2; const o=new THREE.Group(); o.add(g); return o; },
-  post:(o,S)=>{ const g=o.children[0], [a,b]=g.userData.pillowRange; addPillows(g,S.pc,{xmin:a,xmax:b,back:-0.69,seat:DIM.seatTop});
+  post:(o,S)=>{ const g=o.children[0], [a,b]=g.userData.pillowRange; addSoftPillows(g,S.pc,{xmin:a,xmax:b,back:-0.69,seat:DIM.seatTop});
     if(S.side==='R') o.scale.x=-1; },
 });
 </script>
