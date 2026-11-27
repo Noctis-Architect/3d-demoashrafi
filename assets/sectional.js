@@ -170,6 +170,8 @@ export function buildSectional(L){
   bakeAO(g);
   g.userData.colliders=COL;
   g.userData.dims=[W,DIM.zChaise-DIM.zBack,0.865];
+  // لبه جلوی نشیمن برای خواباندن کوسن روی آن (روی شزلون جلوتر)
+  const xc=-W/2+(L.chaise?DIM.chaiseW:0)-0.25; g.userData.seatFront=x=>L.chaise&&x<xc?DIM.zChaise-0.2:DIM.zFront;
   g.userData.pillowRange=[-W/2+DIM.armW+0.27,W/2-DIM.armW-0.27];
   return g;
 }

@@ -149,7 +149,9 @@ function restPillow(w,h,t,seed,n){
   return {g,P,NR,PR,pair,S,n,N1,cnt}; }
 
 /* xmin..xmax: محدوده در طول پشتی؛ back: z جلوی پشتی (حدسی، فقط برای شروع)؛ seat: ارتفاع نشیمن؛ colliders از g.userData */
-export function addSoftPillows(g,count,{xmin=-0.9,xmax=0.9,seat=0.47,back=-0.65,size=0.46,h=null,thick=0.17,lean=0.3,sinkSeat=0.012,sinkBack=0.022,xs=null}={}){
+export function addSoftPillows(g,count,{xmin=-0.9,xmax=0.9,seat=0.47,back=-0.65,size=0.46,h=null,thick=0.17,lean=0.3,sinkSeat=0.012,sinkBack=0.022,xs=null,tilt=true,seatFront=null}={}){
+  // tilt: کوسن‌های کناری کمی چرخیده و کج (طبیعی) یا صاف و مرتب. seatFront(x): z لبه جلوی نشیمن → با کشیدن به جلو، کوسن روی نشیمن می‌خوابد
+  const SF=typeof seatFront==='function'?seatFront:seatFront==null?null:()=>seatFront;
   const n0=+count; if(!n0) return; const H=h||size, W=size;
   const COLS=prepCols(g.userData.colliders||[]);
   xs=xs?.[n0]||{2:[xmin,xmax],4:[xmin,xmin+0.4,xmax-0.4,xmax],6:[xmin,xmin+0.4,-0.21,0.21,xmax-0.4,xmax]}[n0];
@@ -160,7 +162,7 @@ export function addSoftPillows(g,count,{xmin=-0.9,xmax=0.9,seat=0.47,back=-0.65,
   // میدان فاصله مبل: یک بار روی شبکه ۱٫۵ سانتی در ناحیه کوسن‌ها حساب می‌شود، بعد فقط درون‌یابی سه‌خطی
   const fs=(x,y,z)=>{ let d=1e9; for(const o of COLS){ const dx=o.x-x, dy=o.y-y, dz=o.z-z; if(dx*dx+dy*dy+dz*dz>(d+o.R)*(d+o.R)) continue; const v=sdCol(o,x,y,z); if(v<d) d=v; } return d; };
   let SG=null;
-  function grid(){ if(SG) return SG; const vs=0.015, x0=xmin-W/2-0.15, y0=seat-0.15, z0=back-0.4, NX=Math.ceil((xmax-xmin+W+0.3)/vs)+1, NY=Math.ceil((H+0.45)/vs)+1, NZ=Math.ceil(1.05/vs)+1;
+  function grid(){ if(SG) return SG; const vs=0.015, x0=xmin-W/2-0.15, y0=seat-0.15, z0=back-0.4, NX=Math.ceil((xmax-xmin+W+0.3)/vs)+1, NY=Math.ceil((H+0.45)/vs)+1, NZ=Math.ceil(1.3/vs)+1;
     const A=new Float32Array(NX*NY*NZ); let i=0; for(let k=0;k<NZ;k++) for(let j=0;j<NY;j++) for(let l=0;l<NX;l++) A[i++]=fs(x0+l*vs,y0+j*vs,z0+k*vs);
     return SG={A,vs,x0,y0,z0,NX,NY,NZ}; }
   const fg=(x,y,z)=>{ const G=SG, u=(x-G.x0)/G.vs, v=(y-G.y0)/G.vs, w=(z-G.z0)/G.vs;
@@ -170,7 +172,7 @@ export function addSoftPillows(g,count,{xmin=-0.9,xmax=0.9,seat=0.47,back=-0.65,
     const c0=c00+(c10-c00)*b, c1=c01+(c11-c01)*b; return c0+(c1-c0)*c; };
   // میدان فاصله صحنه برای یک کوسن: مبل + کوسن‌های لایه پشت‌تر
   function field(p){ grid(); const c=p.position;
-    const pc=pills.filter(q=>q!==p&&q.userData.layer<p.userData.layer&&Math.abs(q.position.x-c.x)<W*1.05).map(q=>{ q.updateMatrix(); const m=q.matrix.clone();
+    const pc=pills.filter(q=>q!==p&&rank(q)<rank(p)&&Math.abs(q.position.x-c.x)<W*1.05&&Math.abs(q.position.z-c.z)<0.45).map(q=>{ q.updateMatrix(); const m=q.matrix.clone();
       return {m, H:[W/2*0.92,H/2*0.92,thick/2*0.82], r:thick/2*0.8}; });
     const f=pc.length?(x,y,z)=>{ let d=fg(x,y,z); for(const o of pc){ const s=sdPil(o,x,y,z); if(s<d) d=s; } return d; }:fg;
     const grad=(x,y,z,out)=>{ const e=0.004; out[0]=f(x+e,y,z)-f(x-e,y,z); out[1]=f(x,y+e,z)-f(x,y-e,z); out[2]=f(x,y,z+e)-f(x,y,z-e);
@@ -187,11 +189,15 @@ export function addSoftPillows(g,count,{xmin=-0.9,xmax=0.9,seat=0.47,back=-0.65,
   function sink(p,F,ax,which,target,span){ const o=p.position[ax], P=m=>{ p.position[ax]=o-m; return pen(p,F)[which]>target; };
     if(P(0)){ let m=0; while(m>-0.25&&P(m)) m-=0.03; let lo=m, hi=m+0.03; for(let k=0;k<7;k++){ const c=(lo+hi)/2; if(P(c)) hi=c; else lo=c; } p.position[ax]=o-lo; return; }
     let m=0; while(m<span&&!P(m+0.03)) m+=0.03; let lo=m, hi=Math.min(span,m+0.03); for(let k=0;k<7;k++){ const c=(lo+hi)/2; if(P(c)) hi=c; else lo=c; } p.position[ax]=o-lo; }
-  function orient(p){ const u=p.userData; p.rotation.set(-lean,u.yaw,u.roll,'YXZ'); }
-  function settle(p){ orient(p); p.position.y=seat+H/2*Math.cos(lean)+0.06; p.position.z=back+0.3; const F=field(p);
-    p.position.z=back+0.3;
-    sink(p,F,'y',0,sinkSeat,0.3);
-    for(let it=0;it<2;it++){ sink(p,F,'z',1,sinkBack,0.6); sink(p,F,'y',0,sinkSeat,0.1); }
+  // t=0 تکیه به پشتی، t=1 خوابیده روی نشیمن
+  const ease=t=>t*t*(3-2*t), rank=q=>(q.userData.t>0.3?2:0)+q.userData.layer;
+  function orient(p){ const u=p.userData, e=ease(u.t||0), k=u.straight?0:1; p.rotation.set(-(lean+(1.47-lean)*e),u.yaw*k*(1-e),u.roll*k*(1-e),'YXZ'); }
+  const zFrontOf=p=>SF?SF(p.position.x)-H/2-0.03:back+0.2;
+  function settle(p){ const u=p.userData, t=u.t||0; orient(p); p.position.y=seat+H/2+0.08; p.position.z=back+0.3;
+    const zT=t>0&&u.z0!=null?u.z0+(zFrontOf(p)-u.z0)*t:-1e9; p.position.z=Math.max(back+0.3,zT); const F=field(p);
+    sink(p,F,'y',0,sinkSeat,0.45);
+    for(let it=0;it<2;it++){ const y=p.position.y; sink(p,F,'z',1,sinkBack,0.6); if(p.position.z<zT){ p.position.z=zT; } p.position.y=y+0.04; sink(p,F,'y',0,sinkSeat,0.2); }
+    if(!t) u.z0=p.position.z;
     deform(p,F); }
   // تغییر شکل نرم: رأس‌های فرورفته روی سطح صاف می‌شوند، اثرش پخش می‌شود، حجم به بقیه کوسن برمی‌گردد
   function deform(p,F){ const R=ST.get(p).R, {P,NR,PR,pair,N1,n,cnt}=R; p.updateMatrix(); const e=p.matrix.elements;
@@ -226,8 +232,9 @@ export function addSoftPillows(g,count,{xmin=-0.9,xmax=0.9,seat=0.47,back=-0.65,
     geo.attributes.color.needsUpdate=true; }
   // جابه‌جایی: کوسن‌های هم‌لایه از هم رد نمی‌شوند؛ کوسن جلویی روی کوسن پشتی تکیه می‌کند
   const lo=xmin-0.03, hi=xmax+0.03;
-  const gap=(a,b)=>a.userData.layer===b.userData.layer?W*0.9:W*0.45;
-  const hits=p=>pills.filter(o=>o!==p&&Math.abs(o.position.x-p.position.x)<gap(o,p)-1e-4);
+  const lying=q=>(q.userData.t||0)>0.3;
+  const gap=(a,b)=>a.userData.layer===b.userData.layer||lying(a)?W*0.9:W*0.45;
+  const hits=p=>pills.filter(o=>o!==p&&lying(o)===lying(p)&&Math.abs(o.position.x-p.position.x)<gap(o,p)-1e-4);
   const follow=p=>{ const u=p.userData;
     for(let k=0;k<3;k++){ const h=hits(p); if(!h.length) break; const o=h[0], sgn=Math.sign(p.position.x-o.position.x)||1;
       let nx=o.position.x+sgn*gap(o,p); if(nx<lo||nx>hi) nx=o.position.x-sgn*gap(o,p); p.position.x=Math.max(lo,Math.min(hi,nx)); }
@@ -235,12 +242,13 @@ export function addSoftPillows(g,count,{xmin=-0.9,xmax=0.9,seat=0.47,back=-0.65,
     u.lastX=p.position.x;
     settle(p);
     // کوسن‌های لایه جلوتر که به این کوسن تکیه دارند دوباره جا می‌افتند
-    for(const q of pills) if(q.userData.layer>u.layer&&Math.abs(q.position.x-p.position.x)<W*1.1) settle(q); };
+    for(const q of [...pills].sort((a,b)=>rank(a)-rank(b))) if(q!==p&&rank(q)>rank(p)&&Math.abs(q.position.x-p.position.x)<W*1.1) settle(q); };
+  const depth=p=>p.position.z, setDepth=(p,z)=>{ const u=p.userData, a=u.z0??back+0.15, b=zFrontOf(p); u.t=Math.max(0,Math.min(1,(z-a)/Math.max(0.01,b-a))); };
   const outer=Math.max(Math.abs(xmin),Math.abs(xmax))-0.05;
   xs.forEach((x,i)=>{ const end=Math.abs(x)>outer;
     const R=restPillow(W,H,thick,i+1,NG), mesh=new THREE.Mesh(R.g,slot.pillows), p=new THREE.Group(); p.add(mesh); p.name='pillow';
-    ST.set(p,{R,mesh}); Object.assign(p.userData,{layer:end?0:1,yaw:end?-Math.sign(x)*0.3:Math.sign(x)*0.1,roll:end?Math.sign(x)*0.05:-Math.sign(x)*0.035});
-    p.position.x=x; p.userData.lastX=x; p.userData.drag={axis:'x',min:lo,max:hi,follow};
+    ST.set(p,{R,mesh}); Object.assign(p.userData,{t:0,straight:!tilt,layer:end?0:1,yaw:end?-Math.sign(x)*0.3:Math.sign(x)*0.1,roll:end?Math.sign(x)*0.05:-Math.sign(x)*0.035});
+    p.position.x=x; p.userData.lastX=x; p.userData.drag=SF?{axis:'xz',min:lo,max:hi,follow,depth,setDepth}:{axis:'x',min:lo,max:hi,follow};
     pills.push(p); g.add(p); });
   // اول لایه پشت، بعد لایه جلو (روی آن‌ها تکیه می‌کند)
   for(const p of [...pills].sort((a,b)=>a.userData.layer-b.userData.layer)) settle(p);

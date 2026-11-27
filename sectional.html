@@ -44,7 +44,7 @@ const FAB=[{v:'#857f73',label:'طوسی گرم (رنگ اصلی)'},{v:'#c9bfae',
 scanPage(M,{
   name:'مبل ال راحتی ساحل', code:'sofa-L260',
   sub:'مبل ال ماژولار: سمت شزلون، تعداد نشیمن، جنس و رنگ پارچه، کوسن‌ها و پایه را انتخاب کنید. کوسن‌ها را با کشیدن جابه‌جا کنید.',
-  hint:'کوسن‌ها را بکشید تا جابه‌جا شوند · بکشید تا بچرخد',
+  hint:'کوسن را به چپ و راست بکشید تا جابه‌جا شود، به جلو تا روی نشیمن بخوابد · بکشید تا بچرخد',
   parts:[
     {slot:'fabric',also:['cushion','welt'],q:'f',label:'رنگ پارچه',items:FAB,surf:(h,S,M)=>SURF.upholstery(h,M,S.ft)},
     {slot:'pillows',q:'p',label:'رنگ کوسن‌های تزئینی',items:[{v:'#a69a8a',label:'بژ (رنگ اصلی)'},{v:'#c8a96b',label:'خردلی'},{v:'#7a2e2a',label:'زرشکی'},{v:'#2f3b4c',label:'سرمه‌ای'},{v:'#e6e0d6',label:'شیری'}],
@@ -57,13 +57,14 @@ scanPage(M,{
     {key:'side',q:'sd',label:'سمت شزلون',type:'seg',items:[{v:'L',label:'چپ'},{v:'R',label:'راست'}]},
     {key:'seats',q:'n',label:'نشیمن کنار شزلون',type:'seg',items:[{v:'2',label:'دو نفره'},{v:'3',label:'سه نفره'},{v:'1',label:'یک نفره'}]},
     {key:'pc',q:'pc',label:'کوسن‌های تزئینی',type:'seg',items:PILLOW_COUNTS},
+    {key:'pa',q:'pa',label:'چیدمان کوسن‌ها',type:'seg',items:[{v:'n',label:'کمی کج (طبیعی)'},{v:'s',label:'صاف و مرتب'}]},
     {key:'ft',q:'ft',label:'جنس پارچه',type:'seg',items:fabricItems(['linen','boucle','chenille','velvet','leather'])},
     {key:'pt',q:'pt',label:'جنس کوسن‌ها',type:'seg',items:fabricItems(['herringbone','linen','velvet','boucle'])},
   ],
   dims:S=>{ const l=L(S); return [layoutWidth(l),(l.chaise?DIM.zChaise:DIM.zFront)-DIM.zBack,0.865]; },
-  geoKey:S=>S.ch+S.side+S.seats+S.pc,
+  geoKey:S=>S.ch+S.side+S.seats+S.pc+S.pa,
   build:S=>{ const g=buildSectional(L(S)); g.position.z=-((L(S).chaise?DIM.zChaise:DIM.zFront)+DIM.zBack)/2; const o=new THREE.Group(); o.add(g); return o; },
-  post:(o,S)=>{ const g=o.children[0], [a,b]=g.userData.pillowRange; addSoftPillows(g,S.pc,{xmin:a,xmax:b,back:-0.69,seat:DIM.seatTop});
+  post:(o,S)=>{ const g=o.children[0], [a,b]=g.userData.pillowRange; addSoftPillows(g,S.pc,{xmin:a,xmax:b,back:-0.69,seat:DIM.seatTop,tilt:S.pa!=='s',seatFront:g.userData.seatFront});
     if(S.side==='R') o.scale.x=-1; },
 });
 </script>
