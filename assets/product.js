@@ -274,6 +274,7 @@ export function productPage(P){
     document.querySelectorAll('[data-spec]').forEach(el=>{ el.textContent=fa({w:W,d:D,h:H}[el.dataset.spec])+' سانت'; });
     const u=new URL(location.href); u.search='';
     for(const o of P.options){ const it=o.items.find(i=>i.v===S[o.key]); $('n_'+o.key).textContent=o.type==='swatch'?it.label:'';
+      $('o_'+o.key).closest('.opt').hidden=!!o.show&&!o.show(S);   // گزینه‌ای که به قطعه انتخاب‌شده ربط ندارد پنهان می‌شود
       $('o_'+o.key).querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S[o.key]));
       u.searchParams.set(o.q,String(S[o.key]).replace('#','')); }
     $('summary').innerHTML='<b>طرح شما:</b> '+P.summary(S,(k)=>P.options.find(o=>o.key===k).items.find(i=>i.v===S[k]).label);

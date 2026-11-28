@@ -215,21 +215,24 @@ function withShade(g){ g.traverse(o=>{ const geo=o.geometry; if(!o.isMesh||!geo|
 /* ---------- صفحه محصول اسکن‌شده ----------
    D.parts: بخش‌های رنگ‌پذیر {slot,q,label,items,surf(hex,S,M)}؛ اولین رنگ = رنگ اصلی خود مدل.
    D.extra: گزینه‌های دیگر. D.slotMap/D.post/D.geoKey/D.moreMats برای قطعه‌های اضافه (کشو، دستگیره). */
+/* D.models + D.modelKey (اختیاری): یک محصول با چند قطعه (مثلاً تک‌نفره و سه‌نفره)؛ مدل هر قطعه با گزینه modelKey انتخاب می‌شود.
+   هر گزینه می‌تواند show(S) داشته باشد تا فقط برای قطعه‌های مربوط دیده شود. */
 export function scanPage(M,D){
+  const Mof=S=>D.models?D.models[S[D.modelKey]]:M;
   const extra=D.extra||[];
-  const options=[...D.parts.map(p=>({key:p.slot,q:p.q,label:p.label,type:'swatch',items:p.items})),...extra];
+  const options=[...(D.pre||[]),...D.parts.map(p=>({key:p.slot,q:p.q,label:p.label,type:'swatch',items:p.items,show:p.show})),...extra];
   const defaults={}; for(const o of options) defaults[o.key]=o.items[0].v;
-  const partMats=async S=>Object.fromEntries(await Promise.all(D.parts.flatMap(p=>[p.slot,...(p.also||[])].map(async sl=>[sl,await p.surf(S[p.slot],S,M,sl)]))));
+  const partMats=async S=>Object.fromEntries(await Promise.all(D.parts.flatMap(p=>[p.slot,...(p.also||[])].map(async sl=>[sl,await p.surf(S[p.slot],S,Mof(S),sl)]))));
   productPage({
     id:M.id, name:D.name, code:D.code, arTitle:D.name, sub:D.sub, options, defaults, exposure:D.exposure??0.6,
     hint:D.hint||'بکشید تا بچرخد · دو انگشت برای زوم و دیدن ریزکاری‌ها',
-    dims:S=>D.dims?D.dims(S):[M.dims[0],M.dims[2],M.dims[1]],
-    geoKey:S=>D.geoKey?D.geoKey(S):'scan',
+    dims:S=>D.dims?D.dims(S):(m=>[m.dims[0],m.dims[2],m.dims[1]])(Mof(S)),
+    geoKey:S=>(D.models?S[D.modelKey]+'|':'')+(D.geoKey?D.geoKey(S):'scan'),
     matKey:S=>options.map(o=>S[o.key]).join('|'),
     quick:S=>({...Object.fromEntries(D.parts.flatMap(p=>[p.slot,...(p.also||[])].map(sl=>[sl,quickMat(S[p.slot],0.7)]))),...(D.quickMore?.(S)||{})}),
     async materials(S){ return {...await partMats(S),...(D.moreMats?await D.moreMats(S):{})}; },
-    summary:(S,L)=>[D.name,...options.map(o=>o.label+': '+L(o.key))].join('، '),
+    summary:(S,L)=>[D.name,...options.filter(o=>!o.show||o.show(S)).map(o=>o.label+': '+L(o.key))].join('، '),
     arDefault:()=>false, arFile:()=>`ar/${M.id}.glb`, arVariants:[],
-    build:S=>{ const g=D.build?D.build(S):buildScan(M,D.slotMap); D.post?.(g,S,M); withShade(g); return g; },
+    build:S=>{ const m=Mof(S), g=D.build?D.build(S,m):buildScan(m,D.slotMap); D.post?.(g,S,m); withShade(g); return g; },
   });
 }

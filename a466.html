@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>مبل ال راحتی آوا — طراحی سه‌بعدی | مبل اشرافی</title>
+<title>ست مبل راحتی آوا — طراحی سه‌بعدی | مبل اشرافی</title>
 <meta name="description" content="مبل ال راحتی با شزلون، کوسن‌های پشتی قیطان‌دار، دسته‌های گرد و پایه چوبی مخروطی؛ سه‌بعدی بچرخانید، رنگ پارچه، پایه و کوسن را انتخاب کنید و در خانه ببینید.">
 <meta name="theme-color" content="#f7f4ef">
 <link rel="stylesheet" href="assets/site.css">
@@ -14,7 +14,7 @@
 <script src="assets/layout.js"></script>
 
 <main class="wrap">
-  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">مبل ال راحتی آوا</span></div>
+  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">ست مبل راحتی آوا</span></div>
   <div class="pd" id="pd"></div>
 
   <section class="info">
@@ -32,45 +32,52 @@
 
 <script type="module">
 import M from './assets/models/a466.js';
+import MC from './assets/models/a466-chair.js';
 import { THREE } from './assets/product.js';
 import { scanPage, buildScan, SURF, fabricItems } from './assets/scan.js';
 import { addPillows } from './assets/pillows.js';
 import { addLegs } from './assets/legs.js';
 // بدنه، دسته‌ها، تشک‌ها و کوسن‌های پشتی عیناً از فایل سه‌بعدی (tools/scan/a466_patch.py): گیاه پشت مبل و کوسن‌های اسکن حذف،
 // زیر کوسن‌ها با ماژول سالم وسط همان اسکن پر شده، دسته راست قرینه دسته چپ (هم‌اندازه‌اند).
+// تک‌نفره: بدنه عیناً از فایل خودش، پایه‌ها با کد (بدون برآمدگی‌های حلقه‌ای اسکن).
 // پایه‌ها با کد: مخروط صاف، جا و زاویه از پایه‌های سالم فایل (دو پایه فایل شکسته بود). کوسن‌های تزئینی با کد، مثل عکس.
+const LEGS_C=[{b:[0.2311,0,0.3127],d:[-0.1785,0.9651,-0.1915],len:0.200},{b:[-0.2311,0,0.3127],d:[0.1785,0.9651,-0.1915],len:0.200},{b:[0.2436,0,-0.0981],d:[-0.1435,0.9778,0.1525],len:0.180},{b:[-0.2436,0,-0.0981],d:[0.1435,0.9778,0.1525],len:0.180}];   // تک‌نفره: جا، زاویه و طول از پایه‌های خود فایل تک‌نفره
 const LEGS=[{b:[-1.1548,0,-0.7338],d:[0.0862,0.9925,0.0862],len:0.157},{b:[1.1128,0,-0.7368],d:[-0.0862,0.9925,0.0862],len:0.157},{b:[-1.1568,0,-0.0452],d:[0.0862,0.9925,-0.0862],len:0.157},{b:[0.4440,0,-0.0413],d:[-0.0000,0.9925,-0.1219],len:0.157},{b:[1.1207,0,-0.0580],d:[-0.1219,0.9925,-0.0000],len:0.157},{b:[1.0738,0,0.7428],d:[-0.0862,0.9925,-0.0862],len:0.157},{b:[0.4742,0,0.7498],d:[0.0862,0.9925,-0.0862],len:0.157}];
 const PM={...M,half:1,uv:true};
 const WOOD={half:1};
 // کوسن‌ها مثل عکس: چپ سفید ساده، سفید راه‌راه تیره و کمری صورتی با راه‌های بریده؛ کنار شزلون سفید راه‌راه و کمری صورتی راه‌راه روشن
 const MIX={pillows2:['#eeece7','stripe'],pillows3:['#d9b8a8','pinstripe'],pillows4:['#d2b3a2','stripe'],pillows5:['#ecebe6','pinstripe']};
+const isL=S=>S.piece==='L';
 const KINDS=mix=>{ const k=m=>mix?m:'pillows';
   return {5:[{mat:'pillows'},{mat:k('pillows2')},{mat:k('pillows4'),w:0.5,h:0.3,front:0.17},{mat:k('pillows3'),w:0.5,h:0.3,front:0.17},{mat:k('pillows5')}],
           3:[{mat:'pillows'},{mat:k('pillows2')},{mat:k('pillows5')}]}; };
 scanPage(M,{
-  name:'مبل ال راحتی آوا', code:'sofa-A466', exposure:0.42,
-  sub:'مبل ال با شزلون، کوسن‌های پشتی و تشک قیطان‌دار و دسته‌های گرد. رنگ و جنس پارچه، رنگ پایه، سمت شزلون و کوسن‌های تزئینی را انتخاب کنید؛ کوسن‌ها را با کشیدن جابه‌جا کنید.',
+  name:'ست مبل راحتی آوا', code:'sofa-A466', exposure:0.42,
+  sub:'ست مبل ال با شزلون و مبل تک‌نفره پشتی‌بلند. قطعه، رنگ و جنس پارچه، رنگ پایه، سمت شزلون و کوسن‌های تزئینی را انتخاب کنید؛ کوسن‌ها را با کشیدن جابه‌جا کنید.',
+  models:{L:M,C:MC}, modelKey:'piece',
+  pre:[{key:'piece',q:'m',label:'قطعه',type:'seg',reframe:true,items:[{v:'L',label:'مبل ال'},{v:'C',label:'تک‌نفره'}]}],
   hint:'کوسن‌ها را به چپ و راست یا روی نشیمن بکشید · بکشید تا بچرخد',
   parts:[
     {slot:'fabric',q:'c',label:'رنگ پارچه',items:[{v:'#d9d1c3',label:'کرم (مثل عکس)'},{v:'#bfb3a1',label:'بژ'},{v:'#8f8a82',label:'طوسی گرم'},{v:'#5d6470',label:'طوسی آبی'},{v:'#4a5442',label:'سبز زیتونی'},{v:'#8a5a44',label:'دارچینی'}],
      surf:(h,S,M)=>SURF.upholstery(h,M,S.ft)},
     {slot:'legs',q:'l',label:'پایه‌ها',items:[{v:'#c49a6c',label:'چوب طبیعی (مثل عکس)'},{v:'#5a3a22',label:'گردویی'},{v:'#141414',label:'مشکی'},{v:'#e2d3bd',label:'سفید بلوطی'},{v:'#c9a45c',label:'طلایی'}],
      surf:h=>h==='#c9a45c'?SURF.metal(h):SURF.wood(h,WOOD,{grain:1.1,finish:'matte'})},
-    {slot:'pillows',q:'p',label:'رنگ کوسن‌های ساده',items:[{v:'#efede8',label:'سفید (مثل عکس)'},{v:'#d9b8a8',label:'صورتی خاکی'},{v:'#c8a96b',label:'خردلی'},{v:'#7a2e2a',label:'زرشکی'},{v:'#2f3b4c',label:'سرمه‌ای'}],
+    {slot:'pillows',q:'p',show:isL,label:'رنگ کوسن‌های ساده',items:[{v:'#efede8',label:'سفید (مثل عکس)'},{v:'#d9b8a8',label:'صورتی خاکی'},{v:'#c8a96b',label:'خردلی'},{v:'#7a2e2a',label:'زرشکی'},{v:'#2f3b4c',label:'سرمه‌ای'}],
      surf:(h,S)=>SURF.upholstery(h,PM,S.pt)},
   ],
   extra:[
     {key:'ft',q:'ft',label:'جنس پارچه',type:'seg',items:fabricItems(['boucle','linen','chenille','velvet','leather'])},
-    {key:'side',q:'sd',label:'سمت شزلون',type:'seg',reframe:true,items:[{v:'R',label:'راست (مثل عکس)'},{v:'L',label:'چپ'}]},
-    {key:'pc',q:'pc',label:'کوسن‌های تزئینی',type:'seg',items:[{v:'5',label:'۵ کوسن (مثل عکس)'},{v:'3',label:'۳ کوسن'},{v:'0',label:'بدون کوسن'}]},
-    {key:'pp',q:'pp',label:'طرح کوسن‌ها',type:'seg',items:[{v:'mix',label:'راه‌راه و ساده (مثل عکس)'},{v:'one',label:'همه یک‌رنگ'}]},
-    {key:'pt',q:'pt',label:'جنس کوسن‌های ساده',type:'seg',items:fabricItems(['linen','velvet','boucle','herringbone'])},
+    {key:'side',q:'sd',show:isL,label:'سمت شزلون',type:'seg',reframe:true,items:[{v:'R',label:'راست (مثل عکس)'},{v:'L',label:'چپ'}]},
+    {key:'pc',q:'pc',show:isL,label:'کوسن‌های تزئینی',type:'seg',items:[{v:'5',label:'۵ کوسن (مثل عکس)'},{v:'3',label:'۳ کوسن'},{v:'0',label:'بدون کوسن'}]},
+    {key:'pp',q:'pp',show:isL,label:'طرح کوسن‌ها',type:'seg',items:[{v:'mix',label:'راه‌راه و ساده (مثل عکس)'},{v:'one',label:'همه یک‌رنگ'}]},
+    {key:'pt',q:'pt',show:isL,label:'جنس کوسن‌های ساده',type:'seg',items:fabricItems(['linen','velvet','boucle','herringbone'])},
   ],
   quickMore:()=>Object.fromEntries(Object.entries(MIX).map(([k,[h]])=>[k,new THREE.MeshStandardMaterial({color:h,roughness:0.9})])),
   moreMats:async()=>Object.fromEntries(await Promise.all(Object.entries(MIX).map(async([k,[h,f]])=>[k,await SURF.upholstery(h,PM,f)]))),
-  geoKey:S=>S.side+S.pc+S.pp,
-  build:()=>{ const o=new THREE.Group(); o.add(buildScan(M)); return o; },
+  geoKey:S=>isL(S)?S.side+S.pc+S.pp:'',
+  build:(S,m)=>{ const o=new THREE.Group(); o.add(buildScan(m)); return o; },
   post:(o,S)=>{ const g=o.children[0];
+    if(!isL(S)){ addLegs(g,LEGS_C,{r0:0.0148,r1:0.027}); return; }
     addLegs(g,LEGS,{r0:0.0155,r1:0.0285});
     addPillows(g,S.pc,{solids:{back:g.children.filter(c=>c.name==='fabric'),seat:g.children.filter(c=>c.name==='fabric')},xmin:-1.08,xmax:1.08,back:-0.47,seat:0.405,size:0.47,h:0.47,
       lean:0.3,off:0.09,inner:0.02,seatFront:x=>x>0.42?0.76:0.02,shape:'square',xs:{5:[-0.98,-0.7,-0.84,0.8,0.97],3:[-0.95,-0.68,0.95]},kinds:KINDS(S.pp==='mix')});

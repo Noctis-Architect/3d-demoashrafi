@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>کاناپه سلطنتی رز — طراحی سه‌بعدی | مبل اشرافی</title>
+<title>ست سلطنتی رز — طراحی سه‌بعدی | مبل اشرافی</title>
 <meta name="description" content="کاناپه سه‌نفره کلاسیک با تاج گل رز کنده‌کاری‌شده، کلاف منبت و تشک گلدوزی طلایی؛ سه‌بعدی بچرخانید، رنگ چوب و پارچه را انتخاب کنید و در خانه ببینید.">
 <meta name="theme-color" content="#f7f4ef">
 <link rel="stylesheet" href="assets/site.css">
@@ -14,7 +14,7 @@
 <script src="assets/layout.js"></script>
 
 <main class="wrap">
-  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">کاناپه سلطنتی رز</span></div>
+  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">ست سلطنتی رز</span></div>
   <div class="pd" id="pd"></div>
 
   <section class="info">
@@ -32,9 +32,10 @@
 
 <script type="module">
 import M from './assets/models/royal.js';
+import MC from './assets/models/royal-chair.js';
 import { scanPage, SURF, fabricItems } from './assets/scan.js';
 import { gildAttr, gildMat } from './assets/console.js';
-// همه‌چیز عیناً از فایل سه‌بعدی: کلاف و تاج کنده‌کاری (ساده‌سازی زیر ۰٫۴ میلی‌متر + نرمال‌مپ خود اسکن برای ریزکاری)،
+// کاناپه و تک‌نفره هر کدام عیناً از فایل سه‌بعدی خودشان: کلاف و تاج کنده‌کاری (ساده‌سازی زیر ۰٫۴ میلی‌متر + نرمال‌مپ خود اسکن برای ریزکاری)،
 // رویه و تشک‌ها (چروک اسکن صاف شده، فرم دست‌نخورده) و کوسن‌های ریشه‌دار و استوانه‌ای همان فایل.
 // پشت کوسن‌ها در اسکن خالی است، پس کوسن‌ها ثابت‌اند و فقط رنگشان انتخابی است.
 
@@ -50,15 +51,18 @@ const EXTRA=[
     {key:'fin',q:'g',label:'سطح چوب',type:'seg',items:[{v:'satin',label:'نیمه‌مات'},{v:'gloss',label:'براق'},{v:'matte',label:'مات'}]}];
 const gildFrame=g=>g.traverse(o=>{ if(o.name==='frame') gildAttr(o.geometry,0.09); });
 
+const isS=S=>S.piece==='S';
 scanPage(M,{
-  name:'کاناپه سلطنتی رز', code:'sofa-R240',
-  sub:'کاناپه سه‌نفره کلاسیک با تاج گل رز کنده‌کاری‌شده، کلاف منبت و تشک‌های گلدوزی طلایی. رنگ چوب، طلاکاری، رنگ و جنس رویه و تشک و رنگ کوسن‌ها را انتخاب کنید.',
+  name:'ست سلطنتی رز', code:'sofa-R240',
+  models:{S:M,C:MC}, modelKey:'piece',
+  pre:[{key:'piece',q:'m',label:'قطعه',type:'seg',reframe:true,items:[{v:'S',label:'کاناپه سه‌نفره'},{v:'C',label:'تک‌نفره'}]}],
+  sub:'ست کلاسیک کاناپه سه‌نفره و مبل تک‌نفره با تاج گل رز کنده‌کاری‌شده، کلاف منبت و گلدوزی طلایی. قطعه، رنگ چوب، طلاکاری، رنگ و جنس رویه و گلدوزی را انتخاب کنید.',
   hint:'بکشید تا بچرخد · دو انگشت برای زوم و دیدن کنده‌کاری‌ها',
   parts:[
     {slot:'frame',q:'w',label:'رنگ چوب',items:WOOD,surf:wood},
     {slot:'fabric',q:'c',label:'رنگ رویه',items:VEL,surf:(h,S,M)=>SURF.upholstery(h,M,S.ft)},
-    {slot:'panel',q:'e',label:'رنگ تشک گلدوزی',items:EMB,surf:(h,S,M)=>SURF.upholstery(h,M,S.pk)},
-    {slot:'pillows',q:'p',label:'رنگ کوسن‌ها',items:[{v:'#d9d1bf',label:'عاجی (مثل عکس)'},{v:'#c4b8a0',label:'بژ'},{v:'#c9a45c',label:'طلایی'},{v:'#5b1a1c',label:'زرشکی'}],surf:(h,S,M)=>SURF.upholstery(h,M,'velvet')},
+    {slot:'panel',q:'e',label:'رنگ گلدوزی (تشک کاناپه، پشتی تک‌نفره)',items:EMB,surf:(h,S,M)=>SURF.upholstery(h,M,S.pk)},
+    {slot:'pillows',q:'p',show:isS,label:'رنگ کوسن‌ها',items:[{v:'#d9d1bf',label:'عاجی (مثل عکس)'},{v:'#c4b8a0',label:'بژ'},{v:'#c9a45c',label:'طلایی'},{v:'#5b1a1c',label:'زرشکی'}],surf:(h,S,M)=>SURF.upholstery(h,M,'velvet')},
   ],
   extra:EXTRA,
   post:gildFrame,
