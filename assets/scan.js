@@ -104,6 +104,8 @@ FABRICS.dots={label:'نقش‌دار',id:'terlenka',tile:0.2,contrast:0.9,sheen:
 /* کوسن‌های راه‌راه مبل A466 (مثل عکس): کتانی با راه‌های عمودی تیره و بریده‌بریده، و کتانی با راه‌های باریک روشن */
 FABRICS.stripe={label:'راه‌راه تیره (مثل عکس)',id:'rough_linen',tile:0.2,rough:0.95,sheen:0.2,stripe:{v:60,period:0.032,width:0.0035,dash:true}};
 FABRICS.pinstripe={label:'راه‌راه روشن (مثل عکس)',id:'rough_linen',tile:0.2,rough:0.95,sheen:0.2,stripe:{v:252,period:0.016,width:0.0028}};
+/* گلدوزی طلایی ست سلطنتی (مثل عکس): ژاکارد گل‌دار با نقش طلایی روی زمینه رنگ انتخابی */
+FABRICS.damask={label:'گلدوزی طلایی (مثل عکس)',id:'floral_jacquard',tile:0.5,damask:[1.1,0.99,0.72],sheen:0.15,sr:0.55,sc:0.2,rough:0.8,ns:1.0,spec:0.25};
 export const fabricItems=keys=>keys.map(k=>({v:k,label:FABRICS[k].label}));
 /* بافت روی UV متری (برای قطعه‌های ساخته‌شده با کد): پراکنده + نرمال‌مپ واقعی پارچه */
 async function uvTex(id,contrast,tile,kind){ const k='uv'+id+contrast+tile+kind; if(C[k]) return C[k];
@@ -132,6 +134,15 @@ function stripeTex(F){ const k='st'+F.stripe.v+F.stripe.period; return C[k]??=((
     else { x.lineWidth=S.width*px; x.beginPath(); x.moveTo(cx,0); for(let y=0;y<=N;y+=32) x.lineTo(cx+(rnd()-0.5)*1.2,y); x.stroke(); } }
   x.filter='blur(0.7px)'; x.drawImage(c,0,0); x.filter='none';
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(1/F.tile,1/F.tile); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; })(); }
+/* ژاکارد → گلدوزی: نقش روشن‌تر تصویر به رنگ نخ طلایی (نسبت به زمینه) و زمینه خنثی؛ رنگ زمینه را خود ماده می‌دهد */
+async function damaskTex(F){ const k='dm'+F.id; if(C[k]) return C[k]; const img=await loadImg(`tex/${F.id}_diff_1k.jpg`);
+  const c=document.createElement('canvas'); c.width=img.width; c.height=img.height; const x=c.getContext('2d'); x.drawImage(img,0,0);
+  const d=x.getImageData(0,0,c.width,c.height), a=d.data, L=new Float32Array(a.length/4); let lo=255, hi=0;
+  for(let i=0;i<L.length;i++){ L[i]=0.3*a[i*4]+0.59*a[i*4+1]+0.11*a[i*4+2]; } const srt=Float32Array.from(L).sort(); lo=srt[Math.floor(L.length*0.3)]; hi=srt[Math.floor(L.length*0.85)];
+  const [gr,gg,gb]=F.damask;
+  for(let i=0;i<L.length;i++){ const t=Math.min(1,Math.max(0,(L[i]-lo)/(hi-lo))), m=t*t*(3-2*t), n=1+(L[i]-(lo+hi)/2)/400;
+    a[i*4]=Math.min(255,GREY*n*(1+(gr-1)*m)); a[i*4+1]=Math.min(255,GREY*n*(1+(gg-1)*m)); a[i*4+2]=Math.min(255,GREY*n*(1+(gb-1)*m)); }
+  x.putImageData(d,0,0); return C[k]=tex(c,true,1); }
 /* لانه‌زنبوری ریز کوسن‌ها (مثل عکس): شش‌ضلعی‌های تیره با خط دور روشن‌تر */
 function hexTex(tile){ return C['hex'+tile]??=(()=>{ const N=512, c=document.createElement('canvas'); c.width=c.height=N; const x=c.getContext('2d');
   x.fillStyle='rgb(150,150,150)'; x.fillRect(0,0,N,N); const r=N/30, w=Math.sqrt(3)*r;
@@ -180,7 +191,7 @@ export const SURF={
       const [map,nm]=await Promise.all([F.stripe?stripeTex(F):F.hex?hexTex(0.16):F.dots?dotsTex(0.22):F.proc==='slub'?(()=>{ const t=slubTex().clone(); t.repeat.set(1/F.tile,1/F.tile); t.needsUpdate=true; return t; })():uvTex(F.id,F.contrast,F.tile,'d'),uvTex(F.id,1,F.tile,'n')]);
       return base(hex,{name:'fabric',map,normalMap:nm,normalScale:new THREE.Vector2(2,2),roughness:F.rough,sheen:F.sheen,sheenRoughness:0.45,sheenColor:sheenOf(hex,0.25)}); }
     if(F.leather) return SURF.leather(hex,M);
-    const [map,nm]=F.proc==='boucle'?[boucleTex().map,boucleTex().nor]:await Promise.all([F.proc==='slub'?slubTex():greyTex(F.id,F.contrast),norTex(F.nid||F.id)]);
+    const [map,nm]=F.proc==='boucle'?[boucleTex().map,boucleTex().nor]:await Promise.all([F.proc==='slub'?slubTex():F.damask?damaskTex(F):greyTex(F.id,F.contrast),norTex(F.nid||F.id)]);
     return triplanar(base(hex,{name:'fabric',map,normalMap:nm,normalScale:new THREE.Vector2(F.ns??1.4,F.ns??1.4),roughness:F.rough,specularIntensity:F.spec??0.3,sheen:F.sheen,sheenRoughness:F.sr??0.6,sheenColor:sheenOf(hex,F.sc??0.42)}),F.tile,M.half,false,F.ntile??F.tile); },
   async leather(hex,M){ return triplanar(base(hex,{name:'leather',map:leatherTex(),roughness:0.6,specularIntensity:0.5,sheen:0.2,sheenRoughness:0.6,sheenColor:sheenOf(hex,0.2)}),0.09,M.half); },
   /* چوب با رگه واقعی گردو. grain: شدت رگه (۱ = چوب رنگ‌شده، کم = رنگ روغنی روی چوب). finish: matte | satin | gloss */

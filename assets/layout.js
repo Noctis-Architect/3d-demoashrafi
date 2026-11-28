@@ -17,6 +17,12 @@ var CATALOG=window.CATALOG=[
   { id:'a466-chair', cat:'sofa', url:'a466-chair.html', img:'assets/a466-chair.webp', code:'sofa-A466-1', name:'مبل تک‌نفره آوا',
     desc:'تک‌نفره پشتی‌بلند با دسته‌های بال‌مانند و پایه‌های چوبی کج؛ همراه مبل ال آوا. رنگ پارچه و پایه دلخواه.',
     tags:['بوکله','۶ رنگ پارچه','۵ رنگ پایه'], dots:['#d6ccbe','#c49a6c','#8f8a82','#4a5442'] },
+  { id:'royal', cat:'sofa', url:'royal.html', img:'assets/royal.webp', code:'sofa-R240', name:'کاناپه سلطنتی رز',
+    desc:'تاج گل رز و کلاف تمام کنده‌کاری با طلاکاری، رویه مخمل و تشک گلدوزی طلایی. رنگ چوب و پارچه دلخواه.',
+    tags:['کنده‌کاری گل رز','طلاکاری','گلدوزی طلایی','۵ رنگ چوب'], dots:['#6e4a2c','#c4b8a0','#cbbcae','#c9a45c'] },
+  { id:'royal-chair', cat:'sofa', url:'royal-chair.html', img:'assets/royal-chair.webp', code:'chair-R72', name:'مبل تک‌نفره سلطنتی رز',
+    desc:'پشتی گلدوزی طلایی، تاج گل رز، دسته‌های طوماری و حلقه گل زیر نشیمن؛ همراه کاناپه رز.',
+    tags:['کنده‌کاری گل رز','طلاکاری','پشتی گلدوزی'], dots:['#6e4a2c','#c4b8a0','#cbbcae','#c9a45c'] },
   { id:'console', cat:'table', url:'console.html', img:'assets/console.webp', code:'console-V138', name:'کنسول کلاسیک کنده‌کاری',
     desc:'رویه موج‌دار، دامنه منبت و پایه‌های کابریول با برگ کنگری کنده‌کاری‌شده. رنگ و براقی دلخواه.',
     tags:['کنده‌کاری برجسته','۶ رنگ','مات یا براق'], dots:['#9aad8e','#efe9df','#0c0c0d','#c9a45c'] }

@@ -70,7 +70,27 @@ def seg(name):
         P=((pil|arm)&zone&(lab==0)).astype(np.float32)
         A,w,n=adj(pos,idx); D=(diffuse(P,A,w,n,6)>0.15)&zone; E=diffuse(D.astype(np.float32),A,w,n,6)>0.7
         lab[(E|(P>0))&zone&(lab==0)]=2
+    elif name in ('royal','royal-chair'):
+        # 0 fabric (velvet + embroidered), 1 carved wood (brown, gilded highlights): wood is the saturated brown of the scan
+        lab=np.zeros(len(pos),int); k=2
+        lab[((s>0.42)&(v<0.62))|(v<0.26)]=1
+        if name=='royal':   # 2: scanned throw pillows + bolsters at both ends (in front of the back, above the seat, inside the arms)
+            k=3; x,z=pos[:,0],pos[:,2]; ref=(np.abs(z)<0.1)&(lab==0); yb=np.arange(-0.012,0.2,0.004)
+            bf=np.array([x[ref&(y>a)&(y<a+0.004)&(x<-0.05)].max(initial=-0.2) for a in yb]); BF=np.interp(y,yb+0.002,bf)
+            zone=(np.abs(z)>0.17)&(np.abs(z)<0.452)&(lab==0)
+            P=(zone&(y>-0.012)&(x>BF+0.006)).astype(np.float32)
+            A,w,n=adj(pos,idx); D=(diffuse(P,A,w,n,6)>0.15)&zone; E=diffuse(D.astype(np.float32),A,w,n,6)>0.7
+            lab[(E|(P>0))&zone]=2
     A,w,n=adj(pos,idx); lab=smooth(lab,A,w,n,k,int(sys.argv[2]) if len(sys.argv)>2 else 3)
+    if name in ('royal','royal-chair'):   # small islands of one label inside the other (gilt highlights read as fabric, wood bits on the fabric)
+        from scipy.sparse.csgraph import connected_components
+        L=np.zeros(n,np.int64); L[w]=lab
+        for k_ in (0,1):
+            Ak=A.tocoo(); keep=(L[Ak.row]==k_)&(L[Ak.col]==k_)
+            nc,cl=connected_components(sp.coo_matrix((np.ones(keep.sum()),(Ak.row[keep],Ak.col[keep])),shape=(n,n)),directed=False)
+            sz=np.bincount(cl,minlength=nc); small=(L==k_)&(sz[cl]<600); L[small]=1-k_ if k_<2 else L[small]
+            print(name,'label',k_,'islands flipped',int(small.sum()))
+        lab=L[w]
     if name in ('a466','a466-chair'):   # unlabeled specks on the legs (scan texture) -> legs
         from scipy.spatial import cKDTree
         ymin=y.min(); lw=lab==1; low=(lab==0)&(y<ymin+(0.24 if name=='a466-chair' else 0.17)*(y.max()-ymin))

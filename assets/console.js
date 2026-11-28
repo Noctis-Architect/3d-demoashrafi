@@ -159,7 +159,8 @@ export function buildConsoleBody(g,handle,real=true){
 
 /* ---------- طلاکاری روی برجستگی کنده‌کاری‌ها (مثل عکس محصول) ----------
    برآمدگی هر رأس از هندسه خود اسکن حساب می‌شود (همسایه‌ها زیر صفحه مماس = لبه/برگ برجسته) و چند بار هموار می‌شود. */
-export function gildAttr(geo){ if(geo.attributes.gild) return geo;
+/* top: سهم برجسته‌ترین سطح که طلا می‌شود (کنسول ۱۸٪؛ ست رز کمتر، فقط نوک برگ و گل‌ها مثل عکس) */
+export function gildAttr(geo,top=0.18){ if(geo.attributes.gild) return geo;
   const P=geo.attributes.position, N=geo.attributes.normal, I=geo.index.array, n=P.count;
   const p=new Float32Array(n*3), nr=new Float32Array(n*3);
   for(let i=0;i<n;i++){ p[i*3]=P.getX(i); p[i*3+1]=P.getY(i); p[i*3+2]=P.getZ(i); nr[i*3]=N.getX(i); nr[i*3+1]=N.getY(i); nr[i*3+2]=N.getZ(i); }
@@ -172,7 +173,7 @@ export function gildAttr(geo){ if(geo.attributes.gild) return geo;
     for(let t=0;t<I.length;t+=3){ const a=I[t], b=I[t+1], d=I[t+2]; o[a]+=v[b]+v[d]; o[b]+=v[a]+v[d]; o[d]+=v[a]+v[b]; c[a]+=2; c[b]+=2; c[d]+=2; }
     for(let i=0;i<n;i++) o[i]=(v[i]+o[i])/(1+c[i]); v=o; }
   // آستانه از توزیع خود مدل: ۱۸٪ برجسته‌ترین سطح طلا
-  const sorted=Float32Array.from(v).sort(), lo=sorted[Math.floor(n*0.78)], hi=sorted[Math.floor(n*0.9)];
+  const sorted=Float32Array.from(v).sort(), lo=sorted[Math.floor(n*(1-top-0.04))], hi=sorted[Math.floor(n*(1-top*5/9))];
   const g=new Uint8Array(n); for(let i=0;i<n;i++){ const k=Math.min(1,Math.max(0,(v[i]-lo)/(hi-lo))); g[i]=Math.round(k*k*(3-2*k)*255); }
   geo.setAttribute('gild',new THREE.BufferAttribute(g,1,true)); return geo; }
 /* ماده را طلاکاری‌پذیر می‌کند: جاهایی که gild دارند فلز طلایی با برق نرم (روی سایه‌روشن خود اسکن) */

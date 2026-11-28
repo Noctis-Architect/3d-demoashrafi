@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>کاناپه سلطنتی رز — طراحی سه‌بعدی | مبل اشرافی</title>
+<meta name="description" content="کاناپه سه‌نفره کلاسیک با تاج گل رز کنده‌کاری‌شده، کلاف منبت و تشک گلدوزی طلایی؛ سه‌بعدی بچرخانید، رنگ چوب و پارچه را انتخاب کنید و در خانه ببینید.">
+<meta name="theme-color" content="#f7f4ef">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/product.css">
+
+</head>
+<body data-page="products">
+<script src="assets/layout.js"></script>
+
+<main class="wrap">
+  <div class="crumbs"><a href="./">خانه</a><span>/</span><a href="products.html">محصولات</a><span>/</span><span style="color:var(--ink)">کاناپه سلطنتی رز</span></div>
+  <div class="pd" id="pd"></div>
+
+  <section class="info">
+    <div><h3>ساخت و جنس</h3><p>کلاف تمام چوب کنده‌کاری با تاج گل رز، دسته‌های طوماری و پایه‌های شیاردار؛ رویه مخمل، تشک‌های گلدوزی طلایی، دو کوسن ریشه‌دار و دو کوسن استوانه‌ای.</p></div>
+    <div><h3>ابعاد</h3>
+      <table class="specs">
+        <tr><td>عرض</td><td data-spec="w"></td></tr>
+        <tr><td>عمق</td><td data-spec="d"></td></tr>
+        <tr><td>ارتفاع</td><td data-spec="h"></td></tr>
+      </table></div>
+    <div><h3>دقت مدل</h3><p>فرم و کنده‌کاری‌ها عیناً همان مدل سه‌بعدی اصلی است؛ فقط رنگ و بافت را شما انتخاب می‌کنید. رنگ اول هر گزینه، رنگ اصلی خود محصول است.</p></div>
+  </section>
+</main>
+<script>siteFooter()</script>
+
+<script type="module">
+import M from './assets/models/royal.js';
+import { scanPage, SURF, fabricItems } from './assets/scan.js';
+import { gildAttr, gildMat } from './assets/console.js';
+// همه‌چیز عیناً از فایل سه‌بعدی: کلاف و تاج کنده‌کاری (ساده‌سازی زیر ۰٫۴ میلی‌متر + نرمال‌مپ خود اسکن برای ریزکاری)،
+// رویه و تشک‌ها (چروک اسکن صاف شده، فرم دست‌نخورده) و کوسن‌های ریشه‌دار و استوانه‌ای همان فایل.
+// پشت کوسن‌ها در اسکن خالی است، پس کوسن‌ها ثابت‌اند و فقط رنگشان انتخابی است.
+
+const WOOD=[{v:'#6e4a2c',label:'گردویی (مثل عکس)'},{v:'#3a2417',label:'گردویی تیره'},{v:'#141414',label:'مشکی'},{v:'#efe9df',label:'سفید صدفی'},{v:'#c9a45c',label:'تمام طلایی'}];
+const VEL=[{v:'#c4b8a0',label:'بژ مخملی (مثل عکس)'},{v:'#d9cfbd',label:'شیری'},{v:'#8b7c66',label:'قهوه‌ای روشن'},{v:'#5b1a1c',label:'زرشکی'},{v:'#24402f',label:'سبز سلطنتی'},{v:'#1b2a40',label:'سرمه‌ای'}];
+const EMB=[{v:'#cbbcae',label:'عاجی صورتی با گلدوزی طلایی (مثل عکس)'},{v:'#c4b8a0',label:'بژ'},{v:'#5b1a1c',label:'زرشکی'},{v:'#1b2a40',label:'سرمه‌ای'}];
+const GILD=[{v:'#c9a45c',label:'طلاکاری (مثل عکس)'},{v:'#c4c6c8',label:'نقره‌کاری'},{v:'none',label:'بدون'}];
+const wood=async(h,S,M)=>h==='#c9a45c'?SURF.metal(h):(m=>S.gild==='none'?m:gildMat(m,S.gild))(await SURF.wood(h,M,{grain:h==='#141414'||h==='#efe9df'?0.15:0.35,finish:S.fin}));
+const EXTRA=[
+    {key:'ft',q:'ft',label:'جنس رویه',type:'seg',items:fabricItems(['velvet','chenille','linen','leather'])},
+    {key:'pk',q:'pk',label:'جنس گلدوزی',type:'seg',items:fabricItems(['damask','velvet','linen'])},
+    {key:'gild',q:'a',label:'کنده‌کاری‌ها',type:'seg',items:GILD},
+    {key:'fin',q:'g',label:'سطح چوب',type:'seg',items:[{v:'satin',label:'نیمه‌مات'},{v:'gloss',label:'براق'},{v:'matte',label:'مات'}]}];
+const gildFrame=g=>g.traverse(o=>{ if(o.name==='frame') gildAttr(o.geometry,0.09); });
+
+scanPage(M,{
+  name:'کاناپه سلطنتی رز', code:'sofa-R240',
+  sub:'کاناپه سه‌نفره کلاسیک با تاج گل رز کنده‌کاری‌شده، کلاف منبت و تشک‌های گلدوزی طلایی. رنگ چوب، طلاکاری، رنگ و جنس رویه و تشک و رنگ کوسن‌ها را انتخاب کنید.',
+  hint:'بکشید تا بچرخد · دو انگشت برای زوم و دیدن کنده‌کاری‌ها',
+  parts:[
+    {slot:'frame',q:'w',label:'رنگ چوب',items:WOOD,surf:wood},
+    {slot:'fabric',q:'c',label:'رنگ رویه',items:VEL,surf:(h,S,M)=>SURF.upholstery(h,M,S.ft)},
+    {slot:'panel',q:'e',label:'رنگ تشک گلدوزی',items:EMB,surf:(h,S,M)=>SURF.upholstery(h,M,S.pk)},
+    {slot:'pillows',q:'p',label:'رنگ کوسن‌ها',items:[{v:'#d9d1bf',label:'عاجی (مثل عکس)'},{v:'#c4b8a0',label:'بژ'},{v:'#c9a45c',label:'طلایی'},{v:'#5b1a1c',label:'زرشکی'}],surf:(h,S,M)=>SURF.upholstery(h,M,'velvet')},
+  ],
+  extra:EXTRA,
+  post:gildFrame,
+});
+</script>
+</body>
+</html>

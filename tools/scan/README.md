@@ -51,3 +51,22 @@ node lite.mjs ../../assets/models/a466-chair.js ../../assets/models/a466-chair.j
 - `smooth_fabric.py`: Tripo بافت پارچه را در هندسه (برآمدگی میلی‌متری) و رنگ (لک تیره) پخته بود؛ صاف می‌شود، فرم می‌ماند.
 - پایه‌ها با کد (`assets/legs.js`): مخروط صاف؛ جا، زاویه، طول و شعاع از پایه‌های سالم فایل اندازه‌گیری شده (`LEGS` در صفحه).
 - `lite.mjs`: باگ خراب‌شدن رأس صفر (سوزن‌های بلند روی مدل) درست شد؛ مثلث‌های بلندتر از `MAXE` (۰٫۳ متر) هم حذف می‌شوند.
+
+### ست سلطنتی رز (royal, royal-chair)
+```bash
+gltf-transform dequantize ../../3d/royal.glb /tmp/scan-work/raw/royal.glb             # و همین برای royal-chair
+node --max-old-space-size=9000 stage1.mjs /tmp/scan-work/raw/royal.glb /tmp/scan-work/s1/royal 0.0002 1
+python3 seg.py royal 6 && python3 seg.py royal-chair 6      # ۰ پارچه، ۱ کلاف، ۲ کوسن (کاناپه)؛ جزیره‌های کوچک برگردانده می‌شوند
+python3 stage2.py royal && python3 stage2.py royal-chair
+python3 smooth_fabric.py /tmp/scan-work/s2/royal /tmp/scan-work/s2/royal_sm fabric --taubin 25 --shade-blur 30
+python3 smooth_fabric.py /tmp/scan-work/s2/royal_sm /tmp/scan-work/s2/royal_sm pillows --taubin 15 --shade-blur 20
+python3 split_panel.py /tmp/scan-work/s2/royal_sm /tmp/scan-work/s2/royal_pn fabric panel "(np.abs(cx)<1.12)&(cy>0.43)&(cy<0.5)&(cz>-0.215)&(cz<0.43)&(ny>0.6)"
+python3 smooth_fabric.py /tmp/scan-work/s2/royal-chair /tmp/scan-work/s2/royal-chair_sm fabric --taubin 25 --shade-blur 30
+python3 split_panel.py /tmp/scan-work/s2/royal-chair_sm /tmp/scan-work/s2/royal-chair_pn fabric panel "(np.abs(cx)<0.25)&(cy>0.475)&(cy<0.99)&(cz<-0.14)&(nz>0.2)"
+# نرمال‌مپ: s1/<id>_normal.png → tex/scan/<id>_normal.webp (۲۰۴۸، کیفیت ۹۲)
+RN=fabric,panel,pillows node encode.mjs /tmp/scan-work/s2/royal_pn ../../assets/models/royal.js royal tex/scan/royal_normal.webp
+node lite.mjs ../../assets/models/royal.js ../../assets/models/royal.js fabric=0.35 panel=0.35 pillows=0.4 frame=0.85
+RN=fabric,panel node encode.mjs /tmp/scan-work/s2/royal-chair_pn ../../assets/models/royal-chair.js royal-chair tex/scan/royal-chair_normal.webp
+node lite.mjs ../../assets/models/royal-chair.js ../../assets/models/royal-chair.js fabric=0.35 panel=0.35 frame=0.5
+```
+کلاف فقط تا خطای اسکن خود stage1 (حدود ۰٫۲ میلی‌متر) ساده می‌شود تا کیفیت کنده‌کاری پایین نیاید.

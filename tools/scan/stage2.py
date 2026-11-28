@@ -10,6 +10,8 @@ CFG = {
   'console':   dict(front='+x', length=1.38, slots=['paint']),
   'a466':      dict(front='+x', length=2.80, slots=['fabric', 'frame', 'pillows', 'junk'], drop=['pillows', 'junk']),
   'a466-chair':dict(front='z',  length=0.80, slots=['fabric', 'legs']),
+  'royal':     dict(front='+x', length=2.40, slots=['fabric', 'frame', 'pillows']),
+  'royal-chair':dict(front='+x', length=0.72, slots=['fabric', 'frame']),
 }
 name = sys.argv[1]; C = CFG[name]
 pos, nor, uv, idx, col = load(S + 's1/' + name)
