@@ -49,7 +49,32 @@ def seg(name):
         ok=inbox&~seat&~backface; P=(cand&ok).astype(np.float32)
         D=(diffuse(P,A,w,n,8)>0.12)&ok; E=diffuse(D.astype(np.float32),A,w,n,8)>0.8   # closing: fill holes in pillows
         lab[(E|(P>0))&ok]=2                                             # patterned throw pillows
+    elif name=='a466-chair':
+        # 0 fabric, 1 legs (saturated wood colour in the bottom quarter; replaced by clean code legs in the page)
+        lab=np.zeros(len(pos),int); k=2; ymin=y.min(); H=y.max()-ymin
+        lab[(s>0.38)&(c[:,0]>c[:,2]+0.08)&(y<ymin+0.25*H)]=1
+    elif name=='a466':
+        # 0 fabric, 1 legs, 2 scanned throw pillows (rebuilt under), 3 plant/stand behind the corner (separate shells, dropped)
+        lab=np.zeros(len(pos),int); k=4; x,z=pos[:,0],pos[:,2]; ymin=y.min(); H=y.max()-ymin
+        lab[(s>0.38)&(c[:,0]>c[:,2]+0.08)&(y<ymin+0.2*H)]=1
+        vc=np.load(S+name+'_vc.npy'); lab[vc!=0]=3   # 3: plant + stand
+        # clean reference bay (no pillows): front of the back cushion per height, top of the back per depth
+        ref=(z>0.0)&(z<0.1); yb=np.arange(0.004,0.13,0.004); xb=np.arange(-0.27,0.01,0.004)
+        bf=np.array([x[ref&(y>a)&(y<a+0.004)&(x<-0.1)].max() if (ref&(y>a)&(y<a+0.004)&(x<-0.1)).any() else -0.3 for a in yb])
+        bt=np.array([y[ref&(x>a)&(x<a+0.004)].max() if (ref&(x>a)&(x<a+0.004)).any() else 0.0 for a in xb])
+        BF=np.interp(y,yb+0.002,bf); BT=np.interp(x,xb+0.002,bt)
+        bay=(z>-0.296)&(z<0.414)&(x<0.02)
+        pil=bay&(y>0.007)&((x>BF+0.006)|(y>BT+0.006))
+        arm=((z<=-0.296)|(z>=0.414))&(x<0.0)&(x>-0.235)&((y>0.057)|((z<-0.29)&(y>0.041)&(s<0.13)))   # pillow lying over the arm tops
+        zone=((z>-0.38)&(z<-0.14)&(x>-0.22)&(x<0.02))|((z>0.15)&(z<0.47)&(x>-0.2)&(x<0.0))
+        P=((pil|arm)&zone&(lab==0)).astype(np.float32)
+        A,w,n=adj(pos,idx); D=(diffuse(P,A,w,n,6)>0.15)&zone; E=diffuse(D.astype(np.float32),A,w,n,6)>0.7
+        lab[(E|(P>0))&zone&(lab==0)]=2
     A,w,n=adj(pos,idx); lab=smooth(lab,A,w,n,k,int(sys.argv[2]) if len(sys.argv)>2 else 3)
+    if name in ('a466','a466-chair'):   # unlabeled specks on the legs (scan texture) -> legs
+        from scipy.spatial import cKDTree
+        ymin=y.min(); lw=lab==1; low=(lab==0)&(y<ymin+(0.24 if name=='a466-chair' else 0.17)*(y.max()-ymin))
+        d,_=cKDTree(pos[lw]).query(pos[low]); ii=np.where(low)[0]; lab[ii[d<0.006]]=1
     np.save(S+name+'_lab.npy',lab)
     for i in range(k): print(name,i,'%.3f'%(lab==i).mean(),'#%02x%02x%02x'%tuple(col[lab==i].mean(0).astype(int)) if (lab==i).any() else '')
     write(S+name+'_lab.glb',pos,nor,idx,PAL[lab])

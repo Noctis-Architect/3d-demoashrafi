@@ -8,6 +8,8 @@ CFG = {
   'chester':   dict(front='+x', length=2.24, slots=['fabric', 'frame', 'pillows']),
   'chaise':    dict(front='+x', length=1.60, slots=['wood', 'seat']),
   'console':   dict(front='+x', length=1.38, slots=['paint']),
+  'a466':      dict(front='+x', length=2.80, slots=['fabric', 'frame', 'pillows', 'junk'], drop=['pillows', 'junk']),
+  'a466-chair':dict(front='z',  length=0.80, slots=['fabric', 'legs']),
 }
 name = sys.argv[1]; C = CFG[name]
 pos, nor, uv, idx, col = load(S + 's1/' + name)
@@ -22,9 +24,11 @@ if C['front'] == '+x':   R = lambda v: np.c_[-v[:, 2], v[:, 1], v[:, 0]]
 elif C['front'] == '-x': R = lambda v: np.c_[v[:, 2], v[:, 1], -v[:, 0]]
 else: R = lambda v: v
 pos = R(pos.astype(np.float64)); nor = R(nor.astype(np.float64))
-ext = pos.max(0) - pos.min(0); s = C['length'] / ext[0]
-pos = (pos - [(pos[:, 0].max() + pos[:, 0].min()) / 2, pos[:, 1].min(), (pos[:, 2].max() + pos[:, 2].min()) / 2]) * s
-print(name, 'dims m', np.round(pos.max(0) - pos.min(0), 3))
+# extents from the kept slots only (dropped scenery such as a plant behind the sofa must not set the scale)
+kp = ~np.isin(lab, [C['slots'].index(d) for d in C.get('drop', [])]); Q = pos[kp]
+ext = Q.max(0) - Q.min(0); s = C['length'] / ext[0]
+pos = (pos - [(Q[:, 0].max() + Q[:, 0].min()) / 2, Q[:, 1].min(), (Q[:, 2].max() + Q[:, 2].min()) / 2]) * s
+print(name, 'dims m', np.round(ext * s, 3))
 
 # shade: linear luminance of scan colour relative to slot median
 lin = lambda c: np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
@@ -43,7 +47,7 @@ tl = lab[idx]; tri = np.where(tl[:, 1] == tl[:, 2], tl[:, 1], tl[:, 0])
 import os
 if os.path.exists(S + 's1/' + name + '_flab.npy'):   # per-triangle labels from seg2.py (clean seams)
     tri = np.load(S + 's1/' + name + '_flab.npy')[keep]
-out = dict(name=name, dims=np.round(pos.max(0) - pos.min(0), 4).tolist(), slots=[])
+out = dict(name=name, dims=np.round(ext * s, 4).tolist(), slots=[])
 blobs = []
 for k, sl in enumerate(C['slots']):
     I = idx[tri == k]

@@ -21,10 +21,15 @@ for (const s of Md.slots) {
     attr[i * 5] = dv.getUint16(b + 12, true) / 65535; attr[i * 5 + 1] = dv.getUint16(b + 14, true) / 65535;
     for (let k = 0; k < 3; k++) attr[i * 5 + 2 + k] = dv.getInt8(b + 8 + k) / 127; }
   const target = Math.floor(s.ni * r / 3) * 3;
-  const [I2, err] = MeshoptSimplifier.simplifyWithAttributes(ib, pos, 3, attr, 5, [1, 1, 0.3, 0.3, 0.3], null, target, 0.01, ['LockBorder']);
+  let [I2, err] = MeshoptSimplifier.simplifyWithAttributes(ib, pos, 3, attr, 5, [1, 1, 0.3, 0.3, 0.3], null, target, 0.01, ['LockBorder']);
+  // the simplifier can collapse a seam into a fan of needles spanning the whole piece: drop any triangle longer than MAXE metres
+  { const mx = (+process.env.MAXE || 0.3) / Md.half, keep = [];
+    for (let t = 0; t < I2.length; t += 3) { const a = I2[t] * 3, b = I2[t + 1] * 3, c = I2[t + 2] * 3, d = (p, q) => Math.hypot(pos[p] - pos[q], pos[p + 1] - pos[q + 1], pos[p + 2] - pos[q + 2]);
+      if (Math.max(d(a, b), d(b, c), d(c, a)) <= mx) keep.push(I2[t], I2[t + 1], I2[t + 2]); }
+    if (keep.length < I2.length) console.log(s.slot, 'needle tris dropped', (I2.length - keep.length) / 3); I2 = Uint32Array.from(keep); }
   const [remap, nv] = MeshoptEncoder.reorderMesh(I2, true, false);
   const nb = new Uint8Array(nv * S);
-  for (let i = 0; i < s.nv; i++) { const j = remap[i]; if (j === 0xffffffff) continue; nb.set(vb.subarray(i * S, i * S + S), j * S); }
+  for (let i = 0; i < s.nv; i++) { const j = remap[i]; if (j === undefined || j === 0xffffffff) continue; nb.set(vb.subarray(i * S, i * S + S), j * S); }
   const ev = Buffer.from(MeshoptEncoder.encodeVertexBuffer(nb, nv, S)).toString('base64');
   const ei = Buffer.from(MeshoptEncoder.encodeIndexBuffer(new Uint8Array(I2.buffer, I2.byteOffset, I2.byteLength), I2.length, 4)).toString('base64');
   // error in metres (positions are normalised by half)

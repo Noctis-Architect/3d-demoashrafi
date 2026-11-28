@@ -116,14 +116,21 @@ export function productPage(P){
   /* وضوح پویا: وقتی تصویر در حرکت است و فریم‌ها کُند می‌شوند وضوح کم می‌شود؛ هر وقت ایستاد یک فریم با وضوح کامل کشیده می‌شود */
   const PRMAX=Math.min(devicePixelRatio,MOBILE?1.5:2), PRMIN=Math.min(PRMAX,MOBILE?0.75:1);
   let prMove=PRMAX, ftAvg=16, prT=0, lastDraw=0, sharp=true;
-  renderer.setPixelRatio(PRMAX); renderer.toneMapping=THREE.CustomToneMapping; renderer.toneMappingExposure=P.exposure??1;
+  renderer.setPixelRatio(PRMAX); renderer.toneMapping=THREE.CustomToneMapping;
+  /* نوردهی پیش از بافر ۸ بیتی: وقتی صحنه در رندرتارگت کشیده می‌شود و تون‌مپ بعداً اعمال می‌شود، نور محیط و خورشید از اول
+     با ضریب نوردهی ساخته می‌شوند؛ وگرنه روی پارچه‌های روشن (کرم، سفید) هر جای پرنور در بافر به سفید بریده و خاکستری تخت می‌شد.
+     نتیجه برای رنگ‌های تیره دقیقاً همان قبلی است (تون‌مپ اول رنگ را در نوردهی ضرب می‌کند). */
+  const RTOK=renderer.capabilities.isWebGL2, EXPO=RTOK?(P.exposure??1):1;
+  renderer.toneMappingExposure=RTOK?1:(P.exposure??1);
   renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate=false;
   const scene=new THREE.Scene(), pmrem=new THREE.PMREMGenerator(renderer);
   const HALF=renderer.capabilities.isWebGL2?(renderer.extensions.has('EXT_color_buffer_float')||renderer.extensions.has('EXT_color_buffer_half_float')):renderer.extensions.has('OES_texture_half_float');
-  if(HALF) scene.environment=pmrem.fromScene(new RoomEnvironment(renderer),0.04).texture;
-  else { scene.add(new THREE.HemisphereLight(0xfffaf2,0x9a9086,2.6)); scene.add(new THREE.AmbientLight(0xffffff,0.9)); }
+  if(HALF){ const room=new RoomEnvironment(renderer);
+    if(EXPO!==1) room.traverse(o=>{ if(o.isLight) o.intensity*=EXPO; if(o.material?.isMeshBasicMaterial) o.material.color.multiplyScalar(EXPO); });
+    scene.environment=pmrem.fromScene(room,0.04).texture; }
+  else { scene.add(new THREE.HemisphereLight(0xfffaf2,0x9a9086,2.6*EXPO)); scene.add(new THREE.AmbientLight(0xffffff,0.9*EXPO)); }
   /* خروجی نهایی: رندرتارگت sRGB (۸ بیتی، دقت کافی) → تون‌مپ + تبدیل رنگ + FXAA اختیاری روی یک مستطیل تمام‌صفحه */
-  const RTOK=renderer.capabilities.isWebGL2, AAS=RTOK?Math.min(4,renderer.capabilities.maxSamples):0;
+  const AAS=RTOK?Math.min(4,renderer.capabilities.maxSamples):0;
   const mkRT=samples=>{ const t=new THREE.WebGLRenderTarget(1,1,{samples,type:THREE.UnsignedByteType}); t.texture.colorSpace=THREE.SRGBColorSpace; return t; };
   const stillRT=RTOK?mkRT(AAS):null, moveRT=RTOK?mkRT(0):null;
   const postMat=new THREE.ShaderMaterial({uniforms:{tDiffuse:{value:null},rp:{value:new THREE.Vector2()},fx:{value:0}},depthTest:false,depthWrite:false,blending:THREE.NoBlending,
@@ -155,7 +162,7 @@ export function productPage(P){
   const camera=new THREE.PerspectiveCamera(30,1,0.05,40);
   const controls=new OrbitControls(camera,cv); controls.enableDamping=true; controls.dampingFactor=0.08; controls.enablePan=false;
   controls.maxPolarAngle=1.5; controls.minDistance=0.6; controls.autoRotate=!QS.has('shot'); controls.autoRotateSpeed=0.7;
-  const sun=new THREE.DirectionalLight(0xffffff,1.1); sun.position.set(1.2,3.2,2.0); sun.castShadow=true; sun.shadow.mapSize.set(MOBILE?1024:2048,MOBILE?1024:2048);
+  const sun=new THREE.DirectionalLight(0xffffff,1.1*EXPO); sun.position.set(1.2,3.2,2.0); sun.castShadow=true; sun.shadow.mapSize.set(MOBILE?1024:2048,MOBILE?1024:2048);
   const sc=sun.shadow.camera; sc.left=sc.bottom=-1.8; sc.right=sc.top=1.8; sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.03; sun.shadow.radius=5; scene.add(sun);
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.ShadowMaterial({opacity:0.2})); ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
   const root=new THREE.Group(); scene.add(root);

@@ -26,3 +26,28 @@
 - برآمدگی نوک‌تیز وسط تاج (از قرینه‌سازی): `node tools/scan/flatten_crest.mjs assets/models/chaise.js wood 0.022 0.80 0.5`
 - نوار پشت زیر نشیمن ساده و صاف مثل عکس: `node tools/scan/flatten_back_apron.mjs assets/models/chaise.js wood 0.6 0.41 0.455 -0.2945`
   (هر دو فقط رأس‌های همان ناحیه را جابه‌جا می‌کنند؛ بقیه مدل و تقارن چپ/راست دست نمی‌خورد)
+
+### مبل ال آوا (a466) و تک‌نفره آوا (a466-chair) — sofa-A466
+منبع: `3d/a466.glb` و `3d/a466-chair.glb` (Tripo)، عکس‌ها و شرح مو به مو در `refs/sofa-a466/`.
+```bash
+gltf-transform dequantize ../../3d/a466.glb /tmp/scan-work/raw/a466.glb          # و همین برای a466-chair
+node --max-old-space-size=9000 stage1.mjs /tmp/scan-work/raw/a466.glb /tmp/scan-work/s1/a466 0.0002 1
+python3 components.py a466        # اجزای جدا → s1/a466_vc.npy (گیاه و پایه‌اش پشت گوشه، جزء ۱ و ۲)
+python3 seg.py a466 2 && python3 seg.py a466-chair 3   # ۰ پارچه، ۱ پایه، ۲ کوسن اسکن، ۳ گیاه
+python3 stage2.py a466 && python3 stage2.py a466-chair  # مقیاس از بخش‌های نگه‌داشته (drop در CFG)
+python3 a466_patch.py                    # فقط مبل ال؛ نیاز به scipy (pymeshlab لازم نیست)
+python3 s2keep.py /tmp/scan-work/s2/a466_np /tmp/scan-work/s2/a466_fab fabric          # پایه‌های اسکن کنار می‌روند
+python3 s2keep.py /tmp/scan-work/s2/a466-chair /tmp/scan-work/s2/a466-chair_np fabric
+python3 smooth_fabric.py /tmp/scan-work/s2/a466_fab /tmp/scan-work/s2/a466_sm fabric --taubin 30 --shade-blur 80
+python3 smooth_fabric.py /tmp/scan-work/s2/a466-chair_np /tmp/scan-work/s2/a466-chair_sm fabric --taubin 40 --shade-blur 60
+RN=fabric node encode.mjs /tmp/scan-work/s2/a466_sm ../../assets/models/a466.js a466 ""
+RN=fabric node encode.mjs /tmp/scan-work/s2/a466-chair_sm ../../assets/models/a466-chair.js a466-chair ""
+node lite.mjs ../../assets/models/a466.js ../../assets/models/a466.js fabric=0.6
+node lite.mjs ../../assets/models/a466-chair.js ../../assets/models/a466-chair.js fabric=0.35
+```
+- `a466_patch.py`: کوسن‌های اسکن برداشته شدند؛ نشیمن و پشتی چپ = ماژول سالم وسط (کش‌آمده به عرض همان خانه)، پشتی شزلون = پشتی وسط،
+  نشیمن شزلون زیر کوسن‌ها = خود شزلون ۵۰ سانت جلوتر، دستهٔ چپ: تکهٔ کوسن روی آن بریده و پوستهٔ ۱ میلی‌متر داخل‌تر (مقطع خود دسته) پشت سوراخ،
+  دستهٔ راست = قرینهٔ دستهٔ چپ. برش‌ها درست در شکاف بین کوسن‌ها و درزها به هم دوخته (`put`).
+- `smooth_fabric.py`: Tripo بافت پارچه را در هندسه (برآمدگی میلی‌متری) و رنگ (لک تیره) پخته بود؛ صاف می‌شود، فرم می‌ماند.
+- پایه‌ها با کد (`assets/legs.js`): مخروط صاف؛ جا، زاویه، طول و شعاع از پایه‌های سالم فایل اندازه‌گیری شده (`LEGS` در صفحه).
+- `lite.mjs`: باگ خراب‌شدن رأس صفر (سوزن‌های بلند روی مدل) درست شد؛ مثلث‌های بلندتر از `MAXE` (۰٫۳ متر) هم حذف می‌شوند.

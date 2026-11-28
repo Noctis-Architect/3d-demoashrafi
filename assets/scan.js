@@ -101,6 +101,9 @@ export const FABRICS={
 FABRICS.slub={label:'شنیل راه‌راه (مثل عکس)',id:'terlenka',nid:'terlenka',proc:'slub',tile:0.3,ntile:0.06,ns:2.8,sheen:0.4,sr:0.85,sc:0.3,rough:1,spec:0.08};
 FABRICS.hex={label:'لانه‌زنبوری (مثل عکس)',id:'terlenka',hex:true,tile:0.2,contrast:0.9,sheen:0.4,rough:0.88};
 FABRICS.dots={label:'نقش‌دار',id:'terlenka',tile:0.2,contrast:0.9,sheen:0.35,rough:0.9,dots:true};
+/* کوسن‌های راه‌راه مبل A466 (مثل عکس): کتانی با راه‌های عمودی تیره و بریده‌بریده، و کتانی با راه‌های باریک روشن */
+FABRICS.stripe={label:'راه‌راه تیره (مثل عکس)',id:'rough_linen',tile:0.2,rough:0.95,sheen:0.2,stripe:{v:60,period:0.032,width:0.0035,dash:true}};
+FABRICS.pinstripe={label:'راه‌راه روشن (مثل عکس)',id:'rough_linen',tile:0.2,rough:0.95,sheen:0.2,stripe:{v:252,period:0.016,width:0.0028}};
 export const fabricItems=keys=>keys.map(k=>({v:k,label:FABRICS[k].label}));
 /* بافت روی UV متری (برای قطعه‌های ساخته‌شده با کد): پراکنده + نرمال‌مپ واقعی پارچه */
 async function uvTex(id,contrast,tile,kind){ const k='uv'+id+contrast+tile+kind; if(C[k]) return C[k];
@@ -118,6 +121,17 @@ function slubTex(){ return C.slub??=(()=>{ const N=1024, c=document.createElemen
   for(let i=0;i<3200;i++){ const dark=rnd()<0.35; streak(rnd()*N,rnd()*N,6+rnd()*26,3+rnd()*4,dark?Math.round(GREY-40-rnd()*20):Math.round(GREY+28+rnd()*20),0.3+rnd()*0.35); }   // نخ‌های ضخیم کوتاه (اسلاب و نوپ)
   x.filter='blur(1.6px)'; x.drawImage(c,0,0); x.filter='none';   // نرم: نخ واقعی لبه تیز ندارد
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; })(); }
+/* راه‌راه کوسن: زمینه کتانی (پرز ریز) با نخ‌های عمودی؛ dash: راه‌های بریده‌بریده مثل دوخت دستی. tile متر = کل تصویر */
+function stripeTex(F){ const k='st'+F.stripe.v+F.stripe.period; return C[k]??=(()=>{ const N=512, c=document.createElement('canvas'); c.width=c.height=N; const x=c.getContext('2d');
+  let sd=17; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
+  const d=x.createImageData(N,N), a=d.data; for(let i=0;i<N*N;i++){ const v=GREY+(rnd()-0.5)*16; a[i*4]=a[i*4+1]=a[i*4+2]=v; a[i*4+3]=255; } x.putImageData(d,0,0);
+  const S=F.stripe, px=N/F.tile, per=S.period*px, n=Math.round(N/per), step=N/n, v=S.v;
+  for(let i=0;i<n;i++){ const cx=(i+0.5)*step+(rnd()-0.5)*step*0.12; x.strokeStyle=`rgb(${v},${v},${v})`; x.lineCap='round';
+    if(S.dash){ for(let y=-20;y<N+20;){ const L=(0.008+rnd()*0.006)*px, G=(0.003+rnd()*0.003)*px; x.lineWidth=S.width*px*(0.8+rnd()*0.5);
+        x.beginPath(); x.moveTo(cx+(rnd()-0.5)*1.5,y); x.lineTo(cx+(rnd()-0.5)*1.5,Math.min(y+L,N+20)); x.stroke(); y+=L+G; } }
+    else { x.lineWidth=S.width*px; x.beginPath(); x.moveTo(cx,0); for(let y=0;y<=N;y+=32) x.lineTo(cx+(rnd()-0.5)*1.2,y); x.stroke(); } }
+  x.filter='blur(0.7px)'; x.drawImage(c,0,0); x.filter='none';
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(1/F.tile,1/F.tile); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; })(); }
 /* لانه‌زنبوری ریز کوسن‌ها (مثل عکس): شش‌ضلعی‌های تیره با خط دور روشن‌تر */
 function hexTex(tile){ return C['hex'+tile]??=(()=>{ const N=512, c=document.createElement('canvas'); c.width=c.height=N; const x=c.getContext('2d');
   x.fillStyle='rgb(150,150,150)'; x.fillRect(0,0,N,N); const r=N/30, w=Math.sqrt(3)*r;
@@ -163,7 +177,7 @@ export const SURF={
     if(M.uv){ // قطعه با UV متری: بافت و نرمال‌مپ واقعی پارچه
       if(F.leather) return base(hex,{name:'leather',map:(()=>{ const t=leatherTex().clone(); t.repeat.set(1/0.09,1/0.09); t.needsUpdate=true; return t; })(),roughness:0.6,specularIntensity:0.5,sheen:0.2,sheenColor:sheenOf(hex,0.2)});
       if(F.proc==='boucle'){ const B=boucleTex(); return base(hex,{name:'fabric',map:tiled(B.map,F.tile),normalMap:tiled(B.nor,F.tile),normalScale:new THREE.Vector2(F.ns,F.ns),roughness:F.rough,sheen:F.sheen,sheenRoughness:0.5,sheenColor:sheenOf(hex,0.3)}); }
-      const [map,nm]=await Promise.all([F.hex?hexTex(0.16):F.dots?dotsTex(0.22):F.proc==='slub'?(()=>{ const t=slubTex().clone(); t.repeat.set(1/F.tile,1/F.tile); t.needsUpdate=true; return t; })():uvTex(F.id,F.contrast,F.tile,'d'),uvTex(F.id,1,F.tile,'n')]);
+      const [map,nm]=await Promise.all([F.stripe?stripeTex(F):F.hex?hexTex(0.16):F.dots?dotsTex(0.22):F.proc==='slub'?(()=>{ const t=slubTex().clone(); t.repeat.set(1/F.tile,1/F.tile); t.needsUpdate=true; return t; })():uvTex(F.id,F.contrast,F.tile,'d'),uvTex(F.id,1,F.tile,'n')]);
       return base(hex,{name:'fabric',map,normalMap:nm,normalScale:new THREE.Vector2(2,2),roughness:F.rough,sheen:F.sheen,sheenRoughness:0.45,sheenColor:sheenOf(hex,0.25)}); }
     if(F.leather) return SURF.leather(hex,M);
     const [map,nm]=F.proc==='boucle'?[boucleTex().map,boucleTex().nor]:await Promise.all([F.proc==='slub'?slubTex():greyTex(F.id,F.contrast),norTex(F.nid||F.id)]);

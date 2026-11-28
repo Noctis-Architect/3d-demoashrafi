@@ -1,6 +1,7 @@
 /* کوسن‌های جدا و جابه‌جاشونده: روی پشتی تکیه داده می‌شوند و با کشیدن، در طول مبل جابه‌جا می‌شوند. */
 import { THREE, slot } from './product.js';
 import { V3, sweep, MOBILE } from './geo.js';
+import { fastPick } from './pick.js';
 
 const GEOS={};
 /* کوسن مربعی پف‌دار با گوشه‌های کشیده و درز دور (دو رویه جلو/پشت) — ابعاد به متر */
@@ -24,7 +25,7 @@ export function pillowGeo(W=0.46,H=0.46,T=0.2,{ex=2.6,pw=0.42}={}){ const key=[W
 /* کوسن تزئینی واقعی (مثل عکس محصول): دو رویه دوخته با قیطان دور درز، گوشه‌های کشیده و کم‌پشت، چین ریز گوشه‌ها، UV متری */
 const PG={};
 /* shape 'square': مثل کوسن‌های چستر در عکس و فایل سه‌بعدی — دور مربعی با گوشه‌های نوک‌تیز، وسط پف‌دار و لبه‌ها تا درز نازک (نه مکعبی) */
-export function pillowMesh(w=0.45,h=0.45,t=0.17,shape='soft'){ const key=[w,h,t,shape].join(); const SQ=shape==='square';
+export function pillowMesh(w=0.45,h=0.45,t=0.17,shape='soft',mat='pillows'){ const key=[w,h,t,shape].join(); const SQ=shape==='square';
   const G=PG[key]??=(()=>{ const n=44, ex=SQ?11:7;
     const rho=f=>Math.pow(Math.pow(Math.abs(Math.cos(f)),ex)+Math.pow(Math.abs(Math.sin(f)),ex),-1/ex);
     const outline=(f,r)=>{ const c=Math.cos(f), s_=Math.sin(f), q=r*rho(f), pinch=(SQ?0.06:0.05)*r*r*(1-Math.pow(Math.abs(c*s_)*2,0.5));
@@ -41,7 +42,7 @@ export function pillowMesh(w=0.45,h=0.45,t=0.17,shape='soft'){ const key=[w,h,t,
     g.setIndex(idx); g.computeVertexNormals();
     const ring=[]; for(let k=0;k<96;k++){ const [x,y]=outline(2*Math.PI*k/96,1); ring.push(V3(x,y,0)); }
     return {body:g,pipe:sweep(ring,[0.005],{closed:true,seg:192,radial:8})}; })();
-  const o=new THREE.Group(); o.add(new THREE.Mesh(G.body,slot.pillows)); o.add(new THREE.Mesh(G.pipe,slot.pillows)); return o; }
+  const o=new THREE.Group(); o.add(new THREE.Mesh(G.body,slot[mat])); o.add(new THREE.Mesh(G.pipe,slot[mat])); return o; }
 
 export const PILLOW_COUNTS=[{v:'4',label:'۴ کوسن'},{v:'2',label:'۲ کوسن'},{v:'6',label:'۶ کوسن'},{v:'0',label:'بدون کوسن'}];
 /* xmin..xmax: محدوده جابه‌جایی در طول پشتی؛ back: z جلوی پشتی (عدد، یا تابع x برای پشتی قوس‌دار)؛ seat: ارتفاع نشیمن.
@@ -50,16 +51,19 @@ export const PILLOW_COUNTS=[{v:'4',label:'۴ کوسن'},{v:'2',label:'۲ کوس�
    seatFront (اختیاری، عدد یا تابع x): z لبه جلوی نشیمن → کوسن آزادانه روی نشیمن هم کشیده می‌شود و هرچه جلوتر بیاید خوابیده‌تر می‌شود. */
 /* solids (اختیاری): {back:[مش‌ها], seat:[مش‌ها]} — سطح واقعی مبل (اسکن). یک بار با پرتو اندازه گرفته می‌شود و در جدول می‌ماند:
    کوسن روی بالای تشک می‌نشیند، به خود پشتی تکیه می‌دهد و از دسته‌ها رد نمی‌شود (بدون کندی هنگام کشیدن). */
-export function addPillows(g,count,{xmin=-0.9,xmax=0.9,back=-0.62,seat=0.47,size=0.46,h=null,xs=null,lean=0.42,off=0.09,inner=0.07,seatFront=null,shape='soft',solids=null}={}){
-  const H=h||size;
+/* kinds (اختیاری): {تعداد: [{mat, w, h, front}]} — هر کوسن جنس/طرح (جایگاه ماده)، اندازه و جلوآمدگی خودش را دارد
+   (مثل عکس محصول: کوسن مربعی ساده، راه‌راه و کوسن کمری جلوی آن‌ها). */
+export function addPillows(g,count,{xmin=-0.9,xmax=0.9,back=-0.62,seat=0.47,size=0.46,h=null,xs=null,lean=0.42,off=0.09,inner=0.07,seatFront=null,shape='soft',solids=null,kinds=null}={}){
+  const H=h||size, H0=H, size0=size;
   const n=+count; if(!n) return;
   const B=typeof back==='function'?back:()=>back;
   xs=xs?.[n]||{2:[xmin,xmax],4:[xmin,xmin+0.4,xmax-0.4,xmax],6:[xmin,xmin+0.4,-0.22,0.22,xmax-0.4,xmax]}[n];
   const SF=seatFront==null?null:typeof seatFront==='function'?seatFront:()=>seatFront, T=H*0.42;
   const zBack=p=>B(p.position.x)+off+p.userData.front, zFront=p=>SF(p.position.x)-H/2-0.02;
-  const TH=H*(shape==='square'?0.34:0.42);
+  const TH=H*(shape==='square'?0.34:0.42), TH0=TH;
   let S2=null;
   if(solids){ g.updateMatrixWorld(true); const rc=new THREE.Raycaster(), o=new THREE.Vector3(), dv=new THREE.Vector3();
+    new Set([...solids.back,...solids.seat]).forEach(m=>fastPick(m));   // شبکه پرتو: چند هزار پرتو روی اسکن پرمثلث بدون کندی
     const cast=(ox,oy,oz,dx,dy,dz,list)=>{ g.localToWorld(o.set(ox,oy,oz)); dv.set(dx,dy,dz).transformDirection(g.matrixWorld); rc.set(o,dv); rc.far=3; const hh=rc.intersectObjects(list,false)[0]; return hh?g.worldToLocal(hh.point.clone()):null; };
     const NXt=111, X0=-1.1, DX=0.02, NZt=26, Z0=-0.45, DZ=0.04, yP=seat+0.2;
     const bk=new Float32Array(NXt), st=new Float32Array(NXt*NZt);
@@ -70,7 +74,7 @@ export function addPillows(g,count,{xmin=-0.9,xmax=0.9,back=-0.62,seat=0.47,size
     S2={ back:x=>lin(bk,(x-X0)/DX), seat:(x,z)=>{ const u=Math.max(0,Math.min(NXt-1.001,(x-X0)/DX)), w=Math.max(0,Math.min(NZt-1.001,(z-Z0)/DZ)), i=u|0, j=w|0, a=u-i, b=w-j;
         const v=(ii,jj)=>st[ii*NZt+jj]; return (v(i,j)*(1-a)+v(i+1,j)*a)*(1-b)+(v(i,j+1)*(1-a)+v(i+1,j+1)*a)*b; },
       armL:armL?armL.x:-9, armR:armR?armR.x:9 }; }
-  const place=(p)=>{ const u=p.userData, t=u.t||0, e=t*t*(3-2*t);
+  const place=(p)=>{ const u=p.userData, t=u.t||0, e=t*t*(3-2*t), H=u.H||H0, TH=u.TH||TH0, size=u.W||size0;
     if(S2){ // روی سطح واقعی: تکیه به پشتی، نشسته روی تشک، داخل دسته‌ها
       for(let it=0;it<2;it++){ const x=p.position.x, yaw=-Math.atan((S2.back(x+0.02)-S2.back(x-0.02))/0.04)+u.yaw*(1-e);
         const half=0.5*(size*Math.abs(Math.cos(yaw))+TH*Math.abs(Math.sin(yaw)))+0.01;
@@ -94,9 +98,11 @@ export function addPillows(g,count,{xmin=-0.9,xmax=0.9,back=-0.62,seat=0.47,size
       let nx=o.position.x+sgn*GX; if(nx<lo||nx>hi) nx=o.position.x-sgn*GX; p.position.x=Math.max(lo,Math.min(hi,nx)); place(p); }
     if(hits(p).length&&u.lastX!=null){ p.position.x=u.lastX; u.t=u.lastT; place(p); }
     u.lastX=p.position.x; u.lastT=u.t; };
-  xs.forEach(x=>{ const p=pillowMesh(size,H,TH,shape); p.name='pillow';
+  const KD=kinds?.[n];
+  xs.forEach((x,i)=>{ const kd=KD?.[i]||{}; const p=pillowMesh(kd.w||size,kd.h||H,(kd.h||H)*(shape==='square'?0.34:0.42),shape,kd.mat||'pillows'); p.name='pillow';
+    if(kd.h){ p.userData.H=kd.h; p.userData.TH=kd.h*(shape==='square'?0.34:0.42); } if(kd.w) p.userData.W=kd.w;
     const end=Math.abs(x)>Math.max(Math.abs(xmin),Math.abs(xmax))-0.05;
-    p.userData.front=end?0:inner; p.userData.yaw=end?-Math.sign(x)*(S2?0.55:0.35):Math.sign(x)*0.12; p.userData.roll=end?Math.sign(x)*0.06:-Math.sign(x)*0.04;
+    p.userData.front=(end?0:inner)+(kd.front||0); p.userData.yaw=end?-Math.sign(x)*(S2?0.55:0.35):Math.sign(x)*0.12; p.userData.roll=end?Math.sign(x)*0.06:-Math.sign(x)*0.04;
     p.position.x=x; place(p);
     p.userData.drag=SF?{axis:'xz',min:lo,max:hi,follow,depth,setDepth}:{axis:'x',min:lo,max:hi,follow};
     g.add(p); });
